@@ -151,8 +151,8 @@ LABEL_22:
   goto LABEL_22;
 }
 
-/* ===== sub_94020264 @ 0x94020264 size 128 ===== */
-void __noreturn sub_94020264()
+/* ===== secondary_cpu_entry @ 0x94020264 size 128 ===== */
+void __noreturn secondary_cpu_entry()
 {
   __int64 v0; // x19
   __int64 v5; // x9
@@ -171,20 +171,20 @@ void __noreturn sub_94020264()
       *(_QWORD *)v5 = 0;
       v5 += 8;
     }
-    sub_940235C0();
+    bootstrap();
   }
   if ( (unsigned __int8)v0 < 4uLL )
   {
     v7 = (unsigned __int8)v0 | ((v0 & 0xFFFFFFFFFFFFFF00LL) >> 6);
     if ( v7 < 4 )
-      sub_94022500(v7);
+      secondary_cpu_start(v7);
   }
   while ( 1 )
     __wfe();
 }
 
-/* ===== sub_94022000 @ 0x94022000 size 88 ===== */
-__int64 __fastcall sub_94022000(__int64 result)
+/* ===== uart_putc @ 0x94022000 size 88 ===== */
+__int64 __fastcall uart_putc(__int64 result)
 {
   result = (unsigned __int8)result;
   if ( (unsigned __int8)result == 10 )
@@ -199,15 +199,15 @@ __int64 __fastcall sub_94022000(__int64 result)
   return result;
 }
 
-/* ===== sub_94022058 @ 0x94022058 size 156 ===== */
-__int64 __fastcall sub_94022058(_BYTE *a1, char a2)
+/* ===== uart_getc @ 0x94022058 size 156 ===== */
+__int64 __fastcall uart_getc(_BYTE *a1, char a2)
 {
   unsigned int v3; // w1
 
   if ( a2 != 0 )
   {
     while ( (MEMORY[0xFFFFFFFFFF10000C] & 0x10) != 0 )
-      sub_94025F90();
+      thread_yield();
     v3 = 0;
     *a1 = MEMORY[0xFFFFFFFFFF100000];
     return v3;
@@ -218,8 +218,8 @@ __int64 __fastcall sub_94022058(_BYTE *a1, char a2)
   return 0;
 }
 
-/* ===== sub_940220F4 @ 0x940220F4 size 332 ===== */
-__int64 sub_940220F4()
+/* ===== gic_init @ 0x940220F4 size 332 ===== */
+__int64 gic_init()
 {
   __int64 v0; // x24
   __int64 v1; // x23
@@ -227,33 +227,33 @@ __int64 sub_940220F4()
   int v3; // w2
   __int64 v5; // [xsp+48h] [xbp+48h] BYREF
 
-  v0 = sub_94022304(-50331647, 1, 0, 0);
-  v1 = sub_94022304(-50331647, 0, 0, 0);
+  v0 = smc_call(-50331647, 1, 0, 0);
+  v1 = smc_call(-50331647, 0, 0, 0);
   if ( MEMORY[0xFFFFFFFFE003CB98] > 0 )
-    sub_9404B2FC("gicc 0x%lx, gicd 0x%lx\n", v0, v1);
+    log_printf("gicc 0x%lx, gicd 0x%lx\n", v0, v1);
   v5 = -65536;
-  v2 = sub_9404A878(-536460256, "gic", 4096, &v5, 0, v0, 1, 2);
+  v2 = vmm_map(-536460256, "gic", 4096, &v5, 0, v0, 1, 2);
   if ( v2 != 0 && (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-    sub_9404B2FC("%s: failed %d\n", "generic_arm64_map_regs", v2);
+    log_printf("%s: failed %d\n", "generic_arm64_map_regs", v2);
   v5 = -61440;
-  v3 = sub_9404A878(-536460256, "gic", 4096, &v5, 0, v1, 1, 2);
+  v3 = vmm_map(-536460256, "gic", 4096, &v5, 0, v1, 1, 2);
   if ( v3 != 0 && (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-    sub_9404B2FC("%s: failed %d\n", "generic_arm64_map_regs", v3);
-  sub_94023D9C();
-  return sub_94024B9C(29, 0);
+    log_printf("%s: failed %d\n", "generic_arm64_map_regs", v3);
+  gic_dist_enable();
+  return arm_generic_timer_init(29, 0);
 }
 
-/* ===== sub_94022240 @ 0x94022240 size 196 ===== */
+/* ===== platform_early_init @ 0x94022240 size 196 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 sub_94022240()
+__int64 platform_early_init()
 {
   __int64 v0; // x20
   __int64 (__fastcall *v1)(); // x2
 
   v0 = -536633344;
-  if ( (MEMORY[0xFFFFFFFFE003A018] & 8) != 0 && (unsigned int)sub_9404CED8(MEMORY[0xFFFFFFFFE003A020], -536682352) == 0 )
+  if ( (MEMORY[0xFFFFFFFFE003A018] & 8) != 0 && (unsigned int)strcmp(MEMORY[0xFFFFFFFFE003A020], -536682352) == 0 )
     goto LABEL_8;
-  if ( (MEMORY[0xFFFFFFFFE003A040] & 8) != 0 && (unsigned int)sub_9404CED8(MEMORY[0xFFFFFFFFE003A048], -536682352) == 0 )
+  if ( (MEMORY[0xFFFFFFFFE003A040] & 8) != 0 && (unsigned int)strcmp(MEMORY[0xFFFFFFFFE003A048], -536682352) == 0 )
   {
     v0 = -536633304;
 LABEL_8:
@@ -261,25 +261,25 @@ LABEL_8:
     qword_9405A0A0 = *(_QWORD *)(v0 + 16);
     off_9405A098 = v1;
     dword_9405A090 = 1;
-    return sub_94049900(qword_9405A078);
+    return pmm_add_arena(qword_9405A078);
   }
   if ( (MEMORY[0xFFFFFFFFE003A068] & 8) != 0 )
   {
     v0 = -536633264;
-    if ( (unsigned int)sub_9404CED8(MEMORY[0xFFFFFFFFE003A070], -536682352) == 0 )
+    if ( (unsigned int)strcmp(MEMORY[0xFFFFFFFFE003A070], -536682352) == 0 )
       goto LABEL_8;
   }
-  return sub_94049900(qword_9405A078);
+  return pmm_add_arena(qword_9405A078);
 }
 
-/* ===== sub_94022304 @ 0x94022304 size 8 ===== */
-void sub_94022304()
+/* ===== smc_call @ 0x94022304 size 8 ===== */
+void smc_call()
 {
   __asm { SMC             #0 }
 }
 
-/* ===== sub_9402230C @ 0x9402230C size 72 ===== */
-_QWORD *__fastcall sub_9402230C(_QWORD *result)
+/* ===== get_stack_frame @ 0x9402230C size 72 ===== */
+_QWORD *__fastcall get_stack_frame(_QWORD *result)
 {
   __int64 v1; // [xsp+0h] [xbp-68h] BYREF
 
@@ -287,8 +287,8 @@ _QWORD *__fastcall sub_9402230C(_QWORD *result)
   return result;
 }
 
-/* ===== sub_94022354 @ 0x94022354 size 68 ===== */
-void __fastcall __noreturn sub_94022354(
+/* ===== el3_to_el1_entry @ 0x94022354 size 68 ===== */
+void __fastcall __noreturn el3_to_el1_entry(
         __int64 a1,
         __int64 a2,
         __int64 a3,
@@ -316,8 +316,8 @@ void nullsub_1()
   ;
 }
 
-/* ===== sub_9402239C @ 0x9402239C size 24 ===== */
-unsigned __int64 __fastcall sub_9402239C(unsigned __int64 *a1)
+/* ===== spin_trylock @ 0x9402239C size 24 ===== */
+unsigned __int64 __fastcall spin_trylock(unsigned __int64 *a1)
 {
   unsigned __int64 result; // x0
 
@@ -327,8 +327,8 @@ unsigned __int64 __fastcall sub_9402239C(unsigned __int64 *a1)
   return result;
 }
 
-/* ===== sub_940223B4 @ 0x940223B4 size 32 ===== */
-unsigned __int64 *__fastcall sub_940223B4(unsigned __int64 *result)
+/* ===== spin_lock @ 0x940223B4 size 32 ===== */
+unsigned __int64 *__fastcall spin_lock(unsigned __int64 *result)
 {
   unsigned __int64 v1; // x2
 
@@ -346,15 +346,15 @@ unsigned __int64 *__fastcall sub_940223B4(unsigned __int64 *result)
   return result;
 }
 
-/* ===== sub_940223D4 @ 0x940223D4 size 8 ===== */
-unsigned __int64 *__fastcall sub_940223D4(unsigned __int64 *result)
+/* ===== spin_unlock @ 0x940223D4 size 8 ===== */
+unsigned __int64 *__fastcall spin_unlock(unsigned __int64 *result)
 {
   atomic_store(0, result);
   return result;
 }
 
-/* ===== sub_940223FC @ 0x940223FC size 32 ===== */
-__int64 __fastcall sub_940223FC(__int64 result, __int64 a2)
+/* ===== dcache_clean_range @ 0x940223FC size 32 ===== */
+__int64 __fastcall dcache_clean_range(__int64 result, __int64 a2)
 {
   unsigned __int64 v2; // x3
 
@@ -369,8 +369,8 @@ __int64 __fastcall sub_940223FC(__int64 result, __int64 a2)
   return result;
 }
 
-/* ===== sub_9402241C @ 0x9402241C size 32 ===== */
-__int64 __fastcall sub_9402241C(__int64 result, __int64 a2)
+/* ===== dcache_invalidate_range @ 0x9402241C size 32 ===== */
+__int64 __fastcall dcache_invalidate_range(__int64 result, __int64 a2)
 {
   unsigned __int64 v2; // x3
 
@@ -385,8 +385,8 @@ __int64 __fastcall sub_9402241C(__int64 result, __int64 a2)
   return result;
 }
 
-/* ===== sub_9402243C @ 0x9402243C size 60 ===== */
-__int64 __fastcall sub_9402243C(__int64 result, __int64 a2)
+/* ===== dcache_clean_invalidate_range @ 0x9402243C size 60 ===== */
+__int64 __fastcall dcache_clean_invalidate_range(__int64 result, __int64 a2)
 {
   unsigned __int64 v2; // x3
   unsigned __int64 v7; // x3
@@ -410,8 +410,8 @@ __int64 __fastcall sub_9402243C(__int64 result, __int64 a2)
   return result;
 }
 
-/* ===== sub_94022478 @ 0x94022478 size 56 ===== */
-__int64 __fastcall sub_94022478(
+/* ===== arch_early_init @ 0x94022478 size 56 ===== */
+__int64 __fastcall arch_early_init(
         __int64 a1,
         __int64 a2,
         __int64 a3,
@@ -428,22 +428,22 @@ __int64 __fastcall sub_94022478(
   __isb(0xFu);
   v8 = _ReadStatusReg(CurrentEL) >> 2;
   if ( (unsigned int)v8 > 1 )
-    sub_94022354(v8, a2, a3, a4, a5, a6, a7, a8, vars0);
+    el3_to_el1_entry(v8, a2, a3, a4, a5, a6, a7, a8, vars0);
   __asm { MSR             DAIFClr, #1 }
-  return sub_94022240();
+  return platform_early_init();
 }
 
-/* ===== sub_940224B0 @ 0x940224B0 size 72 ===== */
+/* ===== platform_init_secondary @ 0x940224B0 size 72 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 *sub_940224B0()
+__int64 *platform_init_secondary()
 {
   unsigned __int64 v0; // x3
   __int64 *result; // x0
 
   nullsub_2();
   dword_94062000 = 3;
-  sub_94023828(0);
-  sub_940223D4((unsigned __int64 *)&qword_9405A0D0);
+  smp_init(0);
+  spin_unlock((unsigned __int64 *)&qword_9405A0D0);
   result = &qword_9405A0D0;
   v0 = (unsigned __int64)&qword_9405A0D0 & 0xFFFFFFFFFFFFFFE0LL;
   do
@@ -456,14 +456,14 @@ __int64 *sub_940224B0()
   return result;
 }
 
-/* ===== sub_940224F8 @ 0x940224F8 size 8 ===== */
-void sub_940224F8()
+/* ===== wfi @ 0x940224F8 size 8 ===== */
+void wfi()
 {
   __wfi();
 }
 
-/* ===== sub_94022500 @ 0x94022500 size 188 ===== */
-__int64 __fastcall sub_94022500(
+/* ===== secondary_cpu_start @ 0x94022500 size 188 ===== */
+__int64 __fastcall secondary_cpu_start(
         __int64 result,
         __int64 a2,
         __int64 a3,
@@ -494,39 +494,39 @@ __int64 __fastcall sub_94022500(
     __isb(0xFu);
     v12 = _ReadStatusReg(CurrentEL) >> 2;
     if ( (unsigned int)v12 > 1 )
-      sub_94022354(v12, v11, v10, v9, a5, a6, a7, a8, v20);
+      el3_to_el1_entry(v12, v11, v10, v9, a5, a6, a7, a8, v20);
     __asm { MSR             DAIFClr, #1 }
-    sub_940223B4((unsigned __int64 *)&qword_9405A0D0);
-    sub_940223D4((unsigned __int64 *)&qword_9405A0D0);
-    v18 = sub_94023388(2, 1, 458751);
+    spin_lock((unsigned __int64 *)&qword_9405A0D0);
+    spin_unlock((unsigned __int64 *)&qword_9405A0D0);
+    v18 = call_init_hooks(2, 1, 458751);
     nullsub_2(v18);
     do
       v19 = __ldxr((unsigned int *)&dword_94062000);
     while ( __stxr(v19 - 1, (unsigned int *)&dword_94062000) != 0 );
     __sev();
-    return sub_9402377C(&dword_94062000);
+    return secondary_cpu_main(&dword_94062000);
   }
   return result;
 }
 
-/* ===== sub_940225BC @ 0x940225BC size 296 ===== */
-__int64 __fastcall sub_940225BC(_QWORD *a1)
+/* ===== dump_iframe @ 0x940225BC size 296 ===== */
+__int64 __fastcall dump_iframe(_QWORD *a1)
 {
-  sub_9404CB4C("iframe %p:\n", a1);
-  sub_9404CB4C("x0  0x%16llx x1  0x%16llx x2  0x%16llx x3  0x%16llx\n", *a1, a1[1], a1[2], a1[3]);
-  sub_9404CB4C("x4  0x%16llx x5  0x%16llx x6  0x%16llx x7  0x%16llx\n", a1[4], a1[5], a1[6], a1[7]);
-  sub_9404CB4C("x8  0x%16llx x9  0x%16llx x10 0x%16llx x11 0x%16llx\n", a1[8], a1[9], a1[10], a1[11]);
-  sub_9404CB4C("x12 0x%16llx x13 0x%16llx x14 0x%16llx x15 0x%16llx\n", a1[12], a1[13], a1[14], a1[15]);
-  sub_9404CB4C("x16 0x%16llx x17 0x%16llx x18 0x%16llx x19 0x%16llx\n", a1[16], a1[17], a1[18], a1[19]);
-  sub_9404CB4C("x20 0x%16llx x21 0x%16llx x22 0x%16llx x23 0x%16llx\n", a1[20], a1[21], a1[22], a1[23]);
-  sub_9404CB4C("x24 0x%16llx x25 0x%16llx x26 0x%16llx x27 0x%16llx\n", a1[24], a1[25], a1[26], a1[27]);
-  sub_9404CB4C("x28 0x%16llx x29 0x%16llx lr  0x%16llx sp  0x%16llx\n", a1[28], a1[29], a1[30], a1[31]);
-  sub_9404CB4C("elr 0x%16llx\n", a1[32]);
-  return sub_9404CB4C((const char *)sub_9404E298, a1[33]);
+  printf("iframe %p:\n", a1);
+  printf("x0  0x%16llx x1  0x%16llx x2  0x%16llx x3  0x%16llx\n", *a1, a1[1], a1[2], a1[3]);
+  printf("x4  0x%16llx x5  0x%16llx x6  0x%16llx x7  0x%16llx\n", a1[4], a1[5], a1[6], a1[7]);
+  printf("x8  0x%16llx x9  0x%16llx x10 0x%16llx x11 0x%16llx\n", a1[8], a1[9], a1[10], a1[11]);
+  printf("x12 0x%16llx x13 0x%16llx x14 0x%16llx x15 0x%16llx\n", a1[12], a1[13], a1[14], a1[15]);
+  printf("x16 0x%16llx x17 0x%16llx x18 0x%16llx x19 0x%16llx\n", a1[16], a1[17], a1[18], a1[19]);
+  printf("x20 0x%16llx x21 0x%16llx x22 0x%16llx x23 0x%16llx\n", a1[20], a1[21], a1[22], a1[23]);
+  printf("x24 0x%16llx x25 0x%16llx x26 0x%16llx x27 0x%16llx\n", a1[24], a1[25], a1[26], a1[27]);
+  printf("x28 0x%16llx x29 0x%16llx lr  0x%16llx sp  0x%16llx\n", a1[28], a1[29], a1[30], a1[31]);
+  printf("elr 0x%16llx\n", a1[32]);
+  return printf((const char *)invalid_exception_stub, a1[33]);
 }
 
-/* ===== sub_940226E4 @ 0x940226E4 size 332 ===== */
-long double __fastcall sub_940226E4(_QWORD *a1)
+/* ===== sync_exception_handler @ 0x940226E4 size 332 ===== */
+long double __fastcall sync_exception_handler(_QWORD *a1)
 {
   unsigned int StatusReg; // w20
   unsigned int v3; // w19
@@ -549,7 +549,7 @@ long double __fastcall sub_940226E4(_QWORD *a1)
   if ( ((StatusReg >> 26) & 0xFFFFFFFB) == 0x11 )
   {
     __asm { MSR             DAIFClr, #1 }
-    sub_9404D188();
+    syscall_dispatch();
     __asm { MSR             DAIFSet, #1 }
     return result;
   }
@@ -571,9 +571,9 @@ long double __fastcall sub_940226E4(_QWORD *a1)
     if ( *v8 == v5 )
       goto LABEL_11;
   }
-  sub_9404CB4C("sync_exception\n");
-  sub_940225BC(a1);
-  sub_9404CB4C(
+  printf("sync_exception\n");
+  dump_iframe(a1);
+  printf(
     "ESR 0x%x: ec 0x%x, il 0x%x, iss 0x%x\n",
     StatusReg,
     v3,
@@ -581,12 +581,12 @@ long double __fastcall sub_940226E4(_QWORD *a1)
     StatusReg & 0xFFFFFF);
   if ( v3 == 21 )
   {
-    sub_9404CB4C("syscall\n");
+    printf("syscall\n");
     return result;
   }
   if ( (a1[33] & 0xFLL) != 0 )
   {
-    sub_94028A08(0, 9);
+    halt(0, 9);
 LABEL_16:
     v16 = _ReadStatusReg(CPACR_EL1);
     if ( ((v16 >> 20) & 3) != 3 )
@@ -612,7 +612,7 @@ LABEL_16:
     }
     return result;
   }
-  v4 = sub_94028A08(3, 9);
+  v4 = halt(3, 9);
 LABEL_10:
   v8 = (_QWORD *)v4;
 LABEL_11:
@@ -620,21 +620,21 @@ LABEL_11:
   return result;
 }
 
-/* ===== sub_94022830 @ 0x94022830 size 72 ===== */
-__int64 __fastcall sub_94022830(_QWORD *a1, int a2)
+/* ===== invalid_exception_handler @ 0x94022830 size 72 ===== */
+__int64 __fastcall invalid_exception_handler(_QWORD *a1, int a2)
 {
   __int64 v3; // x0
 
-  sub_9404CB4C("invalid exception, which 0x%x\n", a2);
-  sub_940225BC(a1);
+  printf("invalid exception, which 0x%x\n", a2);
+  dump_iframe(a1);
   if ( (a1[33] & 0xFLL) == 0 )
-    sub_94028A08(3, 9);
-  v3 = sub_94028A08(0, 9);
-  return sub_94022878(v3);
+    halt(3, 9);
+  v3 = halt(0, 9);
+  return save_fpu_state(v3);
 }
 
-/* ===== sub_94022878 @ 0x94022878 size 88 ===== */
-__int64 __fastcall sub_94022878(
+/* ===== save_fpu_state @ 0x94022878 size 88 ===== */
+__int64 __fastcall save_fpu_state(
         __int64 a1,
         long double a2,
         long double a3,
@@ -713,35 +713,35 @@ __int64 __fastcall sub_94022878(
   return result;
 }
 
-/* ===== sub_94022998 @ 0x94022998 size 48 ===== */
-__int64 sub_94022998()
+/* ===== thread_trampoline @ 0x94022998 size 48 ===== */
+__int64 thread_trampoline()
 {
   unsigned __int64 StatusReg; // x19
   __int64 v6; // x0
   __int64 v7; // x0
 
   StatusReg = _ReadStatusReg(TPIDR_EL1);
-  sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+  spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
   __asm { MSR             DAIFClr, #2 }
   v6 = (*(__int64 (__fastcall **)(_QWORD))(StatusReg + 632))(*(_QWORD *)(StatusReg + 640));
-  v7 = sub_9402753C(v6);
-  return sub_940229C8(v7);
+  v7 = thread_exit(v6);
+  return thread_setup_stack(v7);
 }
 
-/* ===== sub_940229C8 @ 0x940229C8 size 88 ===== */
-__int64 (*__fastcall sub_940229C8(_QWORD *a1))()
+/* ===== thread_setup_stack @ 0x940229C8 size 88 ===== */
+__int64 (*__fastcall thread_setup_stack(_QWORD *a1))()
 {
   unsigned __int64 v2; // x19
 
   v2 = (a1[77] + a1[78]) & 0xFFFFFFFFFFFFFFF0LL;
-  sub_9404CDC4(v2 - 104, 0, 104);
-  *(_QWORD *)(v2 - 104) = sub_94022998;
+  memset(v2 - 104, 0, 104);
+  *(_QWORD *)(v2 - 104) = thread_trampoline;
   a1[10] = v2 - 104;
-  return sub_94022998;
+  return thread_trampoline;
 }
 
-/* ===== sub_94022A20 @ 0x94022A20 size 76 ===== */
-_QWORD *__fastcall sub_94022A20(
+/* ===== arch_context_switch @ 0x94022A20 size 76 ===== */
+_QWORD *__fastcall arch_context_switch(
         __int64 a1,
         long double a2,
         long double a3,
@@ -757,12 +757,12 @@ _QWORD *__fastcall sub_94022A20(
   StatusReg = _ReadStatusReg(CPACR_EL1);
   if ( ((StatusReg >> 20) & 3) != 0 )
   {
-    sub_94022878(a1, a2, a3, a4, a5, a6, a7, a8, a9);
+    save_fpu_state(a1, a2, a3, a4, a5, a6, a7, a8, a9);
     _WriteStatusReg(CPACR_EL1, StatusReg & 0xFFCFFFFF);
     __isb(0xFu);
   }
   __dsb(0xFu);
-  return sub_9402230C((_QWORD *)(a1 + 80));
+  return get_stack_frame((_QWORD *)(a1 + 80));
 }
 
 /* ===== nullsub_2 @ 0x94022A6C size 4 ===== */
@@ -771,8 +771,8 @@ void nullsub_2()
   ;
 }
 
-/* ===== sub_94022A70 @ 0x94022A70 size 504 ===== */
-__int64 __fastcall sub_94022A70(
+/* ===== arch_mmu_unmap_range @ 0x94022A70 size 504 ===== */
+__int64 __fastcall arch_mmu_unmap_range(
         __int64 result,
         unsigned __int64 a2,
         unsigned __int64 a3,
@@ -836,8 +836,8 @@ __int64 __fastcall sub_94022A70(
       v26 = a6;
       v27 = v14;
       v24 = result & 0xFFFFFFFFF000LL;
-      v28 = (__int64 *)sub_9404A1F0();
-      sub_94022A70(v9, a2 & v15, v17, 3 - a5 + a4, a5, v28, (unsigned int)v13);
+      v28 = (__int64 *)pmm_virt_to_phys();
+      arch_mmu_unmap_range(v9, a2 & v15, v17, 3 - a5 + a4, a5, v28, (unsigned int)v13);
       v14 = v27;
       a6 = v26;
       if ( v17 != v27 && v30 > 0 )
@@ -858,18 +858,18 @@ __int64 __fastcall sub_94022A70(
       __dmb(0xAu);
       if ( v29 <= 0xFFF )
       {
-        result = sub_9404BBD0(v28);
+        result = heap_free(v28);
         v14 = v27;
         a6 = v26;
       }
       else
       {
-        if ( sub_9404989C(v24) == 0 )
+        if ( pmm_query_page(v24) == 0 )
         {
-          v23 = sub_9404B508(v25, "bad page table paddr 0x%lx\n", v24);
-          return sub_94022C68(v23);
+          v23 = panic(v25, "bad page table paddr 0x%lx\n", v24);
+          return arch_mmu_query(v23);
         }
-        result = sub_94049D74();
+        result = pmm_free_page_list_init();
         v14 = v27;
         a6 = v26;
       }
@@ -883,8 +883,8 @@ LABEL_11:
   return result;
 }
 
-/* ===== sub_94022C68 @ 0x94022C68 size 424 ===== */
-__int64 __fastcall sub_94022C68(unsigned __int64 a1, _QWORD *a2, int *a3)
+/* ===== arch_mmu_query @ 0x94022C68 size 424 ===== */
+__int64 __fastcall arch_mmu_query(unsigned __int64 a1, _QWORD *a2, int *a3)
 {
   __int64 v3; // x30
   __int64 v4; // x20
@@ -901,7 +901,7 @@ __int64 __fastcall sub_94022C68(unsigned __int64 a1, _QWORD *a2, int *a3)
   v4 = v3;
   if ( a1 <= 0xFFFFFFFFDFFFFFFFLL )
   {
-    sub_9404CB4C("%s:%d: vaddr 0x%lx < base 0x%lx\n", "arch_mmu_query", 104, a1, -536870912);
+    printf("%s:%d: vaddr 0x%lx < base 0x%lx\n", "arch_mmu_query", 104, a1, -536870912);
     return 4294967288LL;
   }
   v7 = (a1 + 0x20000000) >> 21;
@@ -916,10 +916,10 @@ __int64 __fastcall sub_94022C68(unsigned __int64 a1, _QWORD *a2, int *a3)
     if ( v10 != 3 )
     {
 LABEL_7:
-      sub_9404B508(v4, "%s unimplemented\n", "arch_mmu_query");
+      panic(v4, "%s unimplemented\n", "arch_mmu_query");
       return 4294967294LL;
     }
-    v12 = sub_9404A1F0(v11);
+    v12 = pmm_virt_to_phys(v11);
     v13 = (unsigned int)(v8 >> 12);
     v9 = *(_QWORD *)(v12 + 8 * v13);
     if ( (v9 & 3) != 0 )
@@ -975,8 +975,8 @@ LABEL_11:
   return 4294967294LL;
 }
 
-/* ===== sub_94022E10 @ 0x94022E10 size 772 ===== */
-__int64 __fastcall sub_94022E10(
+/* ===== arm64_mmu_map_pt @ 0x94022E10 size 772 ===== */
+__int64 __fastcall arm64_mmu_map_pt(
         __int64 a1,
         unsigned __int64 a2,
         __int64 a3,
@@ -1018,7 +1018,7 @@ __int64 __fastcall sub_94022E10(
 
   if ( ((a3 | a4 | a2) & ((1LL << a7) - 1)) != 0 )
   {
-    sub_9404CB4C("%s:%d: not page aligned\n", "arm64_mmu_map_pt", 363);
+    printf("%s:%d: not page aligned\n", "arm64_mmu_map_pt", 363);
     return 4294967288LL;
   }
   if ( a4 == 0 )
@@ -1048,50 +1048,50 @@ __int64 __fastcall sub_94022E10(
       goto LABEL_24;
     if ( (v22 & 3) != 3 )
     {
-      sub_9404B508(v35, "%s unimplemented\n", (const char *)&loc_9404E478);
+      panic(v35, "%s unimplemented\n", (const char *)&loc_9404E478);
 LABEL_24:
       if ( v40 > 0xFFF )
       {
         v33 = v18;
-        v28 = sub_94049DA4(v34, a7, &v44, 0);
+        v28 = pmm_alloc_pages(v34, a7, &v44, 0);
         v27 = v33;
         if ( v34 != v28 )
         {
 LABEL_29:
           v24 = a6;
 LABEL_31:
-          sub_9404CB4C("%s:%d: failed to allocate page table\n", (const char *)&loc_9404E478, 237);
+          printf("%s:%d: failed to allocate page table\n", (const char *)&loc_9404E478, 237);
           goto LABEL_22;
         }
       }
       else
       {
         v29 = v18;
-        v25 = sub_9404B8D0(v36, v40);
+        v25 = heap_alloc_aligned(v36, v40);
         v31 = v25;
         if ( v25 == 0 )
           goto LABEL_29;
-        v26 = sub_94022C68(v25, &v44, nullptr);
+        v26 = arch_mmu_query(v25, &v44, nullptr);
         v27 = v29;
         if ( v26 != 0 )
         {
           v24 = a6;
-          sub_9404BBD0(v31);
+          heap_free(v31);
           goto LABEL_31;
         }
       }
       v30 = v27;
-      v32 = sub_9404A1F0(v44);
-      sub_9404CDC4(v32, 0, v36);
+      v32 = pmm_virt_to_phys(v44);
+      memset(v32, 0, v36);
       __dmb(0xAu);
       v23 = v32;
       *(_QWORD *)(a8 + 8 * v30) = v44 | 3;
       goto LABEL_19;
     }
     v44 = v22 & 0xFFFFFFFFF000LL;
-    v23 = sub_9404A1F0(v22 & 0xFFFFFFFFF000LL);
+    v23 = pmm_virt_to_phys(v22 & 0xFFFFFFFFF000LL);
 LABEL_19:
-    if ( v23 == 0 || (unsigned int)sub_94022E10(v12, v13 & v15, v14, v17, a5, v41, a7) != 0 )
+    if ( v23 == 0 || (unsigned int)arm64_mmu_map_pt(v12, v13 & v15, v14, v17, a5, v41, a7) != 0 )
     {
 LABEL_21:
       v24 = a6;
@@ -1115,15 +1115,15 @@ LABEL_13:
     goto LABEL_13;
   }
   v24 = a6;
-  sub_9404CB4C("%s:%d: page table entry already in use, index 0x%lx, 0x%llx\n", "arm64_mmu_map_pt", 391, v13 >> a6, v19);
+  printf("%s:%d: page table entry already in use, index 0x%lx, 0x%llx\n", "arm64_mmu_map_pt", 391, v13 >> a6, v19);
 LABEL_22:
-  sub_94022A70(a1, a2, a4 - v11, v24, a7, a8, a9);
+  arch_mmu_unmap_range(a1, a2, a4 - v11, v24, a7, a8, a9);
   __dsb(0xFu);
   return 0xFFFFFFFFLL;
 }
 
-/* ===== sub_94023114 @ 0x94023114 size 204 ===== */
-__int64 __fastcall sub_94023114(
+/* ===== arm64_mmu_map @ 0x94023114 size 204 ===== */
+__int64 __fastcall arm64_mmu_map(
         __int64 a1,
         __int64 a2,
         unsigned __int64 a3,
@@ -1141,7 +1141,7 @@ __int64 __fastcall sub_94023114(
   v10 = 1LL << a6;
   if ( a1 - a5 > (1LL << a6) - a3 || v10 < a3 )
   {
-    sub_9404CB4C(
+    printf(
       "%s:%d: vaddr 0x%lx, size 0x%lx out of range vaddr 0x%lx, size 0x%lx\n",
       "arm64_mmu_map",
       433,
@@ -1153,19 +1153,19 @@ __int64 __fastcall sub_94023114(
   }
   else if ( a9 != 0 )
   {
-    result = sub_94022E10(a1, a1 - a5, a2, a3, a4, a7, a8, a9, a10);
+    result = arm64_mmu_map_pt(a1, a1 - a5, a2, a3, a4, a7, a8, a9, a10);
     __dsb(0xFu);
   }
   else
   {
-    sub_9404CB4C("%s:%d: page table is NULL\n", "arm64_mmu_map", 438);
+    printf("%s:%d: page table is NULL\n", "arm64_mmu_map", 438);
     return 4294967288LL;
   }
   return result;
 }
 
-/* ===== sub_940231E0 @ 0x940231E0 size 176 ===== */
-__int64 __fastcall sub_940231E0(
+/* ===== arm64_mmu_unmap @ 0x940231E0 size 176 ===== */
+__int64 __fastcall arm64_mmu_unmap(
         __int64 a1,
         unsigned __int64 a2,
         __int64 a3,
@@ -1180,7 +1180,7 @@ __int64 __fastcall sub_940231E0(
   v8 = 1LL << a4;
   if ( a1 - a3 > (1LL << a4) - a2 || v8 < a2 )
   {
-    sub_9404CB4C(
+    printf(
       "%s:%d: vaddr 0x%lx, size 0x%lx out of range vaddr 0x%lx, size 0x%lx\n",
       (const char *)&loc_9404E4B8,
       460,
@@ -1192,19 +1192,19 @@ __int64 __fastcall sub_940231E0(
   }
   else if ( a7 != 0 )
   {
-    sub_94022A70(a1, a1 - a3, a2, a5, a6, a7, a8);
+    arch_mmu_unmap_range(a1, a1 - a3, a2, a5, a6, a7, a8);
     __dsb(0xFu);
     return 0;
   }
   else
   {
-    sub_9404CB4C("%s:%d: page table is NULL\n", (const char *)&loc_9404E4B8, 465);
+    printf("%s:%d: page table is NULL\n", (const char *)&loc_9404E4B8, 465);
     return 4294967288LL;
   }
 }
 
-/* ===== sub_94023290 @ 0x94023290 size 212 ===== */
-__int64 __fastcall sub_94023290(__int64 a1, __int64 a2, unsigned int a3, char a4)
+/* ===== arm64_mmu_map_page @ 0x94023290 size 212 ===== */
+__int64 __fastcall arm64_mmu_map_page(__int64 a1, __int64 a2, unsigned int a3, char a4)
 {
   unsigned __int64 v4; // x2
   __int64 v5; // x4
@@ -1224,7 +1224,7 @@ __int64 __fastcall sub_94023290(__int64 a1, __int64 a2, unsigned int a3, char a4
     if ( (a4 & 3) != 2 )
     {
       v9 = -8;
-      return sub_94023114(a1, a2, v4, v9, -536870912, 29, 0x15u, 0xCu, -536621056, 0xFFFFFFFF);
+      return arm64_mmu_map(a1, a2, v4, v9, -536870912, 29, 0x15u, 0xCu, -536621056, 0xFFFFFFFF);
     }
     v5 = 1028;
 LABEL_5:
@@ -1259,17 +1259,17 @@ LABEL_9:
   v9 = v5 | 0x20;
   if ( v7 )
     v9 = v5;
-  return sub_94023114(a1, a2, v4, v9, -536870912, 29, 0x15u, 0xCu, -536621056, 0xFFFFFFFF);
+  return arm64_mmu_map(a1, a2, v4, v9, -536870912, 29, 0x15u, 0xCu, -536621056, 0xFFFFFFFF);
 }
 
-/* ===== sub_94023364 @ 0x94023364 size 36 ===== */
-__int64 __fastcall sub_94023364(__int64 a1, unsigned int a2)
+/* ===== arm64_mmu_unmap_page @ 0x94023364 size 36 ===== */
+__int64 __fastcall arm64_mmu_unmap_page(__int64 a1, unsigned int a2)
 {
-  return sub_940231E0(a1, (unsigned __int64)a2 << 12, -536870912, 29, 0x15u, 0xCu, -536621056, 0xFFFFFFFF);
+  return arm64_mmu_unmap(a1, (unsigned __int64)a2 << 12, -536870912, 29, 0x15u, 0xCu, -536621056, 0xFFFFFFFF);
 }
 
-/* ===== sub_94023388 @ 0x94023388 size 532 ===== */
-__int64 __fastcall sub_94023388(int a1, unsigned int a2, unsigned int a3)
+/* ===== call_init_hooks @ 0x94023388 size 532 ===== */
+__int64 __fastcall call_init_hooks(int a1, unsigned int a2, unsigned int a3)
 {
   __int64 v3; // x30
   __int64 result; // x0
@@ -1332,38 +1332,38 @@ LABEL_17:
   }
   else
   {
-    sub_9404B508(v3, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/top/init.c", 51, "start_level > 0");
+    panic(v3, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/top/init.c", 51, "start_level > 0");
     if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-      sub_9404B2FC("top of bootstrap2()\n");
-    sub_94023388(1, 458752, 0x7FFFF);
-    sub_940224B0();
+      log_printf("top of bootstrap2()\n");
+    call_init_hooks(1, 458752, 0x7FFFF);
+    platform_init_secondary();
     if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-      sub_9404B2FC("initializing platform\n");
-    v13 = sub_94023388(1, 0x80000, 589823);
+      log_printf("initializing platform\n");
+    v13 = call_init_hooks(1, 0x80000, 589823);
     nullsub_6(v13);
     if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-      sub_9404B2FC("initializing target\n");
-    v14 = sub_94023388(1, 589824, 655359);
+      log_printf("initializing target\n");
+    v14 = call_init_hooks(1, 589824, 655359);
     nullsub_8(v14);
     if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-      sub_9404B2FC("calling apps_init()\n");
-    v15 = sub_94023388(1, 655360, 720895);
-    sub_9402396C(v15);
-    sub_94023388(1, 720896, 0xFFFFFFFFLL);
+      log_printf("calling apps_init()\n");
+    v15 = call_init_hooks(1, 655360, 720895);
+    apps_init(v15);
+    call_init_hooks(1, 720896, 0xFFFFFFFFLL);
     return 0;
   }
   return result;
 }
 
-/* ===== sub_9402359C @ 0x9402359C size 36 ===== */
-__int64 sub_9402359C()
+/* ===== secondary_bootstrap @ 0x9402359C size 36 ===== */
+__int64 secondary_bootstrap()
 {
-  sub_94023388(2, 0x70000u, 0xFFFFFFFF);
+  call_init_hooks(2, 0x70000u, 0xFFFFFFFF);
   return 0;
 }
 
-/* ===== sub_940235C0 @ 0x940235C0 size 444 ===== */
-void __fastcall __noreturn sub_940235C0(__int64 a1, __int64 a2, __int64 a3, __int64 a4)
+/* ===== bootstrap @ 0x940235C0 size 444 ===== */
+void __fastcall __noreturn bootstrap(__int64 a1, __int64 a2, __int64 a3, __int64 a4)
 {
   __int64 *v4; // x21
   __int64 v5; // x0
@@ -1387,19 +1387,19 @@ void __fastcall __noreturn sub_940235C0(__int64 a1, __int64 a2, __int64 a3, __in
   MEMORY[0xFFFFFFFFE005A020] = a1;
   MEMORY[0xFFFFFFFFE005A028] = a2;
   MEMORY[0xFFFFFFFFE005A030] = a3;
-  sub_940268E8();
-  v5 = sub_94023388(1, 1u, 0xFFFFu);
-  sub_94022478(v5, v6, v7, v8, v9, v10, v11, v12);
-  v13 = sub_94023388(1, 0x10000u, 0x1FFFFu);
+  thread_init_bootstrap();
+  v5 = call_init_hooks(1, 1u, 0xFFFFu);
+  arch_early_init(v5, v6, v7, v8, v9, v10, v11, v12);
+  v13 = call_init_hooks(1, 0x10000u, 0x1FFFFu);
   nullsub_5(v13);
-  v14 = sub_94023388(1, 0x20000u, 0x2FFFFu);
+  v14 = call_init_hooks(1, 0x20000u, 0x2FFFFu);
   nullsub_7(v14);
   if ( MEMORY[0xFFFFFFFFE003CB98] > 0 )
   {
-    sub_9404B2FC("\nwelcome to lk/MP\n\n");
+    log_printf("\nwelcome to lk/MP\n\n");
     if ( MEMORY[0xFFFFFFFFE003CB98] > 0 )
     {
-      sub_9404B2FC(
+      log_printf(
         "boot args 0x%lx 0x%lx 0x%lx 0x%lx\n",
         MEMORY[0xFFFFFFFFE005A020],
         MEMORY[0xFFFFFFFFE005A028],
@@ -1407,33 +1407,33 @@ void __fastcall __noreturn sub_940235C0(__int64 a1, __int64 a2, __int64 a3, __in
         MEMORY[0xFFFFFFFFE005A038]);
       if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
       {
-        sub_9404B2FC("calling constructors\n");
+        log_printf("calling constructors\n");
         if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-          sub_9404B2FC("initializing heap\n");
+          log_printf("initializing heap\n");
       }
     }
   }
   while ( 1 )
   {
-    v15 = sub_94023388(1, 0x30000u, 0x3FFFFu);
-    sub_9404BD38(v15);
-    v16 = sub_94023388(1, 0x40000u, 0x5FFFFu);
-    sub_9402514C(v16);
-    sub_94023388(1, 0x60000u, 0x6FFFFu);
+    v15 = call_init_hooks(1, 0x30000u, 0x3FFFFu);
+    heap_init(v15);
+    v16 = call_init_hooks(1, 0x40000u, 0x5FFFFu);
+    kernel_init(v16);
+    call_init_hooks(1, 0x60000u, 0x6FFFFu);
     v4 = (__int64 *)v4[464];
     if ( *v4 > 1 )
-      sub_9404B2FC("creating bootstrap completion thread\n");
-    v17 = sub_940268B8("bootstrap2", &loc_940234AC, 0, 16, 4096);
+      log_printf("creating bootstrap completion thread\n");
+    v17 = thread_create_simple("bootstrap2", &loc_940234AC, 0, 16, 4096);
     *(_DWORD *)(v17 + 60) = 0;
     v18 = v17;
-    sub_940273FC();
-    v19 = sub_940260B0(v18);
-    sub_94026568(v19);
+    thread_cancel();
+    v19 = thread_resume_full(v18);
+    thread_become_idle(v19);
   }
 }
 
-/* ===== sub_9402377C @ 0x9402377C size 172 ===== */
-__int64 sub_9402377C()
+/* ===== secondary_cpu_main @ 0x9402377C size 172 ===== */
+__int64 secondary_cpu_main()
 {
   unsigned __int64 StatusReg; // x0
   __int64 v1; // x1
@@ -1446,16 +1446,16 @@ __int64 sub_9402377C()
   v1 = (unsigned __int8)StatusReg | (4 * ((unsigned int)(StatusReg >> 8) & 0xF));
   if ( (_DWORD)v1 == 0 )
   {
-    sub_94026A14((unsigned __int8)StatusReg, v1, &dword_94062000);
-    sub_940260B0(MEMORY[0x894062020]);
+    thread_init_idle((unsigned __int8)StatusReg, v1, &dword_94062000);
+    thread_resume_full(MEMORY[0x894062020]);
     v3 = MEMORY[0xFFFFFFFFE003CB98];
     if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-      v3 = sub_9404B2FC("entering scheduler on cpu %d\n", 0);
-    sub_94026670(v3);
+      v3 = log_printf("entering scheduler on cpu %d\n", 0);
+    thread_enter_idle(v3);
   }
   result = MEMORY[0xFFFFFFFFE003CB98];
   if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-    return sub_9404B2FC(
+    return log_printf(
              "Invalid secondary cpu num %d, SMP_MAX_CPUS %d, secondary_bootstrap_thread_count %d\n",
              v1,
              4,
@@ -1463,9 +1463,9 @@ __int64 sub_9402377C()
   return result;
 }
 
-/* ===== sub_94023828 @ 0x94023828 size 292 ===== */
+/* ===== smp_init @ 0x94023828 size 292 ===== */
 // write access to const memory has been detected, the output may be wrong!
-int *__fastcall sub_94023828(unsigned int a1)
+int *__fastcall smp_init(unsigned int a1)
 {
   unsigned int v1; // w23
   __int64 v2; // x21
@@ -1488,7 +1488,7 @@ int *__fastcall sub_94023828(unsigned int a1)
     v2 = MEMORY[0xFFFFFFFFE003CB98];
     if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
     {
-      sub_9404B2FC("Invalid secondary_cpu_count %d, SMP_MAX_CPUS %d\n", a1, 4);
+      log_printf("Invalid secondary_cpu_count %d, SMP_MAX_CPUS %d\n", a1, 4);
       v2 = MEMORY[0xFFFFFFFFE003CB98];
     }
     v1 = 3;
@@ -1499,14 +1499,14 @@ int *__fastcall sub_94023828(unsigned int a1)
   v6 = 1;
   if ( v2 > 1 )
 LABEL_6:
-    sub_9404B2FC("creating bootstrap completion thread for cpu %d\n", v5);
+    log_printf("creating bootstrap completion thread for cpu %d\n", v5);
   while ( 1 )
   {
-    v7 = sub_940268B8(&loc_9404E700, sub_9402359C, 0, 16, 4096);
+    v7 = thread_create_simple(&loc_9404E700, secondary_bootstrap, 0, 16, 4096);
     *(_DWORD *)(v7 + 60) = v3;
     v8 = v7;
     ++v3;
-    sub_940273FC();
+    thread_cancel();
     qword_94062028[v4++] = v8;
     if ( v1 <= v6 )
       break;
@@ -1520,21 +1520,21 @@ LABEL_11:
   return &dword_94062000;
 }
 
-/* ===== sub_9402394C @ 0x9402394C size 32 ===== */
-__int64 __fastcall sub_9402394C(__int64 a1)
+/* ===== thread_entry_wrapper @ 0x9402394C size 32 ===== */
+__int64 __fastcall thread_entry_wrapper(__int64 a1)
 {
   (*(void (__fastcall **)(__int64, _QWORD))(a1 + 16))(a1, 0);
   return 0;
 }
 
-/* ===== sub_9402396C @ 0x9402396C size 236 ===== */
-__int64 sub_9402396C()
+/* ===== apps_init @ 0x9402396C size 236 ===== */
+__int64 apps_init()
 {
   return -536621840;
 }
 
-/* ===== sub_94023A58 @ 0x94023A58 size 40 ===== */
-__int64 sub_94023A58()
+/* ===== gic_dist_init @ 0x94023A58 size 40 ===== */
+__int64 gic_dist_init()
 {
   MEMORY[0xFFFFFFFFFFFF0000] = 11;
   MEMORY[0xFFFFFFFFFFFF1080] = -1;
@@ -1542,8 +1542,8 @@ __int64 sub_94023A58()
   return -65532;
 }
 
-/* ===== sub_94023A80 @ 0x94023A80 size 332 ===== */
-__int64 __fastcall sub_94023A80(char a1, unsigned __int8 a2, int a3, unsigned __int8 a4)
+/* ===== gic_set_irq_target @ 0x94023A80 size 332 ===== */
+__int64 __fastcall gic_set_irq_target(char a1, unsigned __int8 a2, int a3, unsigned __int8 a4)
 {
   int v4; // w22
   int v6; // w23
@@ -1568,7 +1568,7 @@ __int64 __fastcall sub_94023A80(char a1, unsigned __int8 a2, int a3, unsigned __
   v4 = a2;
   v6 = a4;
   v7 = MEMORY[0xFFFFFFFFFFFF1004];
-  sub_940223B4((unsigned __int64 *)&qword_94065E08);
+  spin_lock((unsigned __int64 *)&qword_94065E08);
   v8 = 0;
   v9 = v7 >> 5;
   v10 = 0;
@@ -1621,12 +1621,12 @@ LABEL_9:
     ++v10;
   }
   while ( v10 != 16 );
-  sub_940223D4((unsigned __int64 *)&qword_94065E08);
+  spin_unlock((unsigned __int64 *)&qword_94065E08);
   return v8;
 }
 
-/* ===== sub_94023BCC @ 0x94023BCC size 104 ===== */
-__int64 sub_94023BCC()
+/* ===== gic_init_cpu @ 0x94023BCC size 104 ===== */
+__int64 gic_init_cpu()
 {
   __int64 v0; // x30
   unsigned __int64 StatusReg; // x1
@@ -1636,13 +1636,13 @@ __int64 sub_94023BCC()
   if ( (StatusReg & 0x1000000) != 0 )
     StatusReg >>= 8;
   if ( ((unsigned __int8)StatusReg | (4 * ((StatusReg >> 8) & 0xF))) <= 7 )
-    return sub_94023A80((unsigned __int8)StatusReg | (unsigned __int8)(4 * (BYTE1(StatusReg) & 0xF)), 0, -1, 0);
-  v3 = sub_9404B508(v0, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/dev/interrupt/arm_gic/arm_gic.c", 573, "cpu < 8");
-  return sub_94023C34(v3);
+    return gic_set_irq_target((unsigned __int8)StatusReg | (unsigned __int8)(4 * (BYTE1(StatusReg) & 0xF)), 0, -1, 0);
+  v3 = panic(v0, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/dev/interrupt/arm_gic/arm_gic.c", 573, "cpu < 8");
+  return register_int_handler(v3);
 }
 
-/* ===== sub_94023C34 @ 0x94023C34 size 360 ===== */
-unsigned __int64 *__fastcall sub_94023C34(unsigned int a1, __int64 a2, __int64 a3)
+/* ===== register_int_handler @ 0x94023C34 size 360 ===== */
+unsigned __int64 *__fastcall register_int_handler(unsigned int a1, __int64 a2, __int64 a3)
 {
   __int64 v3; // x30
   unsigned __int64 StatusReg; // x20
@@ -1661,8 +1661,8 @@ unsigned __int64 *__fastcall sub_94023C34(unsigned int a1, __int64 a2, __int64 a
     StatusReg >>= 8;
   if ( a1 > 0x3FB )
   {
-    v20 = sub_9404B508(v3, "register_int_handler: vector out of range %d\n", a1);
-    return (unsigned __int64 *)sub_94023D9C(v20);
+    v20 = panic(v3, "register_int_handler: vector out of range %d\n", a1);
+    return (unsigned __int64 *)gic_dist_enable(v20);
   }
   v6 = 0;
   if ( (_ReadStatusReg(DAIF) & 0x80) != 0 )
@@ -1674,7 +1674,7 @@ unsigned __int64 *__fastcall sub_94023C34(unsigned int a1, __int64 a2, __int64 a
 LABEL_6:
       v6 |= 2u;
       __asm { MSR             DAIFSet, #1 }
-      sub_940223B4((unsigned __int64 *)&qword_94065E08);
+      spin_lock((unsigned __int64 *)&qword_94065E08);
       v12 = v22;
       v13 = v21;
       goto LABEL_7;
@@ -1689,7 +1689,7 @@ LABEL_6:
     if ( (_ReadStatusReg(DAIF) & 0x40) == 0 )
       goto LABEL_6;
   }
-  sub_940223B4((unsigned __int64 *)&qword_94065E08);
+  spin_lock((unsigned __int64 *)&qword_94065E08);
   v12 = v22;
   v13 = v21;
 LABEL_7:
@@ -1698,7 +1698,7 @@ LABEL_7:
     v18 = &qword_94062048[2 * a1 - 64];
     *v18 = v12;
     v18[1] = v13;
-    result = sub_940223D4((unsigned __int64 *)&qword_94065E08);
+    result = spin_unlock((unsigned __int64 *)&qword_94065E08);
     if ( (v6 & 2) == 0 )
       goto LABEL_9;
   }
@@ -1707,7 +1707,7 @@ LABEL_7:
     v14 = &qword_94065E98[8 * a1 + 2 * ((unsigned __int8)StatusReg | (4 * ((StatusReg >> 8) & 0xF)))];
     *v14 = v12;
     v14[1] = v13;
-    result = sub_940223D4((unsigned __int64 *)&qword_94065E08);
+    result = spin_unlock((unsigned __int64 *)&qword_94065E08);
     if ( (v6 & 2) == 0 )
       goto LABEL_9;
   }
@@ -1718,8 +1718,8 @@ LABEL_9:
   return result;
 }
 
-/* ===== sub_94023D9C @ 0x94023D9C size 236 ===== */
-__int64 sub_94023D9C()
+/* ===== gic_dist_enable @ 0x94023D9C size 236 ===== */
+__int64 gic_dist_enable()
 {
   int v0; // w2
   int v1; // w0
@@ -1766,8 +1766,8 @@ __int64 sub_94023D9C()
   return -65532;
 }
 
-/* ===== sub_94023E88 @ 0x94023E88 size 300 ===== */
-__int64 sub_94023E88()
+/* ===== gic_resume_cpu @ 0x94023E88 size 300 ===== */
+__int64 gic_resume_cpu()
 {
   __int64 v0; // x30
   __int64 v1; // x21
@@ -1788,7 +1788,7 @@ __int64 sub_94023E88()
     v2 |= 2u;
     __asm { MSR             DAIFSet, #1 }
   }
-  sub_940223B4((unsigned __int64 *)&qword_94065E08);
+  spin_lock((unsigned __int64 *)&qword_94065E08);
   if ( (MEMORY[0xFFFFFFFFFFFF1000] & 1) != 0 )
   {
     v9 = 0;
@@ -1799,11 +1799,11 @@ __int64 sub_94023E88()
   else
   {
     if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-      sub_9404B2FC("%s: distibutor is off, calling arm_gic_init instead\n", "arm_gic_resume_cpu");
+      log_printf("%s: distibutor is off, calling arm_gic_init instead\n", "arm_gic_resume_cpu");
     v9 = 1;
-    sub_94023D9C();
+    gic_dist_enable();
   }
-  sub_940223D4((unsigned __int64 *)&qword_94065E08);
+  spin_unlock((unsigned __int64 *)&qword_94065E08);
   if ( (v2 & 2) != 0 )
     __asm { MSR             DAIFClr, #1 }
   if ( (v2 & 1) != 0 )
@@ -1812,18 +1812,18 @@ __int64 sub_94023E88()
   if ( (StatusReg & 0x1000000) != 0 )
     StatusReg >>= 8;
   if ( ((unsigned __int8)StatusReg | (4 * ((StatusReg >> 8) & 0xF))) <= 7 )
-    return sub_94023A80((unsigned __int8)StatusReg | (unsigned __int8)(4 * (BYTE1(StatusReg) & 0xF)), 1u, -1, v9);
-  v14 = sub_9404B508(
+    return gic_set_irq_target((unsigned __int8)StatusReg | (unsigned __int8)(4 * (BYTE1(StatusReg) & 0xF)), 1u, -1, v9);
+  v14 = panic(
           v1,
           "ASSERT FAILED at (%s:%d): %s\n",
           "external/lk/dev/interrupt/arm_gic/arm_gic.c",
           573,
           "cpu < 8");
-  return sub_94023FB4(v14);
+  return gic_enable_irq(v14);
 }
 
-/* ===== sub_94023FB4 @ 0x94023FB4 size 76 ===== */
-__int64 __fastcall sub_94023FB4(unsigned int a1)
+/* ===== gic_enable_irq @ 0x94023FB4 size 76 ===== */
+__int64 __fastcall gic_enable_irq(unsigned int a1)
 {
   __int64 v1; // x2
   _DWORD *v2; // x1
@@ -1836,8 +1836,8 @@ __int64 __fastcall sub_94023FB4(unsigned int a1)
   return 0;
 }
 
-/* ===== sub_94024000 @ 0x94024000 size 484 ===== */
-__int64 sub_94024000()
+/* ===== platform_irq @ 0x94024000 size 484 ===== */
+__int64 platform_irq()
 {
   char v0; // w21
   unsigned int v1; // w19
@@ -1859,13 +1859,13 @@ __int64 sub_94024000()
   if ( (StatusReg & 0x1000000) != 0 )
     StatusReg >>= 8;
   if ( v1 > 0x3FB )
-    return sub_94029348();
+    return sm_handle_irq();
   v3 = (unsigned __int8)StatusReg | (4 * ((StatusReg >> 8) & 0xF));
   v4 = v1 <= 0x1F
      ? &qword_94065E98[8 * (v1 & 0x3FF) + 2 * (unsigned __int8)(StatusReg | (4 * (BYTE1(StatusReg) & 0xF)))]
      : &qword_94062048[2 * v1 - 64];
   if ( *v4 == 0 )
-    return sub_94029348();
+    return sm_handle_irq();
   v5 = 0;
   if ( (_ReadStatusReg(DAIF) & 0x80) == 0 )
   {
@@ -1878,7 +1878,7 @@ __int64 sub_94024000()
     __asm { MSR             DAIFSet, #1 }
   }
   v7 = 8 * (v0 & 3);
-  sub_940223B4((unsigned __int64 *)&qword_94065E08);
+  spin_lock((unsigned __int64 *)&qword_94065E08);
   v8 = ~(255 << v7);
   v9 = (int *)(4LL * (((unsigned __int16)(v1 >> 2) + 1280) & 0xFFF) - 0x10000);
   v10 = *v9;
@@ -1886,7 +1886,7 @@ __int64 sub_94024000()
   __dsb(0xFu);
   v11 = MEMORY[0xFFFFFFFFFFFF0020] & 0x3FF;
   *v9 = ((unsigned __int8)(v10 >> v7) << v7) | *v9 & v8;
-  sub_940223D4((unsigned __int64 *)&qword_94065E08);
+  spin_unlock((unsigned __int64 *)&qword_94065E08);
   if ( (v5 & 2) != 0 )
     __asm { MSR             DAIFClr, #1 }
   if ( (v5 & 1) != 0 )
@@ -1902,23 +1902,23 @@ __int64 sub_94024000()
   }
   else
   {
-    sub_9404CB4C("%s:%d: unexpected irq %d != %d may get lost\n", "platform_irq", 450, v11, v1);
+    printf("%s:%d: unexpected irq %d != %d may get lost\n", "platform_irq", 450, v11, v1);
     MEMORY[0xFFFFFFFFFFFF0024] = v11;
     return 0;
   }
   return result;
 }
 
-/* ===== sub_940241E4 @ 0x940241E4 size 4 ===== */
+/* ===== platform_fiq @ 0x940241E4 size 4 ===== */
 // attributes: thunk
-__int64 sub_940241E4()
+__int64 platform_fiq()
 {
-  return sub_9402944C();
+  return sm_handle_fiq();
 }
 
-/* ===== sub_940241E8 @ 0x940241E8 size 308 ===== */
+/* ===== platform_get_irq @ 0x940241E8 size 308 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_940241E8(__int64 a1)
+__int64 __fastcall platform_get_irq(__int64 a1)
 {
   char v2; // w20
   unsigned int v9; // w5
@@ -1940,7 +1940,7 @@ __int64 __fastcall sub_940241E8(__int64 a1)
     v2 |= 2u;
     __asm { MSR             DAIFSet, #1 }
   }
-  sub_940223B4((unsigned __int64 *)&qword_94065E08);
+  spin_lock((unsigned __int64 *)&qword_94065E08);
   v9 = *(_DWORD *)(a1 + 8) != 0;
   byte_94065E10 = 1;
   if ( v9 != 0 )
@@ -1957,7 +1957,7 @@ __int64 __fastcall sub_940241E8(__int64 a1)
   {
 LABEL_22:
     v15 = -10;
-    sub_940223D4((unsigned __int64 *)&qword_94065E08);
+    spin_unlock((unsigned __int64 *)&qword_94065E08);
     if ( (v2 & 2) == 0 )
       goto LABEL_19;
     goto LABEL_23;
@@ -1975,7 +1975,7 @@ LABEL_22:
       goto LABEL_22;
   }
   v15 = (int)v11;
-  sub_940223D4((unsigned __int64 *)&qword_94065E08);
+  spin_unlock((unsigned __int64 *)&qword_94065E08);
   if ( (v2 & 2) != 0 )
 LABEL_23:
     __asm { MSR             DAIFClr, #1 }
@@ -1985,8 +1985,8 @@ LABEL_19:
   return v15;
 }
 
-/* ===== sub_9402431C @ 0x9402431C size 484 ===== */
-__int64 __fastcall sub_9402431C(__int64 a1)
+/* ===== smc_intc_request_fiq @ 0x9402431C size 484 ===== */
+__int64 __fastcall smc_intc_request_fiq(__int64 a1)
 {
   unsigned int v1; // w22
   BOOL v2; // w23
@@ -2004,7 +2004,7 @@ __int64 __fastcall sub_9402431C(__int64 a1)
   v1 = *(_DWORD *)(a1 + 4);
   v2 = *(_DWORD *)(a1 + 8) != 0;
   if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-    sub_9404B2FC("%s: fiq %d, enable %d\n", "smc_intc_request_fiq", v1, v2);
+    log_printf("%s: fiq %d, enable %d\n", "smc_intc_request_fiq", v1, v2);
   v3 = 0;
   if ( (_ReadStatusReg(DAIF) & 0x80) == 0 )
   {
@@ -2016,7 +2016,7 @@ __int64 __fastcall sub_9402431C(__int64 a1)
     v3 |= 2u;
     __asm { MSR             DAIFSet, #1 }
   }
-  sub_940223B4((unsigned __int64 *)&qword_94065E08);
+  spin_lock((unsigned __int64 *)&qword_94065E08);
   v10 = v1 >> 5;
   v11 = 1LL << (v1 & 0x1F);
   if ( v1 <= 0x3FB )
@@ -2045,8 +2045,8 @@ __int64 __fastcall sub_9402431C(__int64 a1)
     qword_94065E18[v1 >> 6] = v21 & ~(1LL << v1);
   }
   if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-    sub_9404B2FC("%s: fiq %d, enable %d done\n", "smc_intc_request_fiq", v1, v2);
-  sub_940223D4((unsigned __int64 *)&qword_94065E08);
+    log_printf("%s: fiq %d, enable %d done\n", "smc_intc_request_fiq", v1, v2);
+  spin_unlock((unsigned __int64 *)&qword_94065E08);
   if ( (v3 & 2) != 0 )
     __asm { MSR             DAIFClr, #1 }
   if ( (v3 & 1) != 0 )
@@ -2054,8 +2054,8 @@ __int64 __fastcall sub_9402431C(__int64 a1)
   return 0;
 }
 
-/* ===== sub_94024500 @ 0x94024500 size 316 ===== */
-__int64 sub_94024500()
+/* ===== sm_intc_fiq_enter @ 0x94024500 size 316 ===== */
+__int64 sm_intc_fiq_enter()
 {
   __int64 v0; // x30
   unsigned __int64 StatusReg; // x1
@@ -2072,25 +2072,25 @@ __int64 sub_94024500()
   v3 = MEMORY[0xFFFFFFFFFFFF000C] & 0x3FF;
   if ( v2 > 7 )
   {
-    sub_9404B508(v0, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/dev/interrupt/arm_gic/arm_gic.c", 584, "cpu < 8");
+    panic(v0, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/dev/interrupt/arm_gic/arm_gic.c", 584, "cpu < 8");
   }
   else if ( v3 <= 0x3FB )
   {
-    v4 = sub_94023A80((unsigned __int8)StatusReg | (unsigned __int8)(4 * (BYTE1(StatusReg) & 0xF)), 0, v3, 0);
+    v4 = gic_set_irq_target((unsigned __int8)StatusReg | (unsigned __int8)(4 * (BYTE1(StatusReg) & 0xF)), 0, v3, 0);
     MEMORY[0xFFFFFFFFFFFF0010] = v3;
     v5 = *((_DWORD *)qword_9405A158 + v2);
     if ( v5 != 1023 )
     {
       v6 = -6;
       if ( MEMORY[0xFFFFFFFFE003CB98] > 0 )
-        sub_9404B2FC("more than one fiq active: cpu %d, old %d, new %d\n", v2, v5, v3);
+        log_printf("more than one fiq active: cpu %d, old %d, new %d\n", v2, v5, v3);
       return v6;
     }
     if ( v4 == 0 )
     {
       v6 = -3;
       if ( MEMORY[0xFFFFFFFFE003CB98] > 0 )
-        sub_9404B2FC("got disabled fiq: cpu %d, new %d\n", v2, v3);
+        log_printf("got disabled fiq: cpu %d, new %d\n", v2, v3);
       return v6;
     }
     *((_DWORD *)qword_9405A158 + v2) = v3;
@@ -2099,8 +2099,8 @@ __int64 sub_94024500()
   return (unsigned int)-4;
 }
 
-/* ===== sub_9402463C @ 0x9402463C size 212 ===== */
-__int64 sub_9402463C()
+/* ===== sm_intc_fiq_exit @ 0x9402463C size 212 ===== */
+__int64 sm_intc_fiq_exit()
 {
   __int64 v0; // x30
   unsigned __int64 StatusReg; // x1
@@ -2114,7 +2114,7 @@ __int64 sub_9402463C()
   v2 = (unsigned __int8)StatusReg | (4 * ((StatusReg >> 8) & 0xF));
   if ( v2 > 7 )
   {
-    sub_9404B508(v0, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/dev/interrupt/arm_gic/arm_gic.c", 615, "cpu < 8");
+    panic(v0, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/dev/interrupt/arm_gic/arm_gic.c", 615, "cpu < 8");
     _WriteStatusReg(CNTPS_TVAL_EL1, 0);
     __isb(0xFu);
     return 0;
@@ -2126,11 +2126,11 @@ __int64 sub_9402463C()
     {
       result = MEMORY[0xFFFFFFFFE003CB98];
       if ( MEMORY[0xFFFFFFFFE003CB98] > 0 )
-        return sub_9404B2FC("%s: no fiq active, cpu %d\n", "sm_intc_fiq_exit", v2);
+        return log_printf("%s: no fiq active, cpu %d\n", "sm_intc_fiq_exit", v2);
     }
     else
     {
-      sub_94023A80(StatusReg | (4 * (BYTE1(StatusReg) & 0xF)), 1u, v3, 0);
+      gic_set_irq_target(StatusReg | (4 * (BYTE1(StatusReg) & 0xF)), 1u, v3, 0);
       result = 1023;
       *((_DWORD *)qword_9405A158 + v2) = 1023;
     }
@@ -2138,8 +2138,8 @@ __int64 sub_9402463C()
   return result;
 }
 
-/* ===== sub_94024710 @ 0x94024710 size 268 ===== */
-unsigned __int64 __fastcall sub_94024710(unsigned int a1, unsigned int a2, unsigned int a3)
+/* ===== test_time_conversion_ticks @ 0x94024710 size 268 ===== */
+unsigned __int64 __fastcall test_time_conversion_ticks(unsigned int a1, unsigned int a2, unsigned int a3)
 {
   unsigned __int64 v3; // x3
   unsigned __int64 v4; // x3
@@ -2166,20 +2166,20 @@ unsigned __int64 __fastcall sub_94024710(unsigned int a1, unsigned int a2, unsig
   {
     v8 = (int)abs32(v7 - a2);
     if ( result < (int)v8 )
-      return sub_9404CB4C("%s:%d: FAIL, off by %llu\n", "test_time_conversion_check_result", 288, v8);
+      return printf("%s:%d: FAIL, off by %llu\n", "test_time_conversion_check_result", 288, v8);
   }
   return result;
 }
 
-/* ===== sub_9402481C @ 0x9402481C size 52 ===== */
-__int64 sub_9402481C()
+/* ===== timer_irq_init @ 0x9402481C size 52 ===== */
+__int64 timer_irq_init()
 {
-  sub_94023C34(0, (__int64)sub_94024B48, 0);
-  return sub_94023FB4(0);
+  register_int_handler(0, (__int64)arm_generic_timer_irq, 0);
+  return gic_enable_irq(0);
 }
 
-/* ===== sub_94024850 @ 0x94024850 size 184 ===== */
-__int64 __fastcall sub_94024850(__int64 result, __int64 a2)
+/* ===== test_time_conversion_ns @ 0x94024850 size 184 ===== */
+__int64 __fastcall test_time_conversion_ns(__int64 result, __int64 a2)
 {
   unsigned __int64 v2; // x2
   __int64 v3; // x3
@@ -2212,13 +2212,13 @@ __int64 __fastcall sub_94024850(__int64 result, __int64 a2)
     result = v12 ^ (v12 >> 63);
     v13 = abs64(v12);
     if ( v11 < v13 )
-      return sub_9404CB4C("%s:%d: FAIL, off by %llu\n", "test_time_conversion_check_result", 288, v13);
+      return printf("%s:%d: FAIL, off by %llu\n", "test_time_conversion_check_result", 288, v13);
   }
   return result;
 }
 
-/* ===== sub_94024908 @ 0x94024908 size 148 ===== */
-__int64 __fastcall sub_94024908(unsigned int a1, unsigned int a2)
+/* ===== test_time_conversion_us @ 0x94024908 size 148 ===== */
+__int64 __fastcall test_time_conversion_us(unsigned int a1, unsigned int a2)
 {
   unsigned __int64 v2; // x3
   unsigned __int64 v3; // x2
@@ -2243,20 +2243,20 @@ __int64 __fastcall sub_94024908(unsigned int a1, unsigned int a2)
     result = v9 ^ (v9 >> 63);
     v10 = abs64(v9);
     if ( v10 > 1 )
-      return sub_9404CB4C("%s:%d: FAIL, off by %llu\n", "test_time_conversion_check_result", 288, v10);
+      return printf("%s:%d: FAIL, off by %llu\n", "test_time_conversion_check_result", 288, v10);
   }
   return result;
 }
 
-/* ===== sub_9402499C @ 0x9402499C size 8 ===== */
-unsigned __int64 sub_9402499C()
+/* ===== arch_counter_get @ 0x9402499C size 8 ===== */
+unsigned __int64 arch_counter_get()
 {
   return _ReadStatusReg(CNTPCT_EL0);
 }
 
-/* ===== sub_940249A4 @ 0x940249A4 size 208 ===== */
+/* ===== arm_generic_timer_set @ 0x940249A4 size 208 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_940249A4(void *a1, __int64 a2, unsigned int a3)
+__int64 __fastcall arm_generic_timer_set(void *a1, __int64 a2, unsigned int a3)
 {
   __int64 v3; // x30
   unsigned __int64 v4; // x3
@@ -2269,19 +2269,19 @@ __int64 __fastcall sub_940249A4(void *a1, __int64 a2, unsigned int a3)
   v6 = ((v5 & 0x80000000) != 0LL) + HIDWORD(v4) + a3 * (unsigned __int64)MEMORY[0xFFFFFFFFE005A060] + HIDWORD(v5);
   if ( a2 != 0 )
   {
-    v8 = sub_9404B508(
+    v8 = panic(
            v3,
            "ASSERT FAILED at (%s:%d): %s\n",
            "external/lk/dev/timer/arm_generic/arm_generic_timer.c",
            244,
            "arg == NULL");
-    return sub_94024A74(v8);
+    return arm_generic_timer_cancel(v8);
   }
   else
   {
     off_94066698 = a1;
     if ( v6 > 0x7FFFFFFF )
-      _WriteStatusReg(CNTPS_CVAL_EL1, sub_9402499C() + v6);
+      _WriteStatusReg(CNTPS_CVAL_EL1, arch_counter_get() + v6);
     else
       _WriteStatusReg(CNTPS_TVAL_EL1, v6);
     __isb(0xFu);
@@ -2291,23 +2291,23 @@ __int64 __fastcall sub_940249A4(void *a1, __int64 a2, unsigned int a3)
   }
 }
 
-/* ===== sub_94024A74 @ 0x94024A74 size 16 ===== */
-__int64 sub_94024A74()
+/* ===== arm_generic_timer_cancel @ 0x94024A74 size 16 ===== */
+__int64 arm_generic_timer_cancel()
 {
   _WriteStatusReg(CNTPS_CTL_EL1, 0);
   __isb(0xFu);
   return 0;
 }
 
-/* ===== sub_94024A84 @ 0x94024A84 size 108 ===== */
-unsigned __int64 sub_94024A84()
+/* ===== arch_time_now @ 0x94024A84 size 108 ===== */
+unsigned __int64 arch_time_now()
 {
   unsigned __int64 v0; // x0
   unsigned __int64 v1; // x4
   unsigned __int64 v2; // x2
   unsigned __int64 v3; // x1
 
-  v0 = sub_9402499C();
+  v0 = arch_counter_get();
   v1 = (unsigned int)v0 * (unsigned __int64)MEMORY[0xFFFFFFFFE005A044];
   v2 = HIDWORD(v0) * MEMORY[0xFFFFFFFFE005A048];
   v3 = (unsigned int)v2
@@ -2322,13 +2322,13 @@ unsigned __int64 sub_94024A84()
        + HIDWORD(v3);
 }
 
-/* ===== sub_94024AF0 @ 0x94024AF0 size 88 ===== */
-__int64 sub_94024AF0()
+/* ===== arch_time_now_ms @ 0x94024AF0 size 88 ===== */
+__int64 arch_time_now_ms()
 {
   unsigned __int64 v0; // x0
   unsigned __int64 v1; // x0
 
-  v0 = sub_9402499C();
+  v0 = arch_counter_get();
   v1 = (unsigned int)v0 * (unsigned __int64)MEMORY[0xFFFFFFFFE005A054]
      + HIDWORD(v0) * MEMORY[0xFFFFFFFFE005A058]
      + (((unsigned int)v0 * (unsigned __int64)MEMORY[0xFFFFFFFFE005A050]) << 32)
@@ -2337,17 +2337,17 @@ __int64 sub_94024AF0()
   return HIDWORD(v1) + ((unsigned int)v1 >> 31);
 }
 
-/* ===== sub_94024B48 @ 0x94024B48 size 84 ===== */
-__int64 sub_94024B48()
+/* ===== arm_generic_timer_irq @ 0x94024B48 size 84 ===== */
+__int64 arm_generic_timer_irq()
 {
   _WriteStatusReg(CNTPS_CTL_EL1, 0);
   __isb(0xFu);
   return 0;
 }
 
-/* ===== sub_94024B9C @ 0x94024B9C size 608 ===== */
+/* ===== arm_generic_timer_init @ 0x94024B9C size 608 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 *__fastcall sub_94024B9C(unsigned int a1, unsigned int a2)
+__int64 *__fastcall arm_generic_timer_init(unsigned int a1, unsigned int a2)
 {
   unsigned int StatusReg; // w19
   unsigned __int64 v4; // x6
@@ -2357,7 +2357,7 @@ __int64 *__fastcall sub_94024B9C(unsigned int a1, unsigned int a2)
   {
     StatusReg = _ReadStatusReg(CNTFRQ_EL0);
     if ( StatusReg == 0 )
-      return (__int64 *)sub_9404CB4C(
+      return (__int64 *)printf(
                           "%s:%d: Failed to initialize timer, frequency is 0\n",
                           "arm_generic_timer_init",
                           368);
@@ -2374,33 +2374,33 @@ __int64 *__fastcall sub_94024B9C(unsigned int a1, unsigned int a2)
   MEMORY[0xFFFFFFFFE005A044] = 0xF424000000000uLL / StatusReg;
   MEMORY[0xFFFFFFFFE005A058] = ((0x3E800000000uLL % StatusReg) << 32) / StatusReg;
   MEMORY[0xFFFFFFFFE005A048] = ((0xF424000000000uLL % StatusReg) << 32) / StatusReg;
-  sub_94024908(StatusReg, 0);
-  sub_94024908(StatusReg, 1u);
-  sub_94024908(StatusReg, 0x7FFFFFFFu);
-  sub_94024908(StatusReg, 0x80000000);
-  sub_94024908(StatusReg, 0xFFFFFFFF);
-  sub_94024710(StatusReg, 0, 0);
-  sub_94024710(StatusReg, 0x7FFFFFFFu, 0);
-  sub_94024710(StatusReg, 0x80000000, 0);
-  sub_94024710(StatusReg, 0xFFFFFFFF, 0);
-  sub_94024710(StatusReg, 0, 1u);
-  sub_94024710(StatusReg, 0, 7u);
-  sub_94024710(StatusReg, 0, 0x46u);
-  sub_94024710(StatusReg, 0, 0x2BCu);
-  sub_94024850(StatusReg, 0);
-  sub_94024850(StatusReg, 1);
-  sub_94024850(StatusReg, 86400);
-  sub_94024850(StatusReg, 31536000);
-  sub_94024850(StatusReg, 315532800);
-  sub_94024850(StatusReg, 3153772800LL);
-  sub_94023C34(a1, (__int64)sub_94024B48, 0);
-  sub_94023FB4(a1);
+  test_time_conversion_us(StatusReg, 0);
+  test_time_conversion_us(StatusReg, 1u);
+  test_time_conversion_us(StatusReg, 0x7FFFFFFFu);
+  test_time_conversion_us(StatusReg, 0x80000000);
+  test_time_conversion_us(StatusReg, 0xFFFFFFFF);
+  test_time_conversion_ticks(StatusReg, 0, 0);
+  test_time_conversion_ticks(StatusReg, 0x7FFFFFFFu, 0);
+  test_time_conversion_ticks(StatusReg, 0x80000000, 0);
+  test_time_conversion_ticks(StatusReg, 0xFFFFFFFF, 0);
+  test_time_conversion_ticks(StatusReg, 0, 1u);
+  test_time_conversion_ticks(StatusReg, 0, 7u);
+  test_time_conversion_ticks(StatusReg, 0, 0x46u);
+  test_time_conversion_ticks(StatusReg, 0, 0x2BCu);
+  test_time_conversion_ns(StatusReg, 0);
+  test_time_conversion_ns(StatusReg, 1);
+  test_time_conversion_ns(StatusReg, 86400);
+  test_time_conversion_ns(StatusReg, 31536000);
+  test_time_conversion_ns(StatusReg, 315532800);
+  test_time_conversion_ns(StatusReg, 3153772800LL);
+  register_int_handler(a1, (__int64)arm_generic_timer_irq, 0);
+  gic_enable_irq(a1);
   dword_940666A0 = a1;
   return &qword_94065E98[45];
 }
 
-/* ===== sub_94024DFC @ 0x94024DFC size 52 ===== */
-__int64 __fastcall sub_94024DFC(__int64 result, char a2, int a3)
+/* ===== event_init @ 0x94024DFC size 52 ===== */
+__int64 __fastcall event_init(__int64 result, char a2, int a3)
 {
   *(_DWORD *)result = 1702260340;
   *(_BYTE *)(result + 4) = a2;
@@ -2412,8 +2412,8 @@ __int64 __fastcall sub_94024DFC(__int64 result, char a2, int a3)
   return result;
 }
 
-/* ===== sub_94024E30 @ 0x94024E30 size 204 ===== */
-unsigned __int64 *__fastcall sub_94024E30(__int64 a1)
+/* ===== event_destroy @ 0x94024E30 size 204 ===== */
+unsigned __int64 *__fastcall event_destroy(__int64 a1)
 {
   __int64 v1; // x30
   unsigned __int64 *result; // x0
@@ -2423,40 +2423,40 @@ unsigned __int64 *__fastcall sub_94024E30(__int64 a1)
   {
     if ( (_ReadStatusReg(DAIF) & 0x80) != 0 )
     {
-      sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+      spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
       *(_DWORD *)a1 = 0;
       *(_BYTE *)(a1 + 4) = 0;
       *(_DWORD *)(a1 + 8) = 0;
-      sub_94027688(a1 + 16, 1);
-      return sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+      wait_queue_destroy(a1 + 16, 1);
+      return spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
     }
     else
     {
       __asm { MSR             DAIFSet, #2 }
-      sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+      spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
       *(_DWORD *)a1 = 0;
       *(_BYTE *)(a1 + 4) = 0;
       *(_DWORD *)(a1 + 8) = 0;
-      sub_94027688(a1 + 16, 1);
-      result = sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+      wait_queue_destroy(a1 + 16, 1);
+      result = spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
       __asm { MSR             DAIFClr, #2 }
     }
   }
   else
   {
-    v10 = sub_9404B508(
+    v10 = panic(
             v1,
             "DEBUG ASSERT FAILED at (%s:%d): %s\n",
             "external/lk/kernel/event.c",
             72,
             "e->magic == EVENT_MAGIC");
-    return (unsigned __int64 *)sub_94024EFC(v10);
+    return (unsigned __int64 *)event_wait_timeout(v10);
   }
   return result;
 }
 
-/* ===== sub_94024EFC @ 0x94024EFC size 224 ===== */
-__int64 __fastcall sub_94024EFC(__int64 a1, __int64 a2)
+/* ===== event_wait_timeout @ 0x94024EFC size 224 ===== */
+__int64 __fastcall event_wait_timeout(__int64 a1, __int64 a2)
 {
   __int64 v2; // x30
   int v4; // w22
@@ -2466,18 +2466,18 @@ __int64 __fastcall sub_94024EFC(__int64 a1, __int64 a2)
 
   if ( *(_DWORD *)a1 != 1702260340 )
   {
-    v14 = sub_9404B508(
+    v14 = panic(
             v2,
             "DEBUG ASSERT FAILED at (%s:%d): %s\n",
             "external/lk/kernel/event.c",
             103,
             "e->magic == EVENT_MAGIC");
-    return sub_94024FDC(v14);
+    return event_signal(v14);
   }
   v4 = 0;
   if ( (_ReadStatusReg(DAIF) & 0x80) != 0 )
   {
-    sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+    spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
     v5 = a2;
     if ( *(_BYTE *)(a1 + 4) != 0 )
       goto LABEL_4;
@@ -2486,7 +2486,7 @@ __int64 __fastcall sub_94024EFC(__int64 a1, __int64 a2)
   {
     __asm { MSR             DAIFSet, #2 }
     v4 = 1;
-    sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+    spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
     v5 = a2;
     if ( *(_BYTE *)(a1 + 4) != 0 )
     {
@@ -2497,16 +2497,16 @@ LABEL_4:
       goto LABEL_6;
     }
   }
-  v6 = sub_94026BA8(a1 + 16, v5);
+  v6 = wait_queue_block(a1 + 16, v5);
 LABEL_6:
-  sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+  spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
   if ( v4 != 0 )
     __asm { MSR             DAIFClr, #2 }
   return v6;
 }
 
-/* ===== sub_94024FDC @ 0x94024FDC size 288 ===== */
-__int64 __fastcall sub_94024FDC(__int64 a1, unsigned __int8 a2)
+/* ===== event_signal @ 0x94024FDC size 288 ===== */
+__int64 __fastcall event_signal(__int64 a1, unsigned __int8 a2)
 {
   __int64 *v2; // x20
   int v3; // w22
@@ -2519,10 +2519,10 @@ __int64 __fastcall sub_94024FDC(__int64 a1, unsigned __int8 a2)
     if ( (_ReadStatusReg(DAIF) & 0x80) != 0 )
     {
       v2 = &qword_9405BFF0[2];
-      sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+      spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
       if ( *(_BYTE *)(a1 + 4) != 0 )
       {
-        sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+        spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
         return 0;
       }
       v3 = 0;
@@ -2533,38 +2533,38 @@ __int64 __fastcall sub_94024FDC(__int64 a1, unsigned __int8 a2)
     {
       __asm { MSR             DAIFSet, #2 }
       v2 = &qword_9405BFF0[2];
-      sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+      spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
       if ( *(_BYTE *)(a1 + 4) != 0 )
       {
-        sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+        spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
         goto LABEL_7;
       }
       v3 = 1;
       if ( (*(_DWORD *)(a1 + 8) & 1) != 0 )
       {
 LABEL_5:
-        if ( (int)sub_94026F80(a1 + 16, v6, 0) > 0 )
+        if ( (int)wait_queue_wake_one(a1 + 16, v6, 0) > 0 )
           goto LABEL_6;
         goto LABEL_13;
       }
     }
     *(_BYTE *)(a1 + 4) = 1;
-    sub_94027128(a1 + 16, v6, 0);
+    wait_queue_wake_all(a1 + 16, v6, 0);
     goto LABEL_6;
   }
-  sub_9404B508(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/event.c", 142, "e->magic == EVENT_MAGIC");
+  panic(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/event.c", 142, "e->magic == EVENT_MAGIC");
 LABEL_13:
   *(_BYTE *)(a1 + 4) = 1;
 LABEL_6:
-  sub_940223D4((unsigned __int64 *)v2[465]);
+  spin_unlock((unsigned __int64 *)v2[465]);
   if ( v3 != 0 )
 LABEL_7:
     __asm { MSR             DAIFClr, #2 }
   return 0;
 }
 
-/* ===== sub_940250FC @ 0x940250FC size 80 ===== */
-__int64 __fastcall sub_940250FC(__int64 a1)
+/* ===== event_unsignal @ 0x940250FC size 80 ===== */
+__int64 __fastcall event_unsignal(__int64 a1)
 {
   __int64 v1; // x30
   __int64 v3; // x0
@@ -2576,33 +2576,33 @@ __int64 __fastcall sub_940250FC(__int64 a1)
   }
   else
   {
-    v3 = sub_9404B508(
+    v3 = panic(
            v1,
            "DEBUG ASSERT FAILED at (%s:%d): %s\n",
            "external/lk/kernel/event.c",
            183,
            "e->magic == EVENT_MAGIC");
-    return sub_9402514C(v3);
+    return kernel_init(v3);
   }
 }
 
-/* ===== sub_9402514C @ 0x9402514C size 120 ===== */
+/* ===== kernel_init @ 0x9402514C size 120 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 *sub_9402514C()
+__int64 *kernel_init()
 {
   __int64 v0; // x0
   __int64 v1; // x0
 
   v0 = MEMORY[0xFFFFFFFFE003CB98];
   if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-    v0 = sub_9404B2FC("initializing mp\n");
+    v0 = log_printf("initializing mp\n");
   nullsub_3(v0);
   v1 = MEMORY[0xFFFFFFFFE003CB98];
   if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-    v1 = sub_9404B2FC("initializing threads\n");
-  sub_94026518(v1);
+    v1 = log_printf("initializing threads\n");
+  thread_init_queues(v1);
   if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-    sub_9404B2FC("initializing timers\n");
+    log_printf("initializing timers\n");
   qword_94067508 = (__int64)&qword_94067500;
   qword_94067500 = (__int64)&qword_94067500;
   MEMORY[0xFFFFFFFFE005A210] = 0;
@@ -2615,8 +2615,8 @@ __int64 *sub_9402514C()
   return &qword_94067500;
 }
 
-/* ===== sub_940251C4 @ 0x940251C4 size 52 ===== */
-__int64 __fastcall sub_940251C4(__int64 result)
+/* ===== mutex_init @ 0x940251C4 size 52 ===== */
+__int64 __fastcall mutex_init(__int64 result)
 {
   *(_DWORD *)result = 1836414072;
   *(_QWORD *)(result + 8) = 0;
@@ -2628,8 +2628,8 @@ __int64 __fastcall sub_940251C4(__int64 result)
   return result;
 }
 
-/* ===== sub_940251F8 @ 0x940251F8 size 276 ===== */
-__int64 __fastcall sub_940251F8(__int64 a1, __int64 a2)
+/* ===== mutex_acquire_timeout @ 0x940251F8 size 276 ===== */
+__int64 __fastcall mutex_acquire_timeout(__int64 a1, __int64 a2)
 {
   __int64 *v2; // x20
   int v3; // w22
@@ -2640,7 +2640,7 @@ __int64 __fastcall sub_940251F8(__int64 a1, __int64 a2)
 
   if ( *(_DWORD *)a1 != 1836414072 )
   {
-    sub_9404B508(
+    panic(
       v4,
       "DEBUG ASSERT FAILED at (%s:%d): %s\n",
       "external/lk/kernel/mutex.c",
@@ -2657,14 +2657,14 @@ __int64 __fastcall sub_940251F8(__int64 a1, __int64 a2)
     }
     v2 = &qword_9405BFF0[2];
     v6 = 0;
-    sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+    spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
     v7 = a2;
     v8 = *(_DWORD *)(a1 + 16) + 1;
     *(_DWORD *)(a1 + 16) = v8;
     if ( v8 <= 1 )
       goto LABEL_6;
 LABEL_12:
-    v6 = sub_94026BA8(a1 + 24, v7);
+    v6 = wait_queue_block(a1 + 24, v7);
     if ( (v6 & 0x80000000) == 0 )
     {
 LABEL_6:
@@ -2674,12 +2674,12 @@ LABEL_6:
     if ( v6 == -13 )
       --*(_DWORD *)(a1 + 16);
 LABEL_7:
-    sub_940223D4((unsigned __int64 *)v2[465]);
+    spin_unlock((unsigned __int64 *)v2[465]);
     if ( v3 != 0 )
       __asm { MSR             DAIFClr, #2 }
     return v6;
   }
-  sub_9404B508(
+  panic(
     v4,
     "mutex_acquire_timeout: thread %p (%s) tried to acquire mutex %p it already owns.\n",
     _ReadStatusReg(TPIDR_EL1),
@@ -2688,8 +2688,8 @@ LABEL_7:
   goto LABEL_12;
 }
 
-/* ===== sub_9402530C @ 0x9402530C size 312 ===== */
-__int64 __fastcall sub_9402530C(__int64 a1)
+/* ===== mutex_release @ 0x9402530C size 312 ===== */
+__int64 __fastcall mutex_release(__int64 a1)
 {
   __int64 v1; // x20
   __int64 v2; // x30
@@ -2703,7 +2703,7 @@ __int64 __fastcall sub_9402530C(__int64 a1)
 
   if ( *(_DWORD *)a1 != 1836414072 )
   {
-    sub_9404B508(
+    panic(
       v2,
       "DEBUG ASSERT FAILED at (%s:%d): %s\n",
       "external/lk/kernel/mutex.c",
@@ -2722,7 +2722,7 @@ LABEL_11:
       v17 = v5 + 696;
     else
       v17 = "none";
-    sub_9404B508(
+    panic(
       v2,
       "mutex_release: thread %p (%s) tried to release mutex %p it doesn't own. owned by %p (%s)\n",
       v15,
@@ -2736,40 +2736,40 @@ LABEL_11:
   {
     __asm { MSR             DAIFSet, #2 }
     v1 = -536578848;
-    sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+    spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
     *(_QWORD *)(a1 + 8) = 0;
     v11 = *(_DWORD *)(a1 + 16) - 1;
     *(_DWORD *)(a1 + 16) = v11;
     if ( v11 <= 0 )
     {
 LABEL_5:
-      sub_940223D4((unsigned __int64 *)v1);
+      spin_unlock((unsigned __int64 *)v1);
       __asm { MSR             DAIFClr, #2 }
       return 0;
     }
 LABEL_14:
-    sub_94026F80(a1 + 24, 1, 0);
+    wait_queue_wake_one(a1 + 24, 1, 0);
     goto LABEL_5;
   }
-  sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+  spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
   *(_QWORD *)(a1 + 8) = 0;
   v14 = *(_DWORD *)(a1 + 16) - 1;
   *(_DWORD *)(a1 + 16) = v14;
   if ( v14 > 0 )
-    sub_94026F80(a1 + 24, 1, 0);
-  sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+    wait_queue_wake_one(a1 + 24, 1, 0);
+  spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
   return 0;
 }
 
-/* ===== sub_94025444 @ 0x94025444 size 212 ===== */
-int *__fastcall sub_94025444(int a1)
+/* ===== thread_get_current_cpu @ 0x94025444 size 212 ===== */
+int *__fastcall thread_get_current_cpu(int a1)
 {
   return &dword_940666C0[182 * a1];
 }
 
-/* ===== sub_94025518 @ 0x94025518 size 336 ===== */
+/* ===== thread_insert_ready_queue @ 0x94025518 size 336 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_94025518(__int64 a1)
+__int64 __fastcall thread_insert_ready_queue(__int64 a1)
 {
   __int64 v1; // x30
   __int64 v2; // x3
@@ -2782,16 +2782,16 @@ __int64 __fastcall sub_94025518(__int64 a1)
   v2 = v1;
   if ( *(_DWORD *)a1 != 1953002084 )
   {
-    sub_9404B508(v1, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 101, "t->magic == THREAD_MAGIC");
+    panic(v1, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 101, "t->magic == THREAD_MAGIC");
     goto LABEL_10;
   }
   v3 = *(_DWORD *)(a1 + 44);
   if ( v3 != 1 )
   {
 LABEL_10:
-    sub_9404B508(v1, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 102, "t->state == THREAD_READY");
+    panic(v1, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 102, "t->state == THREAD_READY");
 LABEL_11:
-    sub_9404B508(v2, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 104, "arch_ints_disabled()");
+    panic(v2, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 104, "arch_ints_disabled()");
     goto LABEL_12;
   }
   v4 = a1 + 24;
@@ -2799,7 +2799,7 @@ LABEL_11:
     goto LABEL_5;
   do
   {
-    a1 = sub_9404B508(
+    a1 = panic(
            v2,
            "ASSERT FAILED at (%s:%d): %s\n",
            "external/lk/kernel/thread.c",
@@ -2823,18 +2823,18 @@ LABEL_5:
     return 0;
   }
 LABEL_12:
-  v8 = sub_9404B508(
+  v8 = panic(
          v2,
          "ASSERT FAILED at (%s:%d): %s\n",
          "external/lk/kernel/thread.c",
          105,
          "spin_lock_held(&thread_lock)");
-  return sub_94025668(v8);
+  return thread_insert_ready_queue_tail(v8);
 }
 
-/* ===== sub_94025668 @ 0x94025668 size 340 ===== */
+/* ===== thread_insert_ready_queue_tail @ 0x94025668 size 340 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_94025668(__int64 a1)
+__int64 __fastcall thread_insert_ready_queue_tail(__int64 a1)
 {
   __int64 v1; // x30
   __int64 v2; // x3
@@ -2848,16 +2848,16 @@ __int64 __fastcall sub_94025668(__int64 a1)
   v2 = v1;
   if ( *(_DWORD *)a1 != 1953002084 )
   {
-    sub_9404B508(v1, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 115, "t->magic == THREAD_MAGIC");
+    panic(v1, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 115, "t->magic == THREAD_MAGIC");
     goto LABEL_10;
   }
   v3 = *(_DWORD *)(a1 + 44);
   if ( v3 != 1 )
   {
 LABEL_10:
-    sub_9404B508(v1, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 116, "t->state == THREAD_READY");
+    panic(v1, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 116, "t->state == THREAD_READY");
 LABEL_11:
-    sub_9404B508(v2, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 118, "arch_ints_disabled()");
+    panic(v2, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 118, "arch_ints_disabled()");
     goto LABEL_12;
   }
   v4 = a1 + 24;
@@ -2865,7 +2865,7 @@ LABEL_11:
     goto LABEL_5;
   do
   {
-    a1 = sub_9404B508(
+    a1 = panic(
            v2,
            "ASSERT FAILED at (%s:%d): %s\n",
            "external/lk/kernel/thread.c",
@@ -2890,17 +2890,17 @@ LABEL_5:
     return result;
   }
 LABEL_12:
-  v8 = sub_9404B508(
+  v8 = panic(
          v2,
          "ASSERT FAILED at (%s:%d): %s\n",
          "external/lk/kernel/thread.c",
          119,
          "spin_lock_held(&thread_lock)");
-  return sub_940257BC(v8);
+  return thread_resched_check(v8);
 }
 
-/* ===== sub_940257BC @ 0x940257BC size 340 ===== */
-int *sub_940257BC()
+/* ===== thread_resched_check @ 0x940257BC size 340 ===== */
+int *thread_resched_check()
 {
   __int64 v0; // x30
   __int64 v1; // x19
@@ -2911,10 +2911,10 @@ int *sub_940257BC()
   __int64 v6; // x0
 
   v1 = v0;
-  result = sub_94025444(-1);
+  result = thread_get_current_cpu(-1);
   if ( (_ReadStatusReg(DAIF) & 0x80) == 0 )
   {
-    sub_9404B508(v1, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 516, "arch_ints_disabled()");
+    panic(v1, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 516, "arch_ints_disabled()");
   }
   else if ( MEMORY[0xFFFFFFFFE00474E0] != 0 )
   {
@@ -2951,17 +2951,17 @@ int *sub_940257BC()
     }
     return result;
   }
-  v6 = sub_9404B508(
+  v6 = panic(
          v1,
          "DEBUG ASSERT FAILED at (%s:%d): %s\n",
          "external/lk/kernel/thread.c",
          517,
          "spin_lock_held(&thread_lock)");
-  return (int *)sub_94025910(v6);
+  return (int *)thread_reschedule(v6);
 }
 
-/* ===== sub_94025910 @ 0x94025910 size 864 ===== */
-__int64 sub_94025910()
+/* ===== thread_reschedule @ 0x94025910 size 864 ===== */
+__int64 thread_reschedule()
 {
   __int64 v0; // x30
   __int64 v1; // x20
@@ -3000,20 +3000,20 @@ __int64 sub_94025910()
     v3 >>= 8;
   if ( (_ReadStatusReg(DAIF) & 0x80) == 0 )
   {
-    sub_9404B508(v0, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 561, "arch_ints_disabled()");
+    panic(v0, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 561, "arch_ints_disabled()");
   }
   else if ( MEMORY[0xFFFFFFFFE00474E0] != 0 )
   {
     if ( StatusReg[11] == 2 )
     {
 LABEL_32:
-      sub_9404B508(
+      panic(
         v0,
         "ASSERT FAILED at (%s:%d): %s\n",
         "external/lk/kernel/thread.c",
         563,
         "current_thread->state != THREAD_RUNNING");
-      return sub_9404B508(v1, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 571, "newthread");
+      return panic(v1, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 571, "newthread");
     }
     v4 = _ReadStatusReg(MPIDR_EL1);
     if ( (v4 & 0x1000000) != 0 )
@@ -3021,7 +3021,7 @@ LABEL_32:
     v5 = (unsigned __int8)v3 | (4 * ((v3 >> 8) & 0xF));
     v6 = 80 * ((unsigned __int8)v4 | (4 * ((v4 >> 8) & 0xF))) - 536502064;
     ++*(_QWORD *)(v6 + 16);
-    v7 = sub_94025444(v5);
+    v7 = thread_get_current_cpu(v5);
     v8 = v7;
     if ( v7 != nullptr )
     {
@@ -3067,7 +3067,7 @@ LABEL_16:
       ++*(_QWORD *)(v17 + 24);
       if ( (v16 & 0x10) != 0 )
       {
-        v26 = sub_94024A84();
+        v26 = arch_time_now();
         v11 = v8[13];
         *(_QWORD *)(80LL * v5 - 536502064) = *(_QWORD *)(80LL * v5 - 536502064)
                                            - *(_QWORD *)(80LL * v5 - 536502056)
@@ -3084,35 +3084,35 @@ LABEL_20:
       {
         goto LABEL_20;
       }
-      v27 = sub_94024A84();
+      v27 = arch_time_now();
       v28 = v8[13];
       *(_QWORD *)(80LL * v5 - 536502056) = v27;
       if ( (v28 & 0x18) == 0 )
       {
 LABEL_21:
         if ( (StatusReg[13] & 0x18) != 0 )
-          sub_94027F10(&qword_94067220[6 * v5], 10, -536846872, 0);
+          timer_set_periodic(&qword_94067220[6 * v5], 10, -536846872, 0);
 LABEL_23:
         dword_940666A8[v5] = v8[10];
         _WriteStatusReg(TPIDR_EL1, (unsigned __int64)v8);
         __isb(0xFu);
-        v18 = sub_9404D42C(StatusReg, v8);
-        return (__int64)sub_94022A20((__int64)StatusReg, v18, v19, v20, v21, v22, v23, v24, v25);
+        v18 = arch_mmu_switch_aspace(StatusReg, v8);
+        return (__int64)arch_context_switch((__int64)StatusReg, v18, v19, v20, v21, v22, v23, v24, v25);
       }
 LABEL_28:
-      sub_940257BC();
+      thread_resched_check();
       if ( (StatusReg[13] & 0x18) == 0 )
-        sub_94027F9C(&qword_94067220[6 * v5]);
+        timer_cancel(&qword_94067220[6 * v5]);
       goto LABEL_23;
     }
-    return sub_9404B508(v1, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 571, "newthread");
+    return panic(v1, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 571, "newthread");
   }
-  sub_9404B508(v0, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 562, "spin_lock_held(&thread_lock)");
+  panic(v0, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 562, "spin_lock_held(&thread_lock)");
   goto LABEL_32;
 }
 
-/* ===== sub_94025C70 @ 0x94025C70 size 120 ===== */
-__int64 __fastcall sub_94025C70(__int64 a1, __int64 a2)
+/* ===== thread_preempt_check @ 0x94025C70 size 120 ===== */
+__int64 __fastcall thread_preempt_check(__int64 a1, __int64 a2)
 {
   unsigned __int64 StatusReg; // x2
   int v3; // w3
@@ -3135,8 +3135,8 @@ __int64 __fastcall sub_94025C70(__int64 a1, __int64 a2)
   return nullsub_4(v4, 0);
 }
 
-/* ===== sub_94025CE8 @ 0x94025CE8 size 416 ===== */
-bool __fastcall sub_94025CE8(__int64 a1, __int64 a2, _DWORD *a3)
+/* ===== thread_timeout_callback @ 0x94025CE8 size 416 ===== */
+bool __fastcall thread_timeout_callback(__int64 a1, __int64 a2, _DWORD *a3)
 {
   __int64 v3; // x30
   unsigned __int64 StatusReg; // x19
@@ -3148,18 +3148,18 @@ bool __fastcall sub_94025CE8(__int64 a1, __int64 a2, _DWORD *a3)
     {
       if ( (_ReadStatusReg(DAIF) & 0x80) != 0 )
       {
-        sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+        spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
         a3[11] = 1;
-        sub_94025518((__int64)a3);
-        sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+        thread_insert_ready_queue((__int64)a3);
+        spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
       }
       else
       {
         __asm { MSR             DAIFSet, #2 }
-        sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+        spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
         a3[11] = 1;
-        sub_94025518((__int64)a3);
-        sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+        thread_insert_ready_queue((__int64)a3);
+        spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
         __asm { MSR             DAIFClr, #2 }
       }
       return true;
@@ -3167,24 +3167,24 @@ bool __fastcall sub_94025CE8(__int64 a1, __int64 a2, _DWORD *a3)
   }
   else
   {
-    sub_9404B508(v3, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 807, "t->magic == THREAD_MAGIC");
+    panic(v3, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 807, "t->magic == THREAD_MAGIC");
   }
-  sub_9404B508(v3, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 808, "t->state == THREAD_SLEEPING");
+  panic(v3, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 808, "t->state == THREAD_SLEEPING");
   StatusReg = _ReadStatusReg(TPIDR_EL1);
   if ( (*(_DWORD *)(StatusReg + 52) & 0x10) != 0 )
     return false;
   if ( (_ReadStatusReg(DAIF) & 0x80) != 0 )
   {
-    sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
-    sub_940257BC();
-    sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+    spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+    thread_resched_check();
+    spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
   }
   else
   {
     __asm { MSR             DAIFSet, #2 }
-    sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
-    sub_940257BC();
-    sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+    spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+    thread_resched_check();
+    spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
     __asm { MSR             DAIFClr, #2 }
   }
   if ( (*(_DWORD *)(StatusReg + 52) & 0x18) != 0 )
@@ -3194,8 +3194,8 @@ bool __fastcall sub_94025CE8(__int64 a1, __int64 a2, _DWORD *a3)
   return v12 <= 0;
 }
 
-/* ===== sub_94025E88 @ 0x94025E88 size 264 ===== */
-__int64 __fastcall sub_94025E88(_DWORD *a1)
+/* ===== thread_resume @ 0x94025E88 size 264 ===== */
+__int64 __fastcall thread_resume(_DWORD *a1)
 {
   __int64 v1; // x30
   int v3; // w21
@@ -3206,38 +3206,38 @@ __int64 __fastcall sub_94025E88(_DWORD *a1)
     return 4294967288LL;
   if ( *a1 != 1953002084 )
   {
-    sub_9404B508(v1, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 236, "t->magic == THREAD_MAGIC");
+    panic(v1, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 236, "t->magic == THREAD_MAGIC");
     return 4294967288LL;
   }
   v3 = 0;
   if ( (_ReadStatusReg(DAIF) & 0x80) != 0 )
   {
-    sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+    spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
     if ( a1 != (_DWORD *)_ReadStatusReg(TPIDR_EL1) )
       goto LABEL_5;
 LABEL_9:
     StatusReg = _ReadStatusReg(MPIDR_EL1);
     if ( (StatusReg & 0x1000000) != 0 )
       StatusReg >>= 8;
-    sub_94027F9C(&qword_94067220[6 * ((unsigned __int8)StatusReg | (4 * ((StatusReg >> 8) & 0xF)))]);
+    timer_cancel(&qword_94067220[6 * ((unsigned __int8)StatusReg | (4 * ((StatusReg >> 8) & 0xF)))]);
     goto LABEL_5;
   }
   __asm { MSR             DAIFSet, #2 }
   v3 = 1;
-  sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+  spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
   if ( a1 == (_DWORD *)_ReadStatusReg(TPIDR_EL1) )
     goto LABEL_9;
 LABEL_5:
   a1[13] |= 8u;
-  sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+  spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
   result = 0;
   if ( v3 != 0 )
     __asm { MSR             DAIFClr, #2 }
   return result;
 }
 
-/* ===== sub_94025F90 @ 0x94025F90 size 288 ===== */
-unsigned __int64 *sub_94025F90()
+/* ===== thread_yield @ 0x94025F90 size 288 ===== */
+unsigned __int64 *thread_yield()
 {
   __int64 v0; // x30
   _DWORD *StatusReg; // x19
@@ -3251,7 +3251,7 @@ unsigned __int64 *sub_94025F90()
   StatusReg = (_DWORD *)_ReadStatusReg(TPIDR_EL1);
   if ( *StatusReg != 1953002084 )
   {
-    sub_9404B508(
+    panic(
       v0,
       "ASSERT FAILED at (%s:%d): %s\n",
       "external/lk/kernel/thread.c",
@@ -3266,7 +3266,7 @@ unsigned __int64 *sub_94025F90()
       __asm { MSR             DAIFSet, #2 }
       v2 = 1;
     }
-    sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+    spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
     v3 = _ReadStatusReg(MPIDR_EL1);
     v4 = StatusReg[13];
     if ( (v3 & 0x1000000) != 0 )
@@ -3276,24 +3276,24 @@ unsigned __int64 *sub_94025F90()
     StatusReg[12] = 0;
     StatusReg[11] = 1;
     if ( (v4 & 0x10) == 0 )
-      sub_94025668((__int64)StatusReg);
-    sub_94025910();
-    result = sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+      thread_insert_ready_queue_tail((__int64)StatusReg);
+    thread_reschedule();
+    result = spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
     if ( v2 != 0 )
       __asm { MSR             DAIFClr, #2 }
     return result;
   }
-  v13 = sub_9404B508(
+  v13 = panic(
           v0,
           "ASSERT FAILED at (%s:%d): %s\n",
           "external/lk/kernel/thread.c",
           674,
           "current_thread->state == THREAD_RUNNING");
-  return (unsigned __int64 *)sub_940260B0(v13);
+  return (unsigned __int64 *)thread_resume_full(v13);
 }
 
-/* ===== sub_940260B0 @ 0x940260B0 size 776 ===== */
-unsigned __int64 *__fastcall sub_940260B0(_DWORD *a1)
+/* ===== thread_resume_full @ 0x940260B0 size 776 ===== */
+unsigned __int64 *__fastcall thread_resume_full(_DWORD *a1)
 {
   __int64 v1; // x22
   __int64 v2; // x30
@@ -3314,9 +3314,9 @@ unsigned __int64 *__fastcall sub_940260B0(_DWORD *a1)
 
   if ( *a1 != 1953002084 )
   {
-    sub_9404B508(v2, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 314, "t->magic == THREAD_MAGIC");
+    panic(v2, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 314, "t->magic == THREAD_MAGIC");
 LABEL_21:
-    sub_9404B508(v2, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 315, "t->state != THREAD_DEATH");
+    panic(v2, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 315, "t->state != THREAD_DEATH");
     StatusReg = (_DWORD *)_ReadStatusReg(TPIDR_EL1);
     if ( *StatusReg == 1953002084 )
     {
@@ -3334,21 +3334,21 @@ LABEL_21:
         {
           __asm { MSR             DAIFSet, #2 }
           v22 = 1;
-          sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+          spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
           StatusReg[11] = 1;
           if ( (StatusReg[13] & 0x10) != 0 )
           {
-            sub_94025910();
-            result = sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+            thread_reschedule();
+            result = spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
             goto LABEL_32;
           }
 LABEL_29:
           if ( (int)StatusReg[12] <= 0 )
-            sub_94025668((__int64)StatusReg);
+            thread_insert_ready_queue_tail((__int64)StatusReg);
           else
-            sub_94025518((__int64)StatusReg);
-          sub_94025910();
-          result = sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+            thread_insert_ready_queue((__int64)StatusReg);
+          thread_reschedule();
+          result = spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
           if ( v22 == 0 )
             return result;
 LABEL_32:
@@ -3357,26 +3357,26 @@ LABEL_32:
         }
         v22 = 0;
         v1 = -536578848;
-        sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+        spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
         v23 = StatusReg[13];
         StatusReg[11] = 1;
         if ( (v23 & 0x10) == 0 )
           goto LABEL_29;
 LABEL_39:
-        sub_94025910();
-        return sub_940223D4((unsigned __int64 *)v1);
+        thread_reschedule();
+        return spin_unlock((unsigned __int64 *)v1);
       }
     }
     else
     {
-      sub_9404B508(
+      panic(
         v18,
         "ASSERT FAILED at (%s:%d): %s\n",
         "external/lk/kernel/thread.c",
         712,
         "current_thread->magic == THREAD_MAGIC");
     }
-    sub_9404B508(
+    panic(
       v18,
       "ASSERT FAILED at (%s:%d): %s\n",
       "external/lk/kernel/thread.c",
@@ -3393,17 +3393,17 @@ LABEL_39:
     __asm { MSR             DAIFSet, #2 }
     v5 = 1;
     v6 = false;
-    sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+    spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
     if ( a1[11] != 0 )
       goto LABEL_5;
 LABEL_18:
     a1[11] = 1;
     v6 = ((v4 ^ 0x80) & 0x80) != 0;
-    sub_94025518((__int64)a1);
+    thread_insert_ready_queue((__int64)a1);
     goto LABEL_5;
   }
   v6 = false;
-  sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+  spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
   if ( a1[11] == 0 )
     goto LABEL_18;
 LABEL_5:
@@ -3423,16 +3423,16 @@ LABEL_5:
       v10 = 1LL << v9;
   }
   nullsub_4(v10, 0);
-  sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+  spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
   if ( v5 != 0 )
     __asm { MSR             DAIFClr, #2 }
   if ( v6 )
-    sub_94025F90();
+    thread_yield();
   return nullptr;
 }
 
-/* ===== sub_940263B8 @ 0x940263B8 size 352 ===== */
-unsigned __int64 *__fastcall sub_940263B8(unsigned int a1)
+/* ===== thread_sleep @ 0x940263B8 size 352 ===== */
+unsigned __int64 *__fastcall thread_sleep(unsigned int a1)
 {
   __int64 v1; // x30
   _DWORD *StatusReg; // x19
@@ -3443,7 +3443,7 @@ unsigned __int64 *__fastcall sub_940263B8(unsigned int a1)
   StatusReg = (_DWORD *)_ReadStatusReg(TPIDR_EL1);
   if ( *StatusReg != 1953002084 )
   {
-    sub_9404B508(
+    panic(
       v1,
       "ASSERT FAILED at (%s:%d): %s\n",
       "external/lk/kernel/thread.c",
@@ -3455,36 +3455,36 @@ unsigned __int64 *__fastcall sub_940263B8(unsigned int a1)
     if ( (StatusReg[13] & 0x10) != 0 )
     {
 LABEL_9:
-      v11 = sub_9404B508(
+      v11 = panic(
               v1,
               "ASSERT FAILED at (%s:%d): %s\n",
               "external/lk/kernel/thread.c",
               840,
               "!thread_is_idle(current_thread)");
-      return (unsigned __int64 *)sub_94026518(v11);
+      return (unsigned __int64 *)thread_init_queues(v11);
     }
-    sub_94027E28(v12);
+    timer_init(v12);
     if ( (_ReadStatusReg(DAIF) & 0x80) != 0 )
     {
-      sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
-      sub_94027E84(v12, a1, sub_94025CE8, StatusReg);
+      spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+      timer_set_oneshot(v12, a1, thread_timeout_callback, StatusReg);
       StatusReg[11] = 4;
-      sub_94025910();
-      return sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+      thread_reschedule();
+      return spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
     }
     else
     {
       __asm { MSR             DAIFSet, #2 }
-      sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
-      sub_94027E84(v12, a1, sub_94025CE8, StatusReg);
+      spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+      timer_set_oneshot(v12, a1, thread_timeout_callback, StatusReg);
       StatusReg[11] = 4;
-      sub_94025910();
-      result = sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+      thread_reschedule();
+      result = spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
       __asm { MSR             DAIFClr, #2 }
     }
     return result;
   }
-  sub_9404B508(
+  panic(
     v1,
     "ASSERT FAILED at (%s:%d): %s\n",
     "external/lk/kernel/thread.c",
@@ -3493,23 +3493,23 @@ LABEL_9:
   goto LABEL_9;
 }
 
-/* ===== sub_94026518 @ 0x94026518 size 60 ===== */
-__int64 sub_94026518()
+/* ===== thread_init_queues @ 0x94026518 size 60 ===== */
+__int64 thread_init_queues()
 {
-  sub_94027E28(qword_94067220);
-  sub_94027E28(qword_94067250);
-  sub_94027E28(qword_94067280);
-  return sub_94027E28(qword_940672B0);
+  timer_init(qword_94067220);
+  timer_init(qword_94067250);
+  timer_init(qword_94067280);
+  return timer_init(qword_940672B0);
 }
 
-/* ===== sub_94026554 @ 0x94026554 size 20 ===== */
-__int64 __fastcall sub_94026554(__int64 a1)
+/* ===== thread_set_name @ 0x94026554 size 20 ===== */
+__int64 __fastcall thread_set_name(__int64 a1)
 {
-  return sub_9404CF6C(_ReadStatusReg(TPIDR_EL1) + 696, a1, 32);
+  return strlcpy(_ReadStatusReg(TPIDR_EL1) + 696, a1, 32);
 }
 
-/* ===== sub_94026568 @ 0x94026568 size 264 ===== */
-void __noreturn sub_94026568()
+/* ===== thread_become_idle @ 0x94026568 size 264 ===== */
+void __noreturn thread_become_idle()
 {
   __int64 v0; // x30
   _DWORD *StatusReg; // x19
@@ -3525,38 +3525,38 @@ void __noreturn sub_94026568()
     v2 = _ReadStatusReg(MPIDR_EL1);
     if ( (v2 & 0x1000000) != 0 )
       v2 >>= 8;
-    sub_9404CAC0(v11, 16, "idle %d", (unsigned __int8)v2 | (4 * ((v2 >> 8) & 0xF)));
-    sub_94026554((__int64)v11);
+    snprintf(v11, 16, "idle %d", (unsigned __int8)v2 | (4 * ((v2 >> 8) & 0xF)));
+    thread_set_name((__int64)v11);
     StatusReg[10] = 0;
     StatusReg[13] |= 0x10u;
     v3 = _ReadStatusReg(MPIDR_EL1);
     if ( (v3 & 0x1000000) != 0 )
       v3 >>= 8;
     StatusReg[15] = (unsigned __int8)v3 | (4 * ((v3 >> 8) & 0xF));
-    sub_94028428(1);
+    smp_clear_cpu_mask(1);
     v4 = _ReadStatusReg(MPIDR_EL1);
     if ( (v4 & 0x1000000) != 0 )
       v4 >>= 8;
     MEMORY[0xFFFFFFFFE005A224] |= 1LL << ((unsigned __int8)v4 | (unsigned __int8)(4 * (BYTE1(v4) & 0xF)));
     __asm { MSR             DAIFClr, #2 }
-    sub_94025F90();
+    thread_yield();
     while ( 1 )
     {
-      sub_940224F8();
-      sub_940224F8();
+      wfi();
+      wfi();
     }
   }
-  v10 = sub_9404B508(
+  v10 = panic(
           v0,
           "DEBUG ASSERT FAILED at (%s:%d): %s\n",
           "external/lk/kernel/thread.c",
           942,
           "arch_ints_disabled()");
-  sub_94026670(v10);
+  thread_enter_idle(v10);
 }
 
-/* ===== sub_94026670 @ 0x94026670 size 108 ===== */
-void __noreturn sub_94026670()
+/* ===== thread_enter_idle @ 0x94026670 size 108 ===== */
+void __noreturn thread_enter_idle()
 {
   unsigned __int64 StatusReg; // x0
   int v1; // w19
@@ -3566,19 +3566,19 @@ void __noreturn sub_94026670()
     StatusReg >>= 8;
   v1 = (unsigned __int8)StatusReg | (4 * ((StatusReg >> 8) & 0xF));
   *(_DWORD *)(_ReadStatusReg(TPIDR_EL1) + 40) = 0;
-  sub_94028428(1);
+  smp_clear_cpu_mask(1);
   MEMORY[0xFFFFFFFFE005A224] |= 1LL << v1;
   __asm { MSR             DAIFClr, #2 }
-  sub_94025F90();
+  thread_yield();
   while ( 1 )
   {
-    sub_940224F8();
-    sub_940224F8();
+    wfi();
+    wfi();
   }
 }
 
-/* ===== sub_940266DC @ 0x940266DC size 32 ===== */
-__int64 __fastcall sub_940266DC(__int64 result)
+/* ===== wait_queue_init @ 0x940266DC size 32 ===== */
+__int64 __fastcall wait_queue_init(__int64 result)
 {
   *(_QWORD *)(result + 8) = result + 8;
   *(_DWORD *)result = 2002872692;
@@ -3587,9 +3587,9 @@ __int64 __fastcall sub_940266DC(__int64 result)
   return result;
 }
 
-/* ===== sub_940266FC @ 0x940266FC size 444 ===== */
+/* ===== thread_create @ 0x940266FC size 444 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_940266FC(
+__int64 __fastcall thread_create(
         __int64 a1,
         __int64 a2,
         __int64 a3,
@@ -3617,7 +3617,7 @@ __int64 __fastcall sub_940266FC(
     v24 = a5;
     v11 = 4;
     v26 = a4;
-    v20 = sub_9404CBC4(728);
+    v20 = malloc(728);
     a4 = v26;
     v8 = v20;
     a5 = v24;
@@ -3628,10 +3628,10 @@ __int64 __fastcall sub_940266FC(
   v21 = a6;
   v23 = a5;
   v25 = a4;
-  sub_9404CDC4(v8, 0, 728);
+  memset(v8, 0, 728);
   *(_DWORD *)v8 = 1953002084;
   *(_DWORD *)(v8 + 60) = -1;
-  sub_9404CF6C(v8 + 696, a2, 32);
+  strlcpy(v8 + 696, a2, 32);
   *(_QWORD *)(v8 + 632) = a3;
   *(_QWORD *)(v8 + 640) = v25;
   *(_QWORD *)(v8 + 40) = v23;
@@ -3639,15 +3639,15 @@ __int64 __fastcall sub_940266FC(
   *(_DWORD *)(v8 + 72) = 0;
   *(_DWORD *)(v8 + 56) = -1;
   *(_DWORD *)(v8 + 648) = 0;
-  sub_940266DC(v8 + 656);
+  wait_queue_init(v8 + 656);
   if ( v21 == 0 )
   {
-    v12 = sub_9404CBC4(a7);
+    v12 = malloc(a7);
     *(_QWORD *)(v8 + 616) = v12;
     if ( v12 == 0 )
     {
       if ( (v11 & 4) != 0 )
-        sub_9404CC20(v8);
+        free(v8);
       return 0;
     }
     v11 |= 2u;
@@ -3655,39 +3655,39 @@ __int64 __fastcall sub_940266FC(
   *(_QWORD *)(v8 + 624) = a7;
   *(_DWORD *)(v8 + 52) = v11;
   *(_QWORD *)(v8 + 688) = *(_QWORD *)(_ReadStatusReg(TPIDR_EL1) + 688);
-  sub_940229C8((_QWORD *)v8);
+  thread_setup_stack((_QWORD *)v8);
   if ( (_ReadStatusReg(DAIF) & 0x80) != 0 )
   {
-    sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+    spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
     *(_QWORD *)(v8 + 16) = 0;
     *(_QWORD *)(v8 + 8) = &qword_940674E8;
     MEMORY[0] = v8 + 8;
     off_940674F0 = (_UNKNOWN *)(v8 + 8);
-    sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+    spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
   }
   else
   {
     __asm { MSR             DAIFSet, #2 }
-    sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+    spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
     *(_QWORD *)(v8 + 16) = 0;
     *(_QWORD *)(v8 + 8) = &qword_940674E8;
     MEMORY[0] = v8 + 8;
     off_940674F0 = (_UNKNOWN *)(v8 + 8);
-    sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+    spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
     __asm { MSR             DAIFClr, #2 }
   }
   return v8;
 }
 
-/* ===== sub_940268B8 @ 0x940268B8 size 48 ===== */
-__int64 __fastcall sub_940268B8(__int64 a1, __int64 a2, __int64 a3, unsigned int a4, __int64 a5)
+/* ===== thread_create_simple @ 0x940268B8 size 48 ===== */
+__int64 __fastcall thread_create_simple(__int64 a1, __int64 a2, __int64 a3, unsigned int a4, __int64 a5)
 {
-  return sub_940266FC(0, a1, a2, a3, a4, 0, a5);
+  return thread_create(0, a1, a2, a3, a4, 0, a5);
 }
 
-/* ===== sub_940268E8 @ 0x940268E8 size 300 ===== */
+/* ===== thread_init_bootstrap @ 0x940268E8 size 300 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 *sub_940268E8()
+__int64 *thread_init_bootstrap()
 {
   __int64 v0; // x30
   unsigned __int64 StatusReg; // x1
@@ -3701,13 +3701,13 @@ __int64 *sub_940268E8()
     StatusReg >>= 8;
   if ( ((unsigned __int8)StatusReg | (4 * ((StatusReg >> 8) & 0xF))) != 0 )
   {
-    v4 = sub_9404B508(
+    v4 = panic(
            v0,
            "DEBUG ASSERT FAILED at (%s:%d): %s\n",
            "external/lk/kernel/thread.c",
            861,
            "arch_curr_cpu_num() == 0");
-    return (__int64 *)sub_94026A14(v4, v5, v6);
+    return (__int64 *)thread_init_idle(v4, v5, v6);
   }
   else
   {
@@ -3721,16 +3721,16 @@ __int64 *sub_940268E8()
     while ( v2 != &qword_940674E0 );
     qword_940674E8 = (__int64)&qword_940674E8;
     off_940674F0 = &qword_940674E8;
-    sub_9404CDC4(dword_940666C0, 0, 728);
+    memset(dword_940666C0, 0, 728);
     dword_940666C0[0] = 1953002084;
     dword_940666FC = -1;
-    sub_9404CF6C(&qword_94066700[79], "bootstrap", 32);
+    strlcpy(&qword_94066700[79], "bootstrap", 32);
     dword_940666F8 = 0;
     dword_940666E8 = 31;
     dword_940666EC = 2;
     dword_940666FC = 0;
     dword_940666F4 = 1;
-    sub_940266DC((__int64)&qword_94066700[74]);
+    wait_queue_init((__int64)&qword_94066700[74]);
     qword_940666D0 = 0;
     qword_940666C8 = (__int64)&qword_940674E8;
     MEMORY[0] = &qword_940666C8;
@@ -3742,9 +3742,9 @@ __int64 *sub_940268E8()
   }
 }
 
-/* ===== sub_94026A14 @ 0x94026A14 size 404 ===== */
+/* ===== thread_init_idle @ 0x94026A14 size 404 ===== */
 // write access to const memory has been detected, the output may be wrong!
-unsigned __int64 *sub_94026A14()
+unsigned __int64 *thread_init_idle()
 {
   __int64 v0; // x30
   unsigned __int64 StatusReg; // x0
@@ -3764,24 +3764,24 @@ unsigned __int64 *sub_94026A14()
       StatusReg >>= 8;
     v2 = (unsigned __int8)StatusReg | (4 * ((unsigned int)(StatusReg >> 8) & 0xF));
     v3 = &dword_940666C0[182 * v2];
-    sub_9404CAC0(v15, 16, "idle %d", (unsigned __int8)StatusReg | (4 * ((StatusReg >> 8) & 0xF)));
-    sub_9404CDC4(v3, 0, 728);
+    snprintf(v15, 16, "idle %d", (unsigned __int8)StatusReg | (4 * ((StatusReg >> 8) & 0xF)));
+    memset(v3, 0, 728);
     *v3 = 1953002084;
     v3[15] = -1;
-    sub_9404CF6C(v3 + 174, v15, 32);
+    strlcpy(v3 + 174, v15, 32);
     v3[15] = v2;
     v3[10] = 31;
     v3[13] = 17;
     v3[11] = 2;
     v3[14] = v2;
-    sub_940266DC((__int64)&dword_940666C0[182 * v2 + 164]);
+    wait_queue_init((__int64)&dword_940666C0[182 * v2 + 164]);
     v4 = 0;
     if ( (_ReadStatusReg(DAIF) & 0x80) == 0 )
     {
       __asm { MSR             DAIFSet, #2 }
       v4 = 1;
     }
-    sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+    spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
     v5 = &dword_940666C0[182 * v2];
     *((_QWORD *)v5 + 1) = &qword_940674E8;
     *((_QWORD *)v5 + 2) = 0;
@@ -3790,25 +3790,25 @@ unsigned __int64 *sub_94026A14()
     dword_940666A8[(unsigned int)v2] = v5[10];
     _WriteStatusReg(TPIDR_EL1, (unsigned __int64)v3);
     __isb(0xFu);
-    result = sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+    result = spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
     if ( v4 != 0 )
       __asm { MSR             DAIFClr, #2 }
   }
   else
   {
-    v13 = sub_9404B508(
+    v13 = panic(
             v0,
             "DEBUG ASSERT FAILED at (%s:%d): %s\n",
             "external/lk/kernel/thread.c",
             969,
             "arch_ints_disabled()");
-    return (unsigned __int64 *)sub_94026BA8(v13, v14);
+    return (unsigned __int64 *)wait_queue_block(v13, v14);
   }
   return result;
 }
 
-/* ===== sub_94026BA8 @ 0x94026BA8 size 372 ===== */
-__int64 __fastcall sub_94026BA8(__int64 a1, __int64 a2)
+/* ===== wait_queue_block @ 0x94026BA8 size 372 ===== */
+__int64 __fastcall wait_queue_block(__int64 a1, __int64 a2)
 {
   __int64 v2; // x30
   unsigned __int64 StatusReg; // x19
@@ -3819,7 +3819,7 @@ __int64 __fastcall sub_94026BA8(__int64 a1, __int64 a2)
   StatusReg = _ReadStatusReg(TPIDR_EL1);
   if ( *(_DWORD *)a1 != 2002872692 )
   {
-    sub_9404B508(
+    panic(
       v2,
       "ASSERT FAILED at (%s:%d): %s\n",
       "external/lk/kernel/thread.c",
@@ -3831,7 +3831,7 @@ __int64 __fastcall sub_94026BA8(__int64 a1, __int64 a2)
     if ( (_ReadStatusReg(DAIF) & 0x80) == 0 )
     {
 LABEL_13:
-      sub_9404B508(v2, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 1168, "arch_ints_disabled()");
+      panic(v2, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 1168, "arch_ints_disabled()");
     }
     else if ( MEMORY[0xFFFFFFFFE00474E0] != 0 )
     {
@@ -3849,18 +3849,18 @@ LABEL_13:
       *(_DWORD *)(StatusReg + 72) = 0;
       if ( (_DWORD)a2 == -1 )
       {
-        sub_94025910();
+        thread_reschedule();
       }
       else
       {
-        sub_94027E28(v8);
-        sub_94027E84(v8, a2, &loc_94027950, StatusReg);
-        sub_94025910();
-        sub_94027F9C(v8);
+        timer_init(v8);
+        timer_set_oneshot(v8, a2, &loc_94027950, StatusReg);
+        thread_reschedule();
+        timer_cancel(v8);
       }
       return *(unsigned int *)(StatusReg + 72);
     }
-    sub_9404B508(
+    panic(
       v2,
       "ASSERT FAILED at (%s:%d): %s\n",
       "external/lk/kernel/thread.c",
@@ -3868,7 +3868,7 @@ LABEL_13:
       "spin_lock_held(&thread_lock)");
     return 4294967283LL;
   }
-  sub_9404B508(
+  panic(
     v2,
     "ASSERT FAILED at (%s:%d): %s\n",
     "external/lk/kernel/thread.c",
@@ -3877,8 +3877,8 @@ LABEL_13:
   goto LABEL_13;
 }
 
-/* ===== sub_94026D1C @ 0x94026D1C size 612 ===== */
-__int64 __fastcall sub_94026D1C(__int64 a1, _DWORD *a2, unsigned int a3)
+/* ===== thread_join @ 0x94026D1C size 612 ===== */
+__int64 __fastcall thread_join(__int64 a1, _DWORD *a2, unsigned int a3)
 {
   int v3; // w23
   __int64 *v4; // x24
@@ -3899,11 +3899,11 @@ __int64 __fastcall sub_94026D1C(__int64 a1, _DWORD *a2, unsigned int a3)
     goto LABEL_11;
   v4 = &qword_9405BFF0[2];
   v9 = -536578848;
-  sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+  spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
   if ( (*(_DWORD *)(a1 + 52) & 1) != 0 )
   {
     v9 = -34;
-    sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+    spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
     return v9;
   }
   v3 = 0;
@@ -3912,15 +3912,15 @@ __int64 __fastcall sub_94026D1C(__int64 a1, _DWORD *a2, unsigned int a3)
     goto LABEL_13;
   while ( 1 )
   {
-    v9 = sub_94026BA8(a1 + 656, v10);
+    v9 = wait_queue_block(a1 + 656, v10);
     if ( (v9 & 0x80000000) != 0 )
       goto LABEL_29;
     if ( *(_DWORD *)a1 == 1953002084 )
       break;
 LABEL_14:
-    sub_9404B508(v7, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 371, "t->magic == THREAD_MAGIC");
+    panic(v7, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 371, "t->magic == THREAD_MAGIC");
 LABEL_15:
-    sub_9404B508(v5, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 350, "t->magic == THREAD_MAGIC");
+    panic(v5, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 350, "t->magic == THREAD_MAGIC");
 LABEL_16:
     if ( *(_QWORD *)(a1 + 32) == 0 )
     {
@@ -3932,7 +3932,7 @@ LABEL_16:
       *(_QWORD *)(a1 + 16) = 0;
       *(_QWORD *)(a1 + 8) = 0;
       *(_DWORD *)a1 = 0;
-      sub_940223D4((unsigned __int64 *)v4[465]);
+      spin_unlock((unsigned __int64 *)v4[465]);
       if ( v3 != 0 )
         __asm { MSR             DAIFClr, #2 }
       v18 = *(_DWORD *)(a1 + 52);
@@ -3941,18 +3941,18 @@ LABEL_16:
         v19 = *(_QWORD *)(a1 + 616);
         if ( v19 != 0 )
         {
-          sub_9404CC20(v19);
+          free(v19);
           v18 = *(_DWORD *)(a1 + 52);
         }
       }
       v9 = 0;
       if ( (v18 & 4) != 0 )
-        sub_9404CC20(a1);
+        free(a1);
       return v9;
     }
     while ( 1 )
     {
-      sub_9404B508(
+      panic(
         v7,
         "ASSERT FAILED at (%s:%d): %s\n",
         "external/lk/kernel/thread.c",
@@ -3962,10 +3962,10 @@ LABEL_11:
       __asm { MSR             DAIFSet, #2 }
       v4 = &qword_9405BFF0[2];
       v9 = -536578848;
-      sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+      spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
       if ( (*(_DWORD *)(a1 + 52) & 1) != 0 )
       {
-        sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+        spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
         __asm { MSR             DAIFClr, #2 }
         return (unsigned int)-34;
       }
@@ -3985,23 +3985,23 @@ LABEL_8:
   }
   if ( *(_DWORD *)(a1 + 44) == 5 )
     goto LABEL_8;
-  sub_9404B508(v7, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 372, "t->state == THREAD_DEATH");
+  panic(v7, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 372, "t->state == THREAD_DEATH");
 LABEL_28:
-  sub_9404B508(
+  panic(
     v7,
     "ASSERT FAILED at (%s:%d): %s\n",
     "external/lk/kernel/thread.c",
     373,
     "t->blocking_wait_queue == NULL");
 LABEL_29:
-  sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+  spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
   if ( v3 != 0 )
     __asm { MSR             DAIFClr, #2 }
   return v9;
 }
 
-/* ===== sub_94026F80 @ 0x94026F80 size 424 ===== */
-__int64 __fastcall sub_94026F80(__int64 a1, char a2, int a3)
+/* ===== wait_queue_wake_one @ 0x94026F80 size 424 ===== */
+__int64 __fastcall wait_queue_wake_one(__int64 a1, char a2, int a3)
 {
   __int64 v3; // x30
   __int64 StatusReg; // x21
@@ -4016,7 +4016,7 @@ __int64 __fastcall sub_94026F80(__int64 a1, char a2, int a3)
   StatusReg = _ReadStatusReg(TPIDR_EL1);
   if ( *(_DWORD *)a1 != 2002872692 )
   {
-    sub_9404B508(
+    panic(
       v3,
       "ASSERT FAILED at (%s:%d): %s\n",
       "external/lk/kernel/thread.c",
@@ -4028,20 +4028,20 @@ __int64 __fastcall sub_94026F80(__int64 a1, char a2, int a3)
     if ( MEMORY[0xFFFFFFFFE00474E0] == 0 )
     {
 LABEL_14:
-      sub_9404B508(
+      panic(
         v3,
         "ASSERT FAILED at (%s:%d): %s\n",
         "external/lk/kernel/thread.c",
         1221,
         "spin_lock_held(&thread_lock)");
 LABEL_15:
-      v10 = sub_9404B508(
+      v10 = panic(
               v3,
               "ASSERT FAILED at (%s:%d): %s\n",
               "external/lk/kernel/thread.c",
               1228,
               "t->state == THREAD_BLOCKED");
-      return sub_94027128(v10, v11, v12);
+      return wait_queue_wake_all(v10, v11, v12);
     }
     v5 = *(_QWORD *)(a1 + 16);
     if ( v5 == a1 + 8 )
@@ -4064,24 +4064,24 @@ LABEL_15:
     if ( a2 != 0 )
     {
       *(_DWORD *)(StatusReg + 44) = 1;
-      sub_94025518(StatusReg);
-      sub_94025518(v7);
-      sub_94025C70(StatusReg, v7);
-      sub_94025910();
+      thread_insert_ready_queue(StatusReg);
+      thread_insert_ready_queue(v7);
+      thread_preempt_check(StatusReg, v7);
+      thread_reschedule();
     }
     else
     {
-      sub_94025518(v7);
-      sub_94025C70(StatusReg, v7);
+      thread_insert_ready_queue(v7);
+      thread_preempt_check(StatusReg, v7);
     }
     return 1;
   }
-  sub_9404B508(v3, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 1220, "arch_ints_disabled()");
+  panic(v3, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 1220, "arch_ints_disabled()");
   goto LABEL_14;
 }
 
-/* ===== sub_94027128 @ 0x94027128 size 724 ===== */
-__int64 __fastcall sub_94027128(__int64 a1, unsigned __int8 a2, int a3)
+/* ===== wait_queue_wake_all @ 0x94027128 size 724 ===== */
+__int64 __fastcall wait_queue_wake_all(__int64 a1, unsigned __int8 a2, int a3)
 {
   __int64 v3; // x30
   __int64 StatusReg; // x22
@@ -4107,7 +4107,7 @@ __int64 __fastcall sub_94027128(__int64 a1, unsigned __int8 a2, int a3)
   StatusReg = _ReadStatusReg(TPIDR_EL1);
   if ( *(_DWORD *)a1 != 2002872692 )
   {
-    sub_9404B508(
+    panic(
       v3,
       "ASSERT FAILED at (%s:%d): %s\n",
       "external/lk/kernel/thread.c",
@@ -4119,7 +4119,7 @@ __int64 __fastcall sub_94027128(__int64 a1, unsigned __int8 a2, int a3)
     if ( MEMORY[0xFFFFFFFFE00474E0] == 0 )
     {
 LABEL_31:
-      sub_9404B508(
+      panic(
         v23,
         "ASSERT FAILED at (%s:%d): %s\n",
         "external/lk/kernel/thread.c",
@@ -4132,7 +4132,7 @@ LABEL_31:
     {
       *(_DWORD *)(StatusReg + 44) = 1;
       v8 = a1 + 8;
-      sub_94025518(StatusReg);
+      thread_insert_ready_queue(StatusReg);
       v9 = *(_QWORD *)(a1 + 16);
       v7 = *(_DWORD *)(a1 + 24);
       if ( a1 + 8 == v9 )
@@ -4165,7 +4165,7 @@ LABEL_25:
     if ( v12 != 3 )
     {
 LABEL_27:
-      sub_9404B508(
+      panic(
         v23,
         "ASSERT FAILED at (%s:%d): %s\n",
         "external/lk/kernel/thread.c",
@@ -4178,7 +4178,7 @@ LABEL_27:
       *(_DWORD *)(v11 + 44) = 1;
       *(_DWORD *)(v11 + 72) = a3;
       *(_QWORD *)(v11 + 64) = 0;
-      sub_94025518(v11);
+      thread_insert_ready_queue(v11);
       v19 = _ReadStatusReg(MPIDR_EL1);
       v20 = *(_DWORD *)(v11 + 60);
       if ( (v19 & 0x1000000) != 0 )
@@ -4215,22 +4215,22 @@ LABEL_20:
     if ( *(_DWORD *)(a1 + 24) != 0 )
     {
 LABEL_32:
-      v22 = sub_9404B508(v23, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 1308, "wait->count == 0");
-      return sub_940273FC(v22);
+      v22 = panic(v23, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 1308, "wait->count == 0");
+      return thread_cancel(v22);
     }
     nullsub_4(v13, 0);
     if ( v24 == 0 )
       return v14;
 LABEL_28:
-    sub_94025910();
+    thread_reschedule();
     return v14;
   }
-  sub_9404B508(v23, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 1279, "arch_ints_disabled()");
+  panic(v23, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 1279, "arch_ints_disabled()");
   goto LABEL_31;
 }
 
-/* ===== sub_940273FC @ 0x940273FC size 320 ===== */
-__int64 __fastcall sub_940273FC(_DWORD *a1)
+/* ===== thread_cancel @ 0x940273FC size 320 ===== */
+__int64 __fastcall thread_cancel(_DWORD *a1)
 {
   __int64 v1; // x20
   __int64 v2; // x30
@@ -4240,41 +4240,41 @@ __int64 __fastcall sub_940273FC(_DWORD *a1)
     if ( (_ReadStatusReg(DAIF) & 0x80) == 0 )
     {
       __asm { MSR             DAIFSet, #2 }
-      sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
-      sub_94027128((__int64)(a1 + 164), 0, -34);
+      spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+      wait_queue_wake_all((__int64)(a1 + 164), 0, -34);
       if ( a1[11] != 5 )
       {
         a1[13] |= 1u;
-        sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+        spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
         __asm { MSR             DAIFClr, #2 }
         return 0;
       }
       a1[13] &= ~1u;
-      sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+      spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
       __asm { MSR             DAIFClr, #2 }
-      return sub_94026D1C((__int64)a1, nullptr, 0);
+      return thread_join((__int64)a1, nullptr, 0);
     }
     v1 = -536578848;
-    sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
-    sub_94027128((__int64)(a1 + 164), 0, -34);
+    spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+    wait_queue_wake_all((__int64)(a1 + 164), 0, -34);
     if ( a1[11] != 5 )
     {
       a1[13] |= 1u;
-      sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+      spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
       return 0;
     }
   }
   else
   {
-    sub_9404B508(v2, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 402, "t->magic == THREAD_MAGIC");
+    panic(v2, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 402, "t->magic == THREAD_MAGIC");
   }
   a1[13] &= ~1u;
-  sub_940223D4((unsigned __int64 *)v1);
-  return sub_94026D1C((__int64)a1, nullptr, 0);
+  spin_unlock((unsigned __int64 *)v1);
+  return thread_join((__int64)a1, nullptr, 0);
 }
 
-/* ===== sub_9402753C @ 0x9402753C size 332 ===== */
-__int64 __fastcall sub_9402753C(int a1)
+/* ===== thread_exit @ 0x9402753C size 332 ===== */
+__int64 __fastcall thread_exit(int a1)
 {
   __int64 v1; // x30
   unsigned __int64 StatusReg; // x19
@@ -4287,7 +4287,7 @@ __int64 __fastcall sub_9402753C(int a1)
   StatusReg = _ReadStatusReg(TPIDR_EL1);
   if ( *(_DWORD *)StatusReg != 1953002084 )
   {
-    sub_9404B508(
+    panic(
       v1,
       "ASSERT FAILED at (%s:%d): %s\n",
       "external/lk/kernel/thread.c",
@@ -4300,7 +4300,7 @@ __int64 __fastcall sub_9402753C(int a1)
     {
       if ( (_ReadStatusReg(DAIF) & 0x80) == 0 )
         __asm { MSR             DAIFSet, #2 }
-      sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+      spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
       *(_DWORD *)(StatusReg + 648) = a1;
       v4 = *(_DWORD *)(StatusReg + 52);
       *(_DWORD *)(StatusReg + 44) = 5;
@@ -4314,29 +4314,29 @@ __int64 __fastcall sub_9402753C(int a1)
       *(_DWORD *)StatusReg = 0;
       if ( (v4 & 2) != 0 && *(_QWORD *)(StatusReg + 616) != 0 )
       {
-        ((void (*)(void))sub_9404BC3C)();
+        ((void (*)(void))heap_free_to_quarantine)();
         v4 = *(_DWORD *)(StatusReg + 52);
       }
       if ( (v4 & 4) != 0 )
-        sub_9404BC3C(StatusReg);
+        heap_free_to_quarantine(StatusReg);
       while ( 1 )
       {
-        sub_94025910();
-        sub_9404B508(v6, "somehow fell through thread_exit()\n");
+        thread_reschedule();
+        panic(v6, "somehow fell through thread_exit()\n");
 LABEL_13:
-        sub_94027128(StatusReg + 656, 0, 0);
+        wait_queue_wake_all(StatusReg + 656, 0, 0);
       }
     }
 LABEL_16:
-    v12 = sub_9404B508(
+    v12 = panic(
             v1,
             "ASSERT FAILED at (%s:%d): %s\n",
             "external/lk/kernel/thread.c",
             437,
             "!thread_is_idle(current_thread)");
-    return sub_94027688(v12, v13);
+    return wait_queue_destroy(v12, v13);
   }
-  sub_9404B508(
+  panic(
     v1,
     "ASSERT FAILED at (%s:%d): %s\n",
     "external/lk/kernel/thread.c",
@@ -4345,8 +4345,8 @@ LABEL_16:
   goto LABEL_16;
 }
 
-/* ===== sub_94027688 @ 0x94027688 size 196 ===== */
-__int64 __fastcall sub_94027688(_DWORD *a1, unsigned __int8 a2)
+/* ===== wait_queue_destroy @ 0x94027688 size 196 ===== */
+__int64 __fastcall wait_queue_destroy(_DWORD *a1, unsigned __int8 a2)
 {
   __int64 v2; // x30
   __int64 result; // x0
@@ -4354,7 +4354,7 @@ __int64 __fastcall sub_94027688(_DWORD *a1, unsigned __int8 a2)
 
   if ( *a1 != 2002872692 )
   {
-    sub_9404B508(
+    panic(
       v2,
       "ASSERT FAILED at (%s:%d): %s\n",
       "external/lk/kernel/thread.c",
@@ -4365,25 +4365,25 @@ __int64 __fastcall sub_94027688(_DWORD *a1, unsigned __int8 a2)
   {
     if ( MEMORY[0xFFFFFFFFE00474E0] != 0 )
     {
-      result = sub_94027128((__int64)a1, a2, -11);
+      result = wait_queue_wake_all((__int64)a1, a2, -11);
       *a1 = 0;
       return result;
     }
 LABEL_7:
-    v5 = sub_9404B508(
+    v5 = panic(
            v2,
            "ASSERT FAILED at (%s:%d): %s\n",
            "external/lk/kernel/thread.c",
            1331,
            "spin_lock_held(&thread_lock)");
-    return sub_9402774C(v5);
+    return thread_wakeup(v5);
   }
-  sub_9404B508(v2, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 1330, "arch_ints_disabled()");
+  panic(v2, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 1330, "arch_ints_disabled()");
   goto LABEL_7;
 }
 
-/* ===== sub_9402774C @ 0x9402774C size 652 ===== */
-__int64 __fastcall sub_9402774C(__int64 a1, int a2)
+/* ===== thread_wakeup @ 0x9402774C size 652 ===== */
+__int64 __fastcall thread_wakeup(__int64 a1, int a2)
 {
   __int64 v2; // x30
   __int64 v4; // x0
@@ -4407,7 +4407,7 @@ __int64 __fastcall sub_9402774C(__int64 a1, int a2)
   if ( (_ReadStatusReg(DAIF) & 0x80) == 0 )
   {
 LABEL_21:
-    v4 = sub_9404B508(v4, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 1353, "arch_ints_disabled()");
+    v4 = panic(v4, "ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/thread.c", 1353, "arch_ints_disabled()");
   }
   else if ( MEMORY[0xFFFFFFFFE00474E0] != 0 )
   {
@@ -4416,14 +4416,14 @@ LABEL_21:
     v5 = *(_DWORD **)(a1 + 64);
     if ( v5 == nullptr )
     {
-      v4 = sub_9404B508(
+      v4 = panic(
              v2,
              "ASSERT FAILED at (%s:%d): %s\n",
              "external/lk/kernel/thread.c",
              1361,
              "t->blocking_wait_queue != NULL");
 LABEL_25:
-      sub_9404B508(
+      panic(
         v4,
         "ASSERT FAILED at (%s:%d): %s\n",
         "external/lk/kernel/thread.c",
@@ -4432,20 +4432,20 @@ LABEL_25:
       if ( *v14 == 1953002084 )
       {
         v18 = v14;
-        sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
-        v16 = sub_9402774C(v18);
-        sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+        spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+        v16 = thread_wakeup(v18);
+        spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
         return v16 >= 0;
       }
       else
       {
-        v17 = sub_9404B508(
+        v17 = panic(
                 v15,
                 "ASSERT FAILED at (%s:%d): %s\n",
                 "external/lk/kernel/thread.c",
                 1126,
                 "thread->magic == THREAD_MAGIC");
-        return sub_940279D8(v17);
+        return timer_insert(v17);
       }
     }
     if ( *v5 != 2002872692 )
@@ -4454,14 +4454,14 @@ LABEL_25:
     v7 = *(_QWORD **)(a1 + 32);
     if ( v6 == 0 && v7 == nullptr )
     {
-      v4 = sub_9404B508(
+      v4 = panic(
              v2,
              "ASSERT FAILED at (%s:%d): %s\n",
              "external/lk/kernel/thread.c",
              1363,
              "list_in_list(&t->queue_node)");
 LABEL_20:
-      v4 = sub_9404B508(
+      v4 = panic(
              v4,
              "ASSERT FAILED at (%s:%d): %s\n",
              "external/lk/kernel/thread.c",
@@ -4478,7 +4478,7 @@ LABEL_20:
     *(_QWORD *)(a1 + 64) = 0;
     *(_DWORD *)(a1 + 44) = 1;
     *(_DWORD *)(a1 + 72) = a2;
-    sub_94025518(a1);
+    thread_insert_ready_queue(a1);
     StatusReg = _ReadStatusReg(TPIDR_EL1);
     v10 = _ReadStatusReg(MPIDR_EL1);
     v11 = *(_DWORD *)(a1 + 60);
@@ -4497,7 +4497,7 @@ LABEL_20:
     nullsub_4(v12, 0);
     return 0;
   }
-  sub_9404B508(
+  panic(
     v4,
     "ASSERT FAILED at (%s:%d): %s\n",
     "external/lk/kernel/thread.c",
@@ -4506,8 +4506,8 @@ LABEL_20:
   return 4294967284LL;
 }
 
-/* ===== sub_940279D8 @ 0x940279D8 size 228 ===== */
-__int64 __fastcall sub_940279D8(unsigned int a1, __int64 a2)
+/* ===== timer_insert @ 0x940279D8 size 228 ===== */
+__int64 __fastcall timer_insert(unsigned int a1, __int64 a2)
 {
   __int64 v2; // x30
   __int64 *v3; // x5
@@ -4554,17 +4554,17 @@ LABEL_8:
     *(__int64 *)((char *)qword_94067500 + result) = a2 + 8;
     return result;
   }
-  v9 = sub_9404B508(
+  v9 = panic(
          v2,
          "DEBUG ASSERT FAILED at (%s:%d): %s\n",
          "external/lk/kernel/timer.c",
          82,
          "arch_ints_disabled()");
-  return sub_94027ABC(v9);
+  return timer_tick(v9);
 }
 
-/* ===== sub_94027ABC @ 0x94027ABC size 876 ===== */
-unsigned __int64 *__fastcall sub_94027ABC(__int64 a1, unsigned int a2)
+/* ===== timer_tick @ 0x94027ABC size 876 ===== */
+unsigned __int64 *__fastcall timer_tick(__int64 a1, unsigned int a2)
 {
   __int64 *v2; // x19
   __int64 *v3; // x21
@@ -4609,7 +4609,7 @@ unsigned __int64 *__fastcall sub_94027ABC(__int64 a1, unsigned int a2)
   v11 = v10;
   if ( (_ReadStatusReg(DAIF) & 0x80) == 0 )
   {
-    sub_9404B508(v10, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/timer.c", 231, "arch_ints_disabled()");
+    panic(v10, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/timer.c", 231, "arch_ints_disabled()");
     goto LABEL_12;
   }
   StatusReg = _ReadStatusReg(MPIDR_EL1);
@@ -4624,7 +4624,7 @@ unsigned __int64 *__fastcall sub_94027ABC(__int64 a1, unsigned int a2)
     v15 >>= 8;
   v4 = (unsigned __int8)v15 | (4 * ((v15 >> 8) & 0xF));
   v6 = 0;
-  sub_940223B4((unsigned __int64 *)0xFFFFFFFFE005A210LL);
+  spin_lock((unsigned __int64 *)0xFFFFFFFFE005A210LL);
   v3 = &qword_94067500[4 * (unsigned __int8)v4];
   v7 = v3;
   while ( 1 )
@@ -4644,12 +4644,12 @@ LABEL_12:
       v18 = v17 - a2;
       if ( v18 > 0 )
       {
-        sub_940249A4(sub_94027ABC, 0, v18);
+        arm_generic_timer_set(timer_tick, 0, v18);
 LABEL_10:
-        sub_940223D4((unsigned __int64 *)v5[490]);
+        spin_unlock((unsigned __int64 *)v5[490]);
         return (unsigned __int64 *)v6;
       }
-      sub_9404B508(
+      panic(
         v11,
         "DEBUG ASSERT FAILED at (%s:%d): %s\n",
         "external/lk/kernel/timer.c",
@@ -4664,7 +4664,7 @@ LABEL_10:
     v8[1] = 0;
     *v8 = 0;
     v46 = (unsigned __int64 *)v5[490];
-    sub_940223D4(v46);
+    spin_unlock(v46);
     v20 = _ReadStatusReg(MPIDR_EL1);
     if ( (v20 & 0x1000000) != 0 )
       v20 >>= 8;
@@ -4675,18 +4675,18 @@ LABEL_10:
     ++*(_QWORD *)(v23 + 64);
     if ( v21(v9, a2, v22) == 1 )
       v6 = 1;
-    sub_940223B4(v46);
+    spin_lock(v46);
     if ( v47 != 0 && *v8 == 0 && v8[1] == 0 )
     {
       v24 = *(_DWORD *)(v9 + 28);
       if ( v24 != 0 )
       {
         *(_DWORD *)(v9 + 24) = a2 + v24;
-        sub_940279D8(v4, v9);
+        timer_insert(v4, v9);
       }
     }
   }
-  v25 = sub_9404B508(
+  v25 = panic(
           v11,
           "DEBUG ASSERT FAILED at (%s:%d): %s\n",
           "external/lk/kernel/timer.c",
@@ -4696,7 +4696,7 @@ LABEL_10:
   v28 = v27;
   v44 = v29;
   v45 = v30;
-  v31 = sub_94024AF0();
+  v31 = arch_time_now_ms();
   *(_DWORD *)(v25 + 28) = v43;
   *(_QWORD *)(v25 + 32) = v44;
   *(_DWORD *)(v25 + 24) = v31 + v28;
@@ -4707,24 +4707,24 @@ LABEL_10:
     __asm { MSR             DAIFSet, #2 }
     v32 = 1;
   }
-  sub_940223B4((unsigned __int64 *)0xFFFFFFFFE005A210LL);
+  spin_lock((unsigned __int64 *)0xFFFFFFFFE005A210LL);
   v38 = _ReadStatusReg(MPIDR_EL1);
   if ( (v38 & 0x1000000) != 0 )
     v38 >>= 8;
   v39 = (unsigned __int8)v38 | (4 * ((v38 >> 8) & 0xF));
-  sub_940279D8(v39, v25);
+  timer_insert(v39, v25);
   v40 = &qword_94067500[4 * (unsigned __int8)v39];
   v41 = (__int64 *)v40[1];
   if ( v41 != nullptr && v41 != v40 && (__int64 *)v25 == v41 - 1 )
-    sub_940249A4(sub_94027ABC, 0, v28);
-  result = sub_940223D4((unsigned __int64 *)0xFFFFFFFFE005A210LL);
+    arm_generic_timer_set(timer_tick, 0, v28);
+  result = spin_unlock((unsigned __int64 *)0xFFFFFFFFE005A210LL);
   if ( v32 != 0 )
     __asm { MSR             DAIFClr, #2 }
   return result;
 }
 
-/* ===== sub_94027E28 @ 0x94027E28 size 40 ===== */
-__int64 __fastcall sub_94027E28(__int64 result)
+/* ===== timer_init @ 0x94027E28 size 40 ===== */
+__int64 __fastcall timer_init(__int64 result)
 {
   *(_QWORD *)(result + 8) = 0;
   *(_QWORD *)(result + 16) = 0;
@@ -4736,8 +4736,8 @@ __int64 __fastcall sub_94027E28(__int64 result)
   return result;
 }
 
-/* ===== sub_94027E50 @ 0x94027E50 size 52 ===== */
-bool __fastcall sub_94027E50(unsigned int a1)
+/* ===== timer_is_empty @ 0x94027E50 size 52 ===== */
+bool __fastcall timer_is_empty(unsigned int a1)
 {
   __int64 *v1; // x0
   __int64 *v2; // x1
@@ -4747,8 +4747,8 @@ bool __fastcall sub_94027E50(unsigned int a1)
   return v2 == nullptr || v2 == v1 || v2 == (__int64 *)8;
 }
 
-/* ===== sub_94027E84 @ 0x94027E84 size 140 ===== */
-__int64 __fastcall sub_94027E84(__int64 a1, __int64 a2, __int64 a3, __int64 a4)
+/* ===== timer_set_oneshot @ 0x94027E84 size 140 ===== */
+__int64 __fastcall timer_set_oneshot(__int64 a1, __int64 a2, __int64 a3, __int64 a4)
 {
   __int64 v4; // x30
   __int64 v5; // x5
@@ -4768,23 +4768,23 @@ __int64 __fastcall sub_94027E84(__int64 a1, __int64 a2, __int64 a3, __int64 a4)
       goto LABEL_4;
     while ( 1 )
     {
-      a1 = sub_9404B508(v6, (const char *)&loc_9404F178, v5, a4, v7);
+      a1 = panic(v6, (const char *)&loc_9404F178, v5, a4, v7);
 LABEL_4:
       if ( *(_QWORD *)(a1 + 16) == 0 )
         JUMPOUT(0x94027D28LL);
     }
   }
-  v8 = sub_9404B508(
+  v8 = panic(
          v4,
          "DEBUG ASSERT FAILED at (%s:%d): %s\n",
          "external/lk/kernel/timer.c",
          103,
          "timer->magic == TIMER_MAGIC");
-  return sub_94027F10(v8, v9, v10, v11);
+  return timer_set_periodic(v8, v9, v10, v11);
 }
 
-/* ===== sub_94027F10 @ 0x94027F10 size 140 ===== */
-__int64 __fastcall sub_94027F10(__int64 a1, __int64 a2, __int64 a3, __int64 a4)
+/* ===== timer_set_periodic @ 0x94027F10 size 140 ===== */
+__int64 __fastcall timer_set_periodic(__int64 a1, __int64 a2, __int64 a3, __int64 a4)
 {
   __int64 v4; // x30
   __int64 v5; // x5
@@ -4801,23 +4801,23 @@ __int64 __fastcall sub_94027F10(__int64 a1, __int64 a2, __int64 a3, __int64 a4)
       goto LABEL_4;
     while ( 1 )
     {
-      a1 = sub_9404B508(v6, (const char *)&loc_9404F178, v5, a4, v7);
+      a1 = panic(v6, (const char *)&loc_9404F178, v5, a4, v7);
 LABEL_4:
       if ( *(_QWORD *)(a1 + 16) == 0 )
         JUMPOUT(0x94027D28LL);
     }
   }
-  v8 = sub_9404B508(
+  v8 = panic(
          v4,
          "DEBUG ASSERT FAILED at (%s:%d): %s\n",
          "external/lk/kernel/timer.c",
          103,
          "timer->magic == TIMER_MAGIC");
-  return sub_94027F9C(v8);
+  return timer_cancel(v8);
 }
 
-/* ===== sub_94027F9C @ 0x94027F9C size 368 ===== */
-unsigned __int64 *__fastcall sub_94027F9C(__int64 a1)
+/* ===== timer_cancel @ 0x94027F9C size 368 ===== */
+unsigned __int64 *__fastcall timer_cancel(__int64 a1)
 {
   __int64 *v1; // x20
   int v2; // w21
@@ -4835,14 +4835,14 @@ unsigned __int64 *__fastcall sub_94027F9C(__int64 a1)
 
   if ( *(_DWORD *)a1 != 1953066354 )
   {
-    sub_9404B508(
+    panic(
       v3,
       "DEBUG ASSERT FAILED at (%s:%d): %s\n",
       "external/lk/kernel/timer.c",
       181,
       "timer->magic == TIMER_MAGIC");
 LABEL_22:
-    sub_94024A74();
+    arm_generic_timer_cancel();
     goto LABEL_16;
   }
   v2 = 0;
@@ -4852,7 +4852,7 @@ LABEL_22:
     v2 = 1;
   }
   v1 = &qword_9405BFF0[2];
-  sub_940223B4((unsigned __int64 *)0xFFFFFFFFE005A210LL);
+  spin_lock((unsigned __int64 *)0xFFFFFFFFE005A210LL);
   StatusReg = _ReadStatusReg(MPIDR_EL1);
   if ( (StatusReg & 0x1000000) != 0 )
     StatusReg >>= 8;
@@ -4881,20 +4881,20 @@ LABEL_22:
     goto LABEL_22;
   if ( v10 != v9 - 8 )
   {
-    v13 = *(_DWORD *)(v9 + 16) - sub_94024AF0();
+    v13 = *(_DWORD *)(v9 + 16) - arch_time_now_ms();
     if ( v13 < 0 )
       v13 = 0;
-    sub_940249A4(sub_94027ABC, 0, v13);
+    arm_generic_timer_set(timer_tick, 0, v13);
   }
 LABEL_16:
-  result = sub_940223D4((unsigned __int64 *)v1[490]);
+  result = spin_unlock((unsigned __int64 *)v1[490]);
   if ( v2 != 0 )
     __asm { MSR             DAIFClr, #2 }
   return result;
 }
 
-/* ===== sub_94028150 @ 0x94028150 size 48 ===== */
-__int64 __fastcall sub_94028150(__int64 result, int a2)
+/* ===== semaphore_init @ 0x94028150 size 48 ===== */
+__int64 __fastcall semaphore_init(__int64 result, int a2)
 {
   *(_DWORD *)result = 1936026977;
   *(_DWORD *)(result + 4) = a2;
@@ -4905,32 +4905,32 @@ __int64 __fastcall sub_94028150(__int64 result, int a2)
   return result;
 }
 
-/* ===== sub_94028180 @ 0x94028180 size 132 ===== */
-unsigned __int64 *__fastcall sub_94028180(__int64 a1)
+/* ===== semaphore_destroy @ 0x94028180 size 132 ===== */
+unsigned __int64 *__fastcall semaphore_destroy(__int64 a1)
 {
   unsigned __int64 *result; // x0
 
   if ( (_ReadStatusReg(DAIF) & 0x80) != 0 )
   {
-    sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+    spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
     *(_DWORD *)(a1 + 4) = 0;
-    sub_94027688((_DWORD *)(a1 + 8), 1u);
-    return sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+    wait_queue_destroy((_DWORD *)(a1 + 8), 1u);
+    return spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
   }
   else
   {
     __asm { MSR             DAIFSet, #2 }
-    sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+    spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
     *(_DWORD *)(a1 + 4) = 0;
-    sub_94027688((_DWORD *)(a1 + 8), 1u);
-    result = sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+    wait_queue_destroy((_DWORD *)(a1 + 8), 1u);
+    result = spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
     __asm { MSR             DAIFClr, #2 }
   }
   return result;
 }
 
-/* ===== sub_94028204 @ 0x94028204 size 244 ===== */
-__int64 __fastcall sub_94028204(__int64 a1, char a2)
+/* ===== semaphore_post @ 0x94028204 size 244 ===== */
+__int64 __fastcall semaphore_post(__int64 a1, char a2)
 {
   int v9; // w0
   unsigned int v10; // w19
@@ -4939,40 +4939,40 @@ __int64 __fastcall sub_94028204(__int64 a1, char a2)
 
   if ( (_ReadStatusReg(DAIF) & 0x80) != 0 )
   {
-    sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+    spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
     v13 = *(_DWORD *)(a1 + 4) + 1;
     *(_DWORD *)(a1 + 4) = v13;
     if ( v13 <= 0 )
-      v14 = sub_94026F80(a1 + 8, a2, 0);
+      v14 = wait_queue_wake_one(a1 + 8, a2, 0);
     else
       v14 = 0;
-    sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+    spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
     return v14;
   }
   else
   {
     __asm { MSR             DAIFSet, #2 }
-    sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+    spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
     v9 = *(_DWORD *)(a1 + 4) + 1;
     *(_DWORD *)(a1 + 4) = v9;
     if ( v9 <= 0 )
     {
-      v10 = sub_94026F80(a1 + 8, a2, 0);
-      sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+      v10 = wait_queue_wake_one(a1 + 8, a2, 0);
+      spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
       __asm { MSR             DAIFClr, #2 }
     }
     else
     {
       v10 = 0;
-      sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+      spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
       __asm { MSR             DAIFClr, #2 }
     }
     return v10;
   }
 }
 
-/* ===== sub_940282F8 @ 0x940282F8 size 296 ===== */
-__int64 __fastcall sub_940282F8(__int64 a1, __int64 a2)
+/* ===== semaphore_wait @ 0x940282F8 size 296 ===== */
+__int64 __fastcall semaphore_wait(__int64 a1, __int64 a2)
 {
   int v8; // w0
   unsigned int v9; // w21
@@ -4981,48 +4981,48 @@ __int64 __fastcall sub_940282F8(__int64 a1, __int64 a2)
 
   if ( (_ReadStatusReg(DAIF) & 0x80) != 0 )
   {
-    sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+    spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
     v12 = *(_DWORD *)(a1 + 4) - 1;
     *(_DWORD *)(a1 + 4) = v12;
     if ( v12 < 0 )
     {
-      v13 = sub_94026BA8(a1 + 8, a2);
+      v13 = wait_queue_block(a1 + 8, a2);
       if ( v13 == -13 )
         ++*(_DWORD *)(a1 + 4);
-      sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+      spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
     }
     else
     {
       v13 = 0;
-      sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+      spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
     }
     return v13;
   }
   else
   {
     __asm { MSR             DAIFSet, #2 }
-    sub_940223B4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+    spin_lock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
     v8 = *(_DWORD *)(a1 + 4) - 1;
     *(_DWORD *)(a1 + 4) = v8;
     if ( v8 < 0 )
     {
-      v9 = sub_94026BA8(a1 + 8, a2);
+      v9 = wait_queue_block(a1 + 8, a2);
       if ( v9 == -13 )
       {
         ++*(_DWORD *)(a1 + 4);
-        sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+        spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
         __asm { MSR             DAIFClr, #2 }
       }
       else
       {
-        sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+        spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
         __asm { MSR             DAIFClr, #2 }
       }
     }
     else
     {
       v9 = 0;
-      sub_940223D4((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
+      spin_unlock((unsigned __int64 *)0xFFFFFFFFE00474E0LL);
       __asm { MSR             DAIFClr, #2 }
     }
     return v9;
@@ -5041,8 +5041,8 @@ void nullsub_4()
   ;
 }
 
-/* ===== sub_94028428 @ 0x94028428 size 68 ===== */
-__int64 sub_94028428()
+/* ===== smp_clear_cpu_mask @ 0x94028428 size 68 ===== */
+__int64 smp_clear_cpu_mask()
 {
   unsigned __int64 StatusReg; // x0
   __int64 result; // x0
@@ -5058,19 +5058,19 @@ __int64 sub_94028428()
   return result;
 }
 
-/* ===== sub_9402846C @ 0x9402846C size 56 ===== */
-__int64 sub_9402846C()
+/* ===== sm_register_entity @ 0x9402846C size 56 ===== */
+__int64 sm_register_entity()
 {
   __int64 result; // x0
 
-  result = sub_9402985C(51, &qword_9405A588);
+  result = sm_register_entity_ex(51, &qword_9405A588);
   if ( (_DWORD)result != 0 )
-    return sub_9404CB4C("trusty error register entity: %d\n", result);
+    return printf("trusty error register entity: %d\n", result);
   return result;
 }
 
-/* ===== sub_940284A4 @ 0x940284A4 size 344 ===== */
-unsigned __int64 *__fastcall sub_940284A4(__int64 a1, __int64 a2, unsigned __int64 a3)
+/* ===== log_ring_write @ 0x940284A4 size 344 ===== */
+unsigned __int64 *__fastcall log_ring_write(__int64 a1, __int64 a2, unsigned __int64 a3)
 {
   int **v3; // x19
   char v5; // w20
@@ -5102,7 +5102,7 @@ unsigned __int64 *__fastcall sub_940284A4(__int64 a1, __int64 a2, unsigned __int
     v5 |= 2u;
     __asm { MSR             DAIFSet, #1 }
   }
-  sub_940223B4((unsigned __int64 *)&qword_94067580);
+  spin_lock((unsigned __int64 *)&qword_94067580);
   v12 = a3 >> 7;
   if ( a3 >> 7 != 0 )
   {
@@ -5146,7 +5146,7 @@ unsigned __int64 *__fastcall sub_940284A4(__int64 a1, __int64 a2, unsigned __int
     __dsb(0xEu);
     v21[1] += v23;
   }
-  result = sub_940223D4((unsigned __int64 *)&qword_94067580);
+  result = spin_unlock((unsigned __int64 *)&qword_94067580);
   if ( (v5 & 2) != 0 )
     __asm { MSR             DAIFClr, #1 }
   if ( (v5 & 1) != 0 )
@@ -5154,9 +5154,9 @@ unsigned __int64 *__fastcall sub_940284A4(__int64 a1, __int64 a2, unsigned __int
   return result;
 }
 
-/* ===== sub_940285FC @ 0x940285FC size 372 ===== */
+/* ===== logmem_create @ 0x940285FC size 372 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_940285FC(unsigned __int64 a1, __int64 a2)
+__int64 __fastcall logmem_create(unsigned __int64 a1, __int64 a2)
 {
   __int64 v2; // x2
   unsigned __int64 v3; // x3
@@ -5173,13 +5173,13 @@ __int64 __fastcall sub_940285FC(unsigned __int64 a1, __int64 a2)
   if ( &qword_9405A578 == (__int64 *)-536631944LL )
   {
 LABEL_7:
-    v9 = sub_9404CBC4(72);
+    v9 = malloc(72);
     if ( v9 != 0 )
     {
       v10 = a1 & 0xFFFFF;
       *(_QWORD *)(v9 + 16) = a1;
       *(_QWORD *)(v9 + 24) = a2;
-      if ( (unsigned int)sub_9404A878(
+      if ( (unsigned int)vmm_map(
                            -536460256,
                            "logmem",
                            (a2 + 0xFFFFF + (a1 & 0xFFFFF)) & 0xFFFFFFFFFFF00000LL,
@@ -5203,11 +5203,11 @@ LABEL_7:
         MEMORY[0xFFFFFFFFE003A578] = v9 + 56;
         off_9405A580 = (_UNKNOWN *)(v9 + 56);
         *(_QWORD *)(v9 + 48) = -536836956;
-        sub_9404AF4C(v9 + 32);
+        console_register(v9 + 32);
         MEMORY[0xFFFFFFFFE0057F30] = 1;
         return 0;
       }
-      sub_9404CC20(v9);
+      free(v9);
     }
     return -7;
   }
@@ -5227,8 +5227,8 @@ LABEL_7:
   }
 }
 
-/* ===== sub_94028770 @ 0x94028770 size 172 ===== */
-__int64 __fastcall sub_94028770(__int64 a1)
+/* ===== logmem_destroy @ 0x94028770 size 172 ===== */
+__int64 __fastcall logmem_destroy(__int64 a1)
 {
   __int64 v1; // x1
   __int64 v2; // x19
@@ -5248,51 +5248,51 @@ __int64 __fastcall sub_94028770(__int64 a1)
     if ( &qword_9405A578 == (__int64 *)v1 )
       return -2;
   }
-  sub_9404B014(v2 + 32);
+  console_unregister(v2 + 32);
   v3 = *(_QWORD **)(v2 + 64);
   v4 = *(_QWORD *)v2;
   *v3 = *(_QWORD *)(v2 + 56);
   *(_QWORD *)(*(_QWORD *)(v2 + 56) + 8LL) = v3;
   *(_QWORD *)(v2 + 64) = 0;
   *(_QWORD *)(v2 + 56) = 0;
-  v5 = sub_9404ABDC(-536460256, v4);
-  sub_9404CC20(v2);
+  v5 = vmm_free_region(-536460256, v4);
+  free(v2);
   result = -7;
   if ( v5 == 0 )
     return 0;
   return result;
 }
 
-/* ===== sub_9402881C @ 0x9402881C size 92 ===== */
-__int64 __fastcall sub_9402881C(int *a1)
+/* ===== logmem_ioctl @ 0x9402881C size 92 ===== */
+__int64 __fastcall logmem_ioctl(int *a1)
 {
   int v1; // w1
   __int64 result; // x0
 
   v1 = *a1;
   if ( *a1 == 855638017 )
-    return sub_940285FC((unsigned int)a1[1] | ((unsigned __int64)(unsigned int)a1[2] << 32), (unsigned int)a1[3]);
+    return logmem_create((unsigned int)a1[1] | ((unsigned __int64)(unsigned int)a1[2] << 32), (unsigned int)a1[3]);
   if ( v1 == 855638018 )
-    return sub_94028770((unsigned int)a1[1] | ((unsigned __int64)(unsigned int)a1[2] << 32));
+    return logmem_destroy((unsigned int)a1[1] | ((unsigned __int64)(unsigned int)a1[2] << 32));
   result = 0xFFFFFFFFLL;
   if ( v1 == 855638016 )
     return 1;
   return result;
 }
 
-/* ===== sub_94028878 @ 0x94028878 size 56 ===== */
-__int64 sub_94028878()
+/* ===== sm_register_entity2 @ 0x94028878 size 56 ===== */
+__int64 sm_register_entity2()
 {
   __int64 result; // x0
 
-  result = sub_9402985C(53, &qword_9405A598);
+  result = sm_register_entity_ex(53, &qword_9405A598);
   if ( (_DWORD)result != 0 )
-    return sub_9404CB4C("trusty error register entity: %d\n", result);
+    return printf("trusty error register entity: %d\n", result);
   return result;
 }
 
-/* ===== sub_940288B0 @ 0x940288B0 size 152 ===== */
-__int64 __fastcall sub_940288B0(_DWORD *a1)
+/* ===== sm_debug_ioctl @ 0x940288B0 size 152 ===== */
+__int64 __fastcall sm_debug_ioctl(_DWORD *a1)
 {
   unsigned int v2; // w1
   __int64 result; // x0
@@ -5328,8 +5328,8 @@ __int64 __fastcall sub_940288B0(_DWORD *a1)
   return result;
 }
 
-/* ===== sub_94028948 @ 0x94028948 size 96 ===== */
-__int64 __fastcall sub_94028948(int a1, _DWORD *a2)
+/* ===== smc_entry @ 0x94028948 size 96 ===== */
+__int64 __fastcall smc_entry(int a1, _DWORD *a2)
 {
   _DWORD *v8; // x9
   _DWORD *v9; // [xsp+10h] [xbp-10h]
@@ -5345,14 +5345,14 @@ __int64 __fastcall sub_94028948(int a1, _DWORD *a2)
   return 1006632960;
 }
 
-/* ===== sub_940289A8 @ 0x940289A8 size 8 ===== */
-void sub_940289A8()
+/* ===== smc_entry_thunk @ 0x940289A8 size 8 ===== */
+void smc_entry_thunk()
 {
   JUMPOUT(0x94028950LL);
 }
 
-/* ===== sub_940289B0 @ 0x940289B0 size 36 ===== */
-__int64 __fastcall sub_940289B0(unsigned __int16 *a1)
+/* ===== smc_handle_call @ 0x940289B0 size 36 ===== */
+__int64 __fastcall smc_handle_call(unsigned __int16 *a1)
 {
   __int64 v1; // x1
   __int64 (*v3)(void); // x2
@@ -5361,19 +5361,19 @@ __int64 __fastcall sub_940289B0(unsigned __int16 *a1)
   if ( (unsigned int)v1 < MEMORY[0xFFFFFFFFE003AB08] && (v3 = *(__int64 (**)(void))(8 * v1 - 536631192)) != nullptr )
     return v3();
   else
-    return sub_940289D4();
+    return smc_undefined_thunk();
 }
 
-/* ===== sub_940289D4 @ 0x940289D4 size 8 ===== */
+/* ===== smc_undefined_thunk @ 0x940289D4 size 8 ===== */
 // attributes: thunk
-void sub_940289D4(void)
+void smc_undefined_thunk(void)
 {
   JUMPOUT(0xFFFFFFFFE0009608LL);
 }
 
-/* ===== sub_94028A08 @ 0x94028A08 size 588 ===== */
+/* ===== halt @ 0x94028A08 size 588 ===== */
 // write access to const memory has been detected, the output may be wrong!
-unsigned __int64 *__fastcall sub_94028A08(int a1, int a2)
+unsigned __int64 *__fastcall halt(int a1, int a2)
 {
   __int64 v9; // x0
   __int64 v10; // x30
@@ -5392,62 +5392,62 @@ unsigned __int64 *__fastcall sub_94028A08(int a1, int a2)
   v21[0] = 0;
   v21[1] = 0;
   if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-    sub_9404B2FC("HALT: (reason = %d)\n", a2);
+    log_printf("HALT: (reason = %d)\n", a2);
   __asm
   {
     MSR             DAIFSet, #2
     MSR             DAIFSet, #1
   }
   while ( a1 != 3 || *(_QWORD *)(_ReadStatusReg(TPIDR_EL1) + 688) == 0 )
-    sub_94028948(-11, v21);
+    smc_entry(-11, v21);
   if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-    sub_9404B2FC("HALT: terminate user thread %s\n", (const char *)(_ReadStatusReg(TPIDR_EL1) + 696));
-  v9 = sub_9402E190();
-  sub_9402E300(v9);
-  sub_9404D33C(0);
+    log_printf("HALT: terminate user thread %s\n", (const char *)(_ReadStatusReg(TPIDR_EL1) + 696));
+  v9 = uctx_get_current();
+  uctx_destroy(v9);
+  uthread_exit(0);
   v11 = v10;
   StatusReg = _ReadStatusReg(MPIDR_EL1);
   if ( (StatusReg & 0x1000000) != 0 )
     StatusReg >>= 8;
   v13 = (unsigned __int8)StatusReg | (4 * ((StatusReg >> 8) & 0xF));
-  sub_94024DFC((__int64)&qword_94067600[6 * v13], 0, 1);
-  sub_9404CAC0(v20, 32, "irq-ns-switch-%d", v13);
-  v14 = (_DWORD *)sub_940268B8((__int64)v20, (__int64)sub_940291F4, (unsigned __int8)v13, 0x1Fu, 4096);
+  event_init((__int64)&qword_94067600[6 * v13], 0, 1);
+  snprintf(v20, 32, "irq-ns-switch-%d", v13);
+  v14 = (_DWORD *)thread_create_simple((__int64)v20, (__int64)sm_irq_thread, (unsigned __int8)v13, 0x1Fu, 4096);
   qword_940675B0[v13] = (__int64)v14;
   if ( v14 != nullptr )
   {
     v14[15] = v13;
-    sub_94025E88(v14);
-    sub_9404CAC0(v20, 32, "idle-ns-switch-%d", v13);
-    v15 = (_DWORD *)sub_940268B8((__int64)v20, (__int64)sub_940290C8, 0, 1u, 4096);
+    thread_resume(v14);
+    snprintf(v20, 32, "idle-ns-switch-%d", v13);
+    v15 = (_DWORD *)thread_create_simple((__int64)v20, (__int64)sm_get_stdcall_ret, 0, 1u, 4096);
     qword_940675D8[v13] = (__int64)v15;
     if ( v15 != nullptr )
     {
       v15[15] = v13;
-      sub_94025E88(v15);
+      thread_resume(v15);
       return nullptr;
     }
-    sub_9404B508(v11, "failed to create idle NS switcher thread for cpu %d!\n", v13);
+    panic(v11, "failed to create idle NS switcher thread for cpu %d!\n", v13);
   }
-  sub_9404B508(v11, "failed to create irq NS switcher thread for cpu %d!\n", v13);
+  panic(v11, "failed to create irq NS switcher thread for cpu %d!\n", v13);
   byte_940675A0 = 1;
   __dmb(0xAu);
   for ( i = 0; i != 4; ++i )
   {
     v18 = (_DWORD *)qword_940675B0[i];
     if ( v18 != nullptr )
-      sub_940260B0(v18);
+      thread_resume_full(v18);
     v19 = (unsigned __int64 *)qword_940675D8[i];
     result = v19;
     if ( v19 != nullptr )
-      result = sub_940260B0(v19);
+      result = thread_resume_full(v19);
   }
   return result;
 }
 
-/* ===== sub_94028C54 @ 0x94028C54 size 292 ===== */
+/* ===== sm_init @ 0x94028C54 size 292 ===== */
 // write access to const memory has been detected, the output may be wrong!
-unsigned __int64 *sub_94028C54()
+unsigned __int64 *sm_init()
 {
   __int64 v0; // x30
   __int64 v1; // x20
@@ -5458,11 +5458,11 @@ unsigned __int64 *sub_94028C54()
   __int64 v7; // [xsp+38h] [xbp+38h] BYREF
 
   v1 = v0;
-  sub_940251F8((__int64)"xtum", 0xFFFFFFFFLL);
+  mutex_acquire_timeout((__int64)"xtum", 0xFFFFFFFFLL);
   if ( MEMORY[0xFFFFFFFFE005A028] != 0 && MEMORY[0xFFFFFFFFE005A030] != 0 )
   {
     v4 = MEMORY[0xFFFFFFFFE005A028] & 0xFFF;
-    v5 = sub_9404A878(
+    v5 = vmm_map(
            -536460256,
            "sm",
            (MEMORY[0xFFFFFFFFE005A030] + 4095LL + v4) & 0xFFFFFFFFFFFFF000LL,
@@ -5474,7 +5474,7 @@ unsigned __int64 *sub_94028C54()
     if ( v5 != 0 )
     {
       qword_940675D0 = 0;
-      sub_9404CB4C("%s:%d: Error mapping boot parameter block: %d\n", "sm_init", 398, v5);
+      printf("%s:%d: Error mapping boot parameter block: %d\n", "sm_init", 398, v5);
     }
     else
     {
@@ -5482,23 +5482,23 @@ unsigned __int64 *sub_94028C54()
       dword_940675A4 = 1;
     }
   }
-  sub_9402530C((__int64)"xtum");
-  v2 = (_DWORD *)sub_940268B8((__int64)"sm-stdcall", (__int64)sub_94028F28, 0, 2u, 4096);
+  mutex_release((__int64)"xtum");
+  v2 = (_DWORD *)thread_create_simple((__int64)"sm-stdcall", (__int64)sm_stdcall_thread, 0, 2u, 4096);
   qword_940675A8 = (__int64)v2;
   if ( v2 != nullptr )
   {
-    sub_94025E88(v2);
-    return sub_940260B0(nullptr);
+    thread_resume(v2);
+    return thread_resume_full(nullptr);
   }
   else
   {
-    v6 = sub_9404B508(v1, "failed to create sm-stdcall thread!\n");
-    return (unsigned __int64 *)sub_94028D78(v6);
+    v6 = panic(v1, "failed to create sm-stdcall thread!\n");
+    return (unsigned __int64 *)sm_queue_stdcall(v6);
   }
 }
 
-/* ===== sub_94028D78 @ 0x94028D78 size 432 ===== */
-__int64 __fastcall sub_94028D78(int a1)
+/* ===== sm_queue_stdcall @ 0x94028D78 size 432 ===== */
+__int64 __fastcall sm_queue_stdcall(int a1)
 {
   __int64 result; // x0
   unsigned __int64 StatusReg; // x0
@@ -5512,7 +5512,7 @@ __int64 __fastcall sub_94028D78(int a1)
   while ( 1 )
   {
     __asm { MSR             DAIFSet, #1 }
-    sub_94028948(a1, &v12);
+    smc_entry(a1, &v12);
     __asm { MSR             DAIFClr, #1 }
     result = 1006632963;
     if ( (_DWORD)v12 == 1006632963 )
@@ -5521,7 +5521,7 @@ __int64 __fastcall sub_94028D78(int a1)
     if ( (StatusReg & 0x1000000) != 0 )
       StatusReg >>= 8;
     v10 = (unsigned __int8)StatusReg | (4 * ((StatusReg >> 8) & 0xF));
-    sub_940223B4((unsigned __int64 *)0xFFFFFFFFE003A5A8LL);
+    spin_lock((unsigned __int64 *)0xFFFFFFFFE003A5A8LL);
     if ( MEMORY[0xFFFFFFFFE003A5B4] != 0 || MEMORY[0xFFFFFFFFE003A5F8] != 0 )
     {
       if ( (_DWORD)v12 == 1006632960 && MEMORY[0xFFFFFFFFE003A5FC] == -1 )
@@ -5529,11 +5529,11 @@ __int64 __fastcall sub_94028D78(int a1)
         ++MEMORY[0xFFFFFFFFE003A608];
 LABEL_18:
         MEMORY[0xFFFFFFFFE003A5FC] = v10;
-        return (__int64)sub_940223D4((unsigned __int64 *)0xFFFFFFFFE003A5A8LL);
+        return (__int64)spin_unlock((unsigned __int64 *)0xFFFFFFFFE003A5A8LL);
       }
       a1 = -5;
       if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-        sub_9404B2FC("%s: cpu %d, std call busy\n", "sm_queue_stdcall", v10);
+        log_printf("%s: cpu %d, std call busy\n", "sm_queue_stdcall", v10);
     }
     else
     {
@@ -5544,7 +5544,7 @@ LABEL_18:
         MEMORY[0xFFFFFFFFE003A5E0] = v12;
         MEMORY[0xFFFFFFFFE003A5E8] = v13;
         MEMORY[0xFFFFFFFFE003A608] = 0;
-        sub_94024FDC(-536631888, 0);
+        event_signal(-536631888, 0);
         goto LABEL_18;
       }
       if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) != 0 )
@@ -5557,49 +5557,49 @@ LABEL_18:
         if ( (v11 & 0x1000000) != 0 )
           v11 >>= 8;
         a1 = -4;
-        sub_9404B2FC(
+        log_printf(
           "%s: cpu %d, unexpected restart, no std call active\n",
           "sm_queue_stdcall",
           (unsigned __int8)v11 | (4 * ((v11 >> 8) & 0xF)));
       }
     }
-    sub_940223D4((unsigned __int64 *)0xFFFFFFFFE003A5A8LL);
+    spin_unlock((unsigned __int64 *)0xFFFFFFFFE003A5A8LL);
   }
 }
 
-/* ===== sub_94028F28 @ 0x94028F28 size 164 ===== */
-void __noreturn sub_94028F28()
+/* ===== sm_stdcall_thread @ 0x94028F28 size 164 ===== */
+void __noreturn sm_stdcall_thread()
 {
   __int64 v0; // x24
 
   while ( 1 )
   {
-    sub_94024EFC(-536631888, 0xFFFFFFFFLL);
+    event_wait_timeout(-536631888, 0xFFFFFFFFLL);
     v0 = (*(__int64 (__fastcall **)(__int64))(8LL * (HIBYTE(MEMORY[0xFFFFFFFFE003A5E0]) & 0x3F) - 536631032))(-536631840);
     if ( (_ReadStatusReg(DAIF) & 0x80) != 0 )
     {
-      sub_940223B4((unsigned __int64 *)0xFFFFFFFFE003A5A8LL);
+      spin_lock((unsigned __int64 *)0xFFFFFFFFE003A5A8LL);
       MEMORY[0xFFFFFFFFE003A5F0] = v0;
       MEMORY[0xFFFFFFFFE003A5F8] = 1;
-      sub_940250FC(-536631888);
-      sub_940223D4((unsigned __int64 *)0xFFFFFFFFE003A5A8LL);
+      event_unsignal(-536631888);
+      spin_unlock((unsigned __int64 *)0xFFFFFFFFE003A5A8LL);
     }
     else
     {
       __asm { MSR             DAIFSet, #2 }
-      sub_940223B4((unsigned __int64 *)0xFFFFFFFFE003A5A8LL);
+      spin_lock((unsigned __int64 *)0xFFFFFFFFE003A5A8LL);
       MEMORY[0xFFFFFFFFE003A5F0] = v0;
       MEMORY[0xFFFFFFFFE003A5F8] = 1;
-      sub_940250FC(-536631888);
-      sub_940223D4((unsigned __int64 *)0xFFFFFFFFE003A5A8LL);
+      event_unsignal(-536631888);
+      spin_unlock((unsigned __int64 *)0xFFFFFFFFE003A5A8LL);
       __asm { MSR             DAIFClr, #2 }
     }
   }
 }
 
-/* ===== sub_94028FCC @ 0x94028FCC size 252 ===== */
+/* ===== sm_get_api_version @ 0x94028FCC size 252 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 sub_94028FCC()
+__int64 sm_get_api_version()
 {
   char v0; // w21
 
@@ -5611,19 +5611,19 @@ __int64 sub_94028FCC()
   }
   if ( (_ReadStatusReg(DAIF) & 0x40) != 0 )
   {
-    sub_940223B4((unsigned __int64 *)&qword_94067590);
+    spin_lock((unsigned __int64 *)&qword_94067590);
     byte_94067588 = 1;
-    sub_9404CB4C("%s:%d: lock api version %d\n", "sm_get_api_version", 109, 0);
-    sub_940223D4((unsigned __int64 *)&qword_94067590);
+    printf("%s:%d: lock api version %d\n", "sm_get_api_version", 109, 0);
+    spin_unlock((unsigned __int64 *)&qword_94067590);
   }
   else
   {
     v0 |= 2u;
     __asm { MSR             DAIFSet, #1 }
-    sub_940223B4((unsigned __int64 *)&qword_94067590);
+    spin_lock((unsigned __int64 *)&qword_94067590);
     byte_94067588 = 1;
-    sub_9404CB4C("%s:%d: lock api version %d\n", "sm_get_api_version", 109, 0);
-    sub_940223D4((unsigned __int64 *)&qword_94067590);
+    printf("%s:%d: lock api version %d\n", "sm_get_api_version", 109, 0);
+    spin_unlock((unsigned __int64 *)&qword_94067590);
     __asm { MSR             DAIFClr, #1 }
   }
   if ( (v0 & 1) != 0 )
@@ -5631,8 +5631,8 @@ __int64 sub_94028FCC()
   return 0;
 }
 
-/* ===== sub_940290C8 @ 0x940290C8 size 300 ===== */
-void sub_940290C8()
+/* ===== sm_get_stdcall_ret @ 0x940290C8 size 300 ===== */
+void sm_get_stdcall_ret()
 {
   unsigned __int64 StatusReg; // x0
   int v7; // w27
@@ -5642,7 +5642,7 @@ void sub_940290C8()
   while ( 1 )
   {
     __asm { MSR             DAIFSet, #2 }
-    sub_94025F90();
+    thread_yield();
     StatusReg = _ReadStatusReg(MPIDR_EL1);
     if ( (StatusReg & 0x1000000) != 0 )
       StatusReg >>= 8;
@@ -5653,7 +5653,7 @@ void sub_940290C8()
       if ( (v8 & 0x1000000) != 0 )
         v8 >>= 8;
       v9 = (unsigned __int8)v8 | (4 * ((v8 >> 8) & 0xF));
-      sub_940223B4((unsigned __int64 *)0xFFFFFFFFE003A5A8LL);
+      spin_lock((unsigned __int64 *)0xFFFFFFFFE003A5A8LL);
       if ( MEMORY[0xFFFFFFFFE003A5FC] == v9 )
       {
         MEMORY[0xFFFFFFFFE003A604] = MEMORY[0xFFFFFFFFE003A5FC];
@@ -5663,7 +5663,7 @@ void sub_940290C8()
           MEMORY[0xFFFFFFFFE003A5F8] = 0;
           v7 = MEMORY[0xFFFFFFFFE003A5F0];
         }
-        else if ( (unsigned int)sub_94028FCC() > 1 )
+        else if ( (unsigned int)sm_get_api_version() > 1 )
         {
           v7 = -13;
         }
@@ -5680,7 +5680,7 @@ void sub_940290C8()
       {
         v7 = -7;
         if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-          sub_9404B2FC(
+          log_printf(
             "%s: stdcallcpu, a%d != curr-cpu %d, l%d, i%d\n",
             "sm_get_stdcall_ret",
             MEMORY[0xFFFFFFFFE003A5FC],
@@ -5688,15 +5688,15 @@ void sub_940290C8()
             MEMORY[0xFFFFFFFFE003A604],
             MEMORY[0xFFFFFFFFE003A600]);
       }
-      sub_940223D4((unsigned __int64 *)0xFFFFFFFFE003A5A8LL);
+      spin_unlock((unsigned __int64 *)0xFFFFFFFFE003A5A8LL);
     }
-    sub_94028D78(v7);
+    sm_queue_stdcall(v7);
     __asm { MSR             DAIFClr, #2 }
   }
 }
 
-/* ===== sub_940291F4 @ 0x940291F4 size 180 ===== */
-void __fastcall __noreturn sub_940291F4(int a1)
+/* ===== sm_irq_thread @ 0x940291F4 size 180 ===== */
+void __fastcall __noreturn sm_irq_thread(int a1)
 {
   __int64 *v6; // x23
   unsigned __int64 StatusReg; // x1
@@ -5709,41 +5709,41 @@ void __fastcall __noreturn sub_940291F4(int a1)
   v6 = &qword_94067600[6 * a1];
   while ( 1 )
   {
-    sub_94024EFC((__int64)v6, 0xFFFFFFFFLL);
+    event_wait_timeout((__int64)v6, 0xFFFFFFFFLL);
     StatusReg = _ReadStatusReg(MPIDR_EL1);
     if ( (StatusReg & 0x1000000) != 0 )
       StatusReg >>= 8;
     v8 = -14;
     v9 = (unsigned __int8)StatusReg | (4 * ((StatusReg >> 8) & 0xF));
-    sub_940223B4((unsigned __int64 *)0xFFFFFFFFE003A5A8LL);
+    spin_lock((unsigned __int64 *)0xFFFFFFFFE003A5A8LL);
     if ( v9 == MEMORY[0xFFFFFFFFE003A5FC] )
     {
       MEMORY[0xFFFFFFFFE003A604] = v9;
       v8 = -3;
       MEMORY[0xFFFFFFFFE003A5FC] = -1;
     }
-    sub_940223D4((unsigned __int64 *)0xFFFFFFFFE003A5A8LL);
-    sub_94028D78(v8);
+    spin_unlock((unsigned __int64 *)0xFFFFFFFFE003A5A8LL);
+    sm_queue_stdcall(v8);
   }
 }
 
-/* ===== sub_940292A8 @ 0x940292A8 size 160 ===== */
+/* ===== sm_set_api_version @ 0x940292A8 size 160 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_940292A8(__int64 a1)
+__int64 __fastcall sm_set_api_version(__int64 a1)
 {
   unsigned int v1; // w19
 
   v1 = *(_DWORD *)(a1 + 4);
-  sub_940223B4((unsigned __int64 *)&qword_94067590);
+  spin_lock((unsigned __int64 *)&qword_94067590);
   if ( v1 > 2 )
     v1 = 2;
   dword_940675F8 = v1;
-  sub_940223D4((unsigned __int64 *)&qword_94067590);
+  spin_unlock((unsigned __int64 *)&qword_94067590);
   return v1;
 }
 
-/* ===== sub_94029348 @ 0x94029348 size 260 ===== */
-__int64 sub_94029348()
+/* ===== sm_handle_irq @ 0x94029348 size 260 ===== */
+__int64 sm_handle_irq()
 {
   unsigned __int64 StatusReg; // x1
   __int64 v1; // x1
@@ -5757,32 +5757,32 @@ __int64 sub_94029348()
   v1 = (int)((unsigned __int8)StatusReg | (4 * ((StatusReg >> 8) & 0xF)));
   if ( *((_BYTE *)&qword_94067598 + v1) != 0 )
   {
-    sub_94024FDC((__int64)&qword_94067600[6 * v1], 0);
+    event_signal((__int64)&qword_94067600[6 * v1], 0);
     return 1;
   }
   else
   {
-    sub_9404CB4C("%s:%d: warning: got ns irq before irq thread is ready\n", "sm_handle_irq", 421);
+    printf("%s:%d: warning: got ns irq before irq thread is ready\n", "sm_handle_irq", 421);
     v2 = _ReadStatusReg(MPIDR_EL1);
     if ( (v2 & 0x1000000) != 0 )
       v2 >>= 8;
     v3 = -14;
     v4 = (unsigned __int8)v2 | (4 * ((v2 >> 8) & 0xF));
-    sub_940223B4((unsigned __int64 *)0xFFFFFFFFE003A5A8LL);
+    spin_lock((unsigned __int64 *)0xFFFFFFFFE003A5A8LL);
     if ( v4 == MEMORY[0xFFFFFFFFE003A5FC] )
     {
       MEMORY[0xFFFFFFFFE003A604] = v4;
       MEMORY[0xFFFFFFFFE003A5FC] = -1;
       v3 = -3;
     }
-    sub_940223D4((unsigned __int64 *)0xFFFFFFFFE003A5A8LL);
-    sub_94028D78(v3);
+    spin_unlock((unsigned __int64 *)0xFFFFFFFFE003A5A8LL);
+    sm_queue_stdcall(v3);
     return 1;
   }
 }
 
-/* ===== sub_9402944C @ 0x9402944C size 156 ===== */
-__int64 sub_9402944C()
+/* ===== sm_handle_fiq @ 0x9402944C size 156 ===== */
+__int64 sm_handle_fiq()
 {
   int v0; // w20
   __int64 result; // x0
@@ -5790,49 +5790,49 @@ __int64 sub_9402944C()
 
   v2[0] = 0;
   v2[1] = 0;
-  if ( (unsigned int)sub_94028FCC() != 0 )
+  if ( (unsigned int)sm_get_api_version() != 0 )
   {
     v0 = 1006632962;
-    result = sub_94028948(-12, v2);
+    result = smc_entry(-12, v2);
   }
   else
   {
     v0 = 1006632960;
-    result = sub_94028948(-3, v2);
+    result = smc_entry(-3, v2);
   }
   if ( LODWORD(v2[0]) != v0 )
   {
-    sub_9404CB4C("%s:%d: got bad restart smc %x, expected %x\n", "sm_handle_fiq", 441, LODWORD(v2[0]), v0);
+    printf("%s:%d: got bad restart smc %x, expected %x\n", "sm_handle_fiq", 441, LODWORD(v2[0]), v0);
     for ( result = LODWORD(v2[0]); LODWORD(v2[0]) != v0; result = LODWORD(v2[0]) )
-      sub_94028948(-6, v2);
+      smc_entry(-6, v2);
   }
   return result;
 }
 
-/* ===== sub_940294E8 @ 0x940294E8 size 124 ===== */
+/* ===== sm_put_boot_args @ 0x940294E8 size 124 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 sub_940294E8()
+__int64 sm_put_boot_args()
 {
-  sub_940251F8((__int64)"xtum", 0xFFFFFFFFLL);
-  sub_9404CB4C("%s:%d: WARNING: caller does not own a reference to boot parameters\n", "sm_put_boot_args", 489);
-  return sub_9402530C((__int64)"xtum");
+  mutex_acquire_timeout((__int64)"xtum", 0xFFFFFFFFLL);
+  printf("%s:%d: WARNING: caller does not own a reference to boot parameters\n", "sm_put_boot_args", 489);
+  return mutex_release((__int64)"xtum");
 }
 
-/* ===== sub_94029564 @ 0x94029564 size 88 ===== */
-__int64 sub_94029564()
+/* ===== sm_get_boot_args @ 0x94029564 size 88 ===== */
+__int64 sm_get_boot_args()
 {
   ((void (*)(void))loc_94028BE4)();
   return 0;
 }
 
-/* ===== sub_940295BC @ 0x940295BC size 8 ===== */
-__int64 sub_940295BC()
+/* ===== sm_get_boot_args_null @ 0x940295BC size 8 ===== */
+__int64 sm_get_boot_args_null()
 {
   return 0;
 }
 
-/* ===== sub_940295C4 @ 0x940295C4 size 68 ===== */
-__int64 __fastcall sub_940295C4(unsigned __int16 *a1)
+/* ===== smc_entity_dispatch @ 0x940295C4 size 68 ===== */
+__int64 __fastcall smc_entity_dispatch(unsigned __int16 *a1)
 {
   __int64 (*v1)(void); // x1
 
@@ -5842,8 +5842,8 @@ __int64 __fastcall sub_940295C4(unsigned __int16 *a1)
     return MEMORY[0xFFFFFFFFE0009608]();
 }
 
-/* ===== sub_94029608 @ 0x94029608 size 184 ===== */
-__int64 __fastcall sub_94029608(unsigned int *a1)
+/* ===== smc_undefined @ 0x94029608 size 184 ===== */
+__int64 __fastcall smc_undefined(unsigned int *a1)
 {
   unsigned __int64 v2; // x3
   const char *v3; // x4
@@ -5852,7 +5852,7 @@ __int64 __fastcall sub_94029608(unsigned int *a1)
   int v6; // t1
   int v7; // w3
 
-  sub_9404CB4C("%s:%d: %s\n", "smc_undefined", 78, (const char *)&loc_9404F578);
+  printf("%s:%d: %s\n", "smc_undefined", 78, (const char *)&loc_9404F578);
   v2 = *a1;
   if ( (v2 & 0x80000000) != 0 )
     v3 = "Fastcall";
@@ -5860,7 +5860,7 @@ __int64 __fastcall sub_94029608(unsigned int *a1)
     v3 = "Stdcall";
   v4 = (int *)(a1 + 1);
   v5 = 0;
-  sub_9404CB4C(
+  printf(
     "%s:%d: SMC: 0x%x (%s entity %d function 0x%x)\n",
     "smc_undefined",
     78,
@@ -5872,14 +5872,14 @@ __int64 __fastcall sub_94029608(unsigned int *a1)
   {
     v6 = *v4++;
     v7 = v5++;
-    sub_9404CB4C("%s:%d: param%d: 0x%x\n", "smc_undefined", 78, v7, v6);
+    printf("%s:%d: param%d: 0x%x\n", "smc_undefined", 78, v7, v6);
   }
   while ( v5 != 3 );
   return 0xFFFFFFFFLL;
 }
 
-/* ===== sub_940296C0 @ 0x940296C0 size 184 ===== */
-__int64 __fastcall sub_940296C0(unsigned int *a1)
+/* ===== smc_restart_stdcall @ 0x940296C0 size 184 ===== */
+__int64 __fastcall smc_restart_stdcall(unsigned int *a1)
 {
   unsigned __int64 v2; // x3
   const char *v3; // x4
@@ -5888,7 +5888,7 @@ __int64 __fastcall sub_940296C0(unsigned int *a1)
   int v6; // t1
   int v7; // w3
 
-  sub_9404CB4C("%s:%d: %s\n", "smc_restart_stdcall", 85, "Unexpected stdcall restart!");
+  printf("%s:%d: %s\n", "smc_restart_stdcall", 85, "Unexpected stdcall restart!");
   v2 = *a1;
   if ( (v2 & 0x80000000) != 0 )
     v3 = "Fastcall";
@@ -5896,7 +5896,7 @@ __int64 __fastcall sub_940296C0(unsigned int *a1)
     v3 = "Stdcall";
   v4 = (int *)(a1 + 1);
   v5 = 0;
-  sub_9404CB4C(
+  printf(
     "%s:%d: SMC: 0x%x (%s entity %d function 0x%x)\n",
     "smc_restart_stdcall",
     85,
@@ -5908,36 +5908,36 @@ __int64 __fastcall sub_940296C0(unsigned int *a1)
   {
     v6 = *v4++;
     v7 = v5++;
-    sub_9404CB4C("%s:%d: param%d: 0x%x\n", "smc_restart_stdcall", 85, v7, v6);
+    printf("%s:%d: param%d: 0x%x\n", "smc_restart_stdcall", 85, v7, v6);
   }
   while ( v5 != 3 );
   return -4;
 }
 
-/* ===== sub_94029778 @ 0x94029778 size 24 ===== */
-__int64 sub_94029778()
+/* ===== sm_intc_fiq_handler @ 0x94029778 size 24 ===== */
+__int64 sm_intc_fiq_handler()
 {
-  sub_9402463C();
+  sm_intc_fiq_exit();
   return 1;
 }
 
-/* ===== sub_94029790 @ 0x94029790 size 32 ===== */
-__int64 __fastcall sub_94029790(__int64 a1)
+/* ===== timer_is_pending @ 0x94029790 size 32 ===== */
+__int64 __fastcall timer_is_pending(__int64 a1)
 {
-  if ( sub_94027E50(*(_DWORD *)(a1 + 4)) )
+  if ( timer_is_empty(*(_DWORD *)(a1 + 4)) )
     return 0;
   else
     return -1;
 }
 
-/* ===== sub_940297B0 @ 0x940297B0 size 76 ===== */
-unsigned __int64 __fastcall sub_940297B0(__int64 a1)
+/* ===== sm_get_version @ 0x940297B0 size 76 ===== */
+unsigned __int64 __fastcall sm_get_version(__int64 a1)
 {
   int v1; // w19
   unsigned __int64 result; // x0
 
   v1 = *(_DWORD *)(a1 + 4);
-  result = sub_9404CFF4(-536621880);
+  result = strlen(-536621880);
   if ( v1 != -1 )
   {
     if ( result <= v1 )
@@ -5948,28 +5948,28 @@ unsigned __int64 __fastcall sub_940297B0(__int64 a1)
   return result;
 }
 
-/* ===== sub_940297FC @ 0x940297FC size 36 ===== */
-__int64 sub_940297FC()
+/* ===== call_init_hooks_8 @ 0x940297FC size 36 ===== */
+__int64 call_init_hooks_8()
 {
-  sub_94023388(8, 1u, 0xFFFFFFFF);
+  call_init_hooks(8, 1u, 0xFFFFFFFF);
   return 0;
 }
 
-/* ===== sub_94029820 @ 0x94029820 size 36 ===== */
-__int64 sub_94029820()
+/* ===== call_init_hooks_4 @ 0x94029820 size 36 ===== */
+__int64 call_init_hooks_4()
 {
-  sub_94023388(4, 1u, 0xFFFFFFFF);
+  call_init_hooks(4, 1u, 0xFFFFFFFF);
   return 0;
 }
 
-/* ===== sub_94029844 @ 0x94029844 size 24 ===== */
-__int64 sub_94029844()
+/* ===== sm_handle_fiq_simple @ 0x94029844 size 24 ===== */
+__int64 sm_handle_fiq_simple()
 {
-  return (int)sub_94024500();
+  return (int)sm_intc_fiq_enter();
 }
 
-/* ===== sub_9402985C @ 0x9402985C size 228 ===== */
-__int64 __fastcall sub_9402985C(unsigned int a1, _QWORD *a2)
+/* ===== sm_register_entity_ex @ 0x9402985C size 228 ===== */
+__int64 __fastcall sm_register_entity_ex(unsigned int a1, _QWORD *a2)
 {
   unsigned int v4; // w21
   __int64 v6; // x0
@@ -5983,7 +5983,7 @@ __int64 __fastcall sub_9402985C(unsigned int a1, _QWORD *a2)
       if ( *a2 == 0 && a2[1] == 0 )
         return 4294967289LL;
       v4 = -14;
-      sub_940251F8((__int64)"xtum", 0xFFFFFFFFLL);
+      mutex_acquire_timeout((__int64)"xtum", 0xFFFFFFFFLL);
       if ( *(_QWORD *)(8LL * a1 - 536631736) == -536832504 && *(_QWORD *)(8LL * a1 - 536631032) == -536832504 )
       {
         if ( *a2 != 0 )
@@ -5993,15 +5993,15 @@ __int64 __fastcall sub_9402985C(unsigned int a1, _QWORD *a2)
         if ( v6 != 0 )
           *(_QWORD *)(8LL * a1 - 536631032) = v6;
       }
-      sub_9402530C((__int64)"xtum");
+      mutex_release((__int64)"xtum");
       return v4;
     }
   }
   return 4294967288LL;
 }
 
-/* ===== sub_94029940 @ 0x94029940 size 284 ===== */
-__int64 __fastcall sub_94029940(_QWORD *a1, __int64 *a2, int *a3)
+/* ===== sm_decode_ns_memory_attr @ 0x94029940 size 284 ===== */
+__int64 __fastcall sm_decode_ns_memory_attr(_QWORD *a1, __int64 *a2, int *a3)
 {
   int v6; // w3
   __int64 v7; // x3
@@ -6010,7 +6010,7 @@ __int64 __fastcall sub_94029940(_QWORD *a1, __int64 *a2, int *a3)
 
   if ( a1 == nullptr )
     return 4294967288LL;
-  sub_9404CB4C(
+  printf(
     "%s:%d: raw=0x%llx: pa=0x%llx: mair=0x%x, sharable=0x%x\n",
     "sm_decode_ns_memory_attr",
     89,
@@ -6031,13 +6031,13 @@ __int64 __fastcall sub_94029940(_QWORD *a1, __int64 *a2, int *a3)
   {
     if ( v6 != 255 )
     {
-      sub_9404CB4C("%s:%d: Unsupported memory attr 0x%x\n", "sm_decode_ns_memory_attr", 112, v6);
+      printf("%s:%d: Unsupported memory attr 0x%x\n", "sm_decode_ns_memory_attr", 112, v6);
       return 4294967272LL;
     }
     v7 = (*a1 >> 8) & 3LL;
     if ( v7 != 3 )
     {
-      sub_9404CB4C("%s:%d: Unsupported sharable attr 0x%x\n", "sm_decode_ns_memory_attr", 119, v7);
+      printf("%s:%d: Unsupported sharable attr 0x%x\n", "sm_decode_ns_memory_attr", 119, v7);
       return 4294967272LL;
     }
     v8 = 0;
@@ -6051,8 +6051,8 @@ __int64 __fastcall sub_94029940(_QWORD *a1, __int64 *a2, int *a3)
   return result;
 }
 
-/* ===== sub_94029A5C @ 0x94029A5C size 268 ===== */
-__int64 __fastcall sub_94029A5C(unsigned int *a1, __int64 *a2, _DWORD *a3, int *a4)
+/* ===== sm_decode_ns_mem_args @ 0x94029A5C size 268 ===== */
+__int64 __fastcall sm_decode_ns_mem_args(unsigned int *a1, __int64 *a2, _DWORD *a3, int *a4)
 {
   __int64 v4; // x30
   __int64 result; // x0
@@ -6061,26 +6061,26 @@ __int64 __fastcall sub_94029A5C(unsigned int *a1, __int64 *a2, _DWORD *a3, int *
   if ( a1 != nullptr )
   {
     v8 = a1[1] | ((unsigned __int64)a1[2] << 32);
-    result = sub_94029940(&v8, a2, a4);
+    result = sm_decode_ns_memory_attr(&v8, a2, a4);
     if ( (_DWORD)result == 0 && a3 != nullptr )
       *a3 = a1[3];
   }
   else
   {
-    sub_9404B508(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/sm/ns_mem.c", 144, "args");
-    sub_9404CC78(-536485312, "VerifiedBoot-LOCK", 18);
+    panic(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/sm/ns_mem.c", 144, "args");
+    memcpy(-536485312, "VerifiedBoot-LOCK", 18);
     MEMORY[0xFFFFFFFFE005F240] = 64;
-    if ( (unsigned int)sub_9402985C(0x34u, &qword_9405AB20) != 0 )
-      sub_9404CB4C("trusty error register entity: %d\n", 52);
-    result = sub_9402985C(2u, qword_9405AB10);
+    if ( (unsigned int)sm_register_entity_ex(0x34u, &qword_9405AB20) != 0 )
+      printf("trusty error register entity: %d\n", 52);
+    result = sm_register_entity_ex(2u, qword_9405AB10);
     if ( (_DWORD)result != 0 )
-      return sub_9404CB4C("trusty error register entity: %d\n", 2);
+      return printf("trusty error register entity: %d\n", 2);
   }
   return result;
 }
 
-/* ===== sub_94029B68 @ 0x94029B68 size 564 ===== */
-__int64 __fastcall sub_94029B68(__int64 a1, unsigned int a2)
+/* ===== aes_cbc_encrypt_test @ 0x94029B68 size 564 ===== */
+__int64 __fastcall aes_cbc_encrypt_test(__int64 a1, unsigned int a2)
 {
   __int64 v4; // x0
   __int64 v5; // x20
@@ -6096,53 +6096,53 @@ __int64 __fastcall sub_94029B68(__int64 a1, unsigned int a2)
   WORD1(v11[2]) = 0;
   HIDWORD(v11[2]) = 0;
   v11[3] = 0;
-  v4 = sub_9404CBC4(a2);
+  v4 = malloc(a2);
   v5 = v4;
   if ( v4 != 0 )
   {
-    sub_94040888(v4, 0, a2);
-    v6 = sub_94037D54(0, 0, v12, v11, 0, 16, 0, 0);
+    memset(v4, 0, a2);
+    v6 = sprd_aes_init(0, 0, v12, v11, 0, 16, 0, 0);
     if ( v6 != 0 )
     {
       if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
       {
         v7 = -65521;
-        sub_9404B2FC("lihj : aes_cbc encrypt test init FAILED [%d]\n", v6);
+        log_printf("lihj : aes_cbc encrypt test init FAILED [%d]\n", v6);
 LABEL_5:
-        sub_9404CC20(v5);
+        free(v5);
         return v7;
       }
     }
     else
     {
-      v9 = sub_94038198(v12, a1, v5, a2);
+      v9 = sprd_aes_process(v12, a1, v5, a2);
       if ( v9 != 0 )
       {
         if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
         {
           v7 = -65521;
-          sub_9404B2FC("lihj : aes_cbc encrypt test process FAILED [%d]\n", v9);
+          log_printf("lihj : aes_cbc encrypt test process FAILED [%d]\n", v9);
           goto LABEL_5;
         }
       }
       else
       {
-        v7 = sub_940381DC(v12, 0, 0, 0, 0, 0);
+        v7 = sprd_aes_final(v12, 0, 0, 0, 0, 0);
         if ( v7 == 0 )
         {
-          sub_94040880(a1, v5, a2);
+          memcpy(a1, v5, a2);
           goto LABEL_5;
         }
         if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
         {
           v10 = v7;
           v7 = -65521;
-          sub_9404B2FC("lihj : aes_cbc encrypt test final FAILED [%d]\n", v10);
+          log_printf("lihj : aes_cbc encrypt test final FAILED [%d]\n", v10);
           goto LABEL_5;
         }
       }
     }
-    sub_9404CC20(v5);
+    free(v5);
     return 4294901775LL;
   }
   else
@@ -6150,14 +6150,14 @@ LABEL_5:
     v7 = -65526;
     if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) != 0 )
       goto LABEL_5;
-    sub_9404B2FC("Cann't malloc memory for pt !\n");
-    sub_9404CC20(0);
+    log_printf("Cann't malloc memory for pt !\n");
+    free(0);
     return 4294901770LL;
   }
 }
 
-/* ===== sub_94029D9C @ 0x94029D9C size 620 ===== */
-__int64 __fastcall sub_94029D9C(unsigned int a1, unsigned __int8 *a2, unsigned int a3)
+/* ===== save_uboot_key @ 0x94029D9C size 620 ===== */
+__int64 __fastcall save_uboot_key(unsigned int a1, unsigned __int8 *a2, unsigned int a3)
 {
   __int64 result; // x0
   __int64 v7; // x1
@@ -6172,7 +6172,7 @@ __int64 __fastcall sub_94029D9C(unsigned int a1, unsigned __int8 *a2, unsigned i
       v7 = MEMORY[0xFFFFFFFFE003CB98];
       if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
       {
-        sub_9404B2FC("hwkey hash from uboot is:\n");
+        log_printf("hwkey hash from uboot is:\n");
         v7 = MEMORY[0xFFFFFFFFE003CB98];
       }
       v8 = a2;
@@ -6180,7 +6180,7 @@ __int64 __fastcall sub_94029D9C(unsigned int a1, unsigned __int8 *a2, unsigned i
       {
         if ( v7 > 1 )
         {
-          sub_9404B2FC("%02x", *v8);
+          log_printf("%02x", *v8);
           v7 = MEMORY[0xFFFFFFFFE003CB98];
         }
         ++v8;
@@ -6196,7 +6196,7 @@ __int64 __fastcall sub_94029D9C(unsigned int a1, unsigned __int8 *a2, unsigned i
       }
       else
       {
-        sub_9404B2FC("public key from uboot is:\n");
+        log_printf("public key from uboot is:\n");
         v7 = MEMORY[0xFFFFFFFFE003CB98];
         if ( a3 == 0 )
           goto LABEL_14;
@@ -6206,7 +6206,7 @@ __int64 __fastcall sub_94029D9C(unsigned int a1, unsigned __int8 *a2, unsigned i
       {
         if ( v7 > 1 )
         {
-          sub_9404B2FC("%02x", a2[v9]);
+          log_printf("%02x", a2[v9]);
           v7 = MEMORY[0xFFFFFFFFE003CB98];
         }
         ++v9;
@@ -6217,7 +6217,7 @@ __int64 __fastcall sub_94029D9C(unsigned int a1, unsigned __int8 *a2, unsigned i
       v7 = MEMORY[0xFFFFFFFFE003CB98];
       if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
       {
-        sub_9404B2FC("device state from uboot is:\n");
+        log_printf("device state from uboot is:\n");
         v7 = MEMORY[0xFFFFFFFFE003CB98];
         if ( a3 == 0 )
           goto LABEL_14;
@@ -6231,7 +6231,7 @@ __int64 __fastcall sub_94029D9C(unsigned int a1, unsigned __int8 *a2, unsigned i
       {
         if ( v7 > 1 )
         {
-          sub_9404B2FC("%02x", a2[v10]);
+          log_printf("%02x", a2[v10]);
           v7 = MEMORY[0xFFFFFFFFE003CB98];
         }
         ++v10;
@@ -6250,7 +6250,7 @@ __int64 __fastcall sub_94029D9C(unsigned int a1, unsigned __int8 *a2, unsigned i
       goto LABEL_5;
     goto LABEL_36;
   }
-  sub_9404B2FC("chip uid from uboot(id=%d) len=%d:\n", 5, a3);
+  log_printf("chip uid from uboot(id=%d) len=%d:\n", 5, a3);
   v7 = MEMORY[0xFFFFFFFFE003CB98];
   if ( a3 != 0 )
   {
@@ -6260,7 +6260,7 @@ LABEL_36:
     {
       if ( v7 > 1 )
       {
-        sub_9404B2FC("%02x ", a2[v11]);
+        log_printf("%02x ", a2[v11]);
         v7 = MEMORY[0xFFFFFFFFE003CB98];
       }
       ++v11;
@@ -6269,18 +6269,18 @@ LABEL_36:
   }
 LABEL_14:
   if ( v7 > 1 )
-    sub_9404B2FC("\n");
+    log_printf("\n");
 LABEL_5:
-  sub_9404CC78(4100LL * a1 - 536501712, a2, a3);
+  memcpy(4100LL * a1 - 536501712, a2, a3);
   *(_DWORD *)(4100LL * a1 - 536497616) = a3;
   result = MEMORY[0xFFFFFFFFE003CB98];
   if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-    return sub_9404B2FC("key[%d] data has been saved!\n", a1);
+    return log_printf("key[%d] data has been saved!\n", a1);
   return result;
 }
 
-/* ===== sub_9402A008 @ 0x9402A008 size 1756 ===== */
-__int64 __fastcall sub_9402A008(_DWORD *a1)
+/* ===== process_sip_call @ 0x9402A008 size 1756 ===== */
+__int64 __fastcall process_sip_call(_DWORD *a1)
 {
   __int64 v2; // x19
   unsigned int v4; // w22
@@ -6313,36 +6313,36 @@ __int64 __fastcall sub_9402A008(_DWORD *a1)
     {
       if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
       {
-        sub_9404B2FC("have got sip smc all from uboot###\n");
+        log_printf("have got sip smc all from uboot###\n");
         if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-          sub_9404B2FC(" args->params[0] is 0x%x. ###\n", a1[1]);
+          log_printf(" args->params[0] is 0x%x. ###\n", a1[1]);
       }
       switch ( a1[1] )
       {
         case 1:
-          return sub_94041258(a1);
+          return process_verify_img_smc(a1);
         case 3:
-          return sub_940418C8(a1);
+          return process_get_socid_smc(a1);
         case 8:
-          return sub_940410E8(a1);
+          return process_save_hubkey_smc(a1);
         case 9:
-          return (int)sub_9403E3A0(a1);
+          return (int)sprd_fw_null(a1);
         case 0xA:
-          return sub_9404182C(a1);
+          return process_get_lcs_smc(a1);
         case 0xB:
-          return sub_9404195C(a1);
+          return process_set_rma_smc(a1);
         case 0x20:
-          return sub_94047C30(a1);
+          return process_vboot_verify_smc(a1);
         case 0x21:
-          return sub_94047B0C(a1);
+          return process_set_version_smc(a1);
         case 0x22:
-          return sub_94040BDC(a1);
+          return process_rpmb_size_smc(a1);
         case 0x23:
-          return sub_94040CE4(a1);
+          return process_rpmb_key_smc(a1);
         case 0x30:
           v2 = 0xFFFFFFFFLL;
           if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-            sub_9404B2FC("enter process_sip_call FUNCTYPE_SET_BINDING_DATA !\n");
+            log_printf("enter process_sip_call FUNCTYPE_SET_BINDING_DATA !\n");
           return v2;
         case 0x31:
           if ( MEMORY[0xFFFFFFFFE003CB98] <= 1 )
@@ -6353,28 +6353,28 @@ __int64 __fastcall sub_9402A008(_DWORD *a1)
           }
           else
           {
-            sub_9404B2FC("enter process_sip_call FUNCTYPE_CRYPTO_DATA !\n");
+            log_printf("enter process_sip_call FUNCTYPE_CRYPTO_DATA !\n");
             v26[0] = nullptr;
             v8 = a1[2];
             v9 = a1[3];
             if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
             {
-              sub_9404B2FC("from uboot smc...addr:0x%x len:0x%x\n", v8, v9);
+              log_printf("from uboot smc...addr:0x%x len:0x%x\n", v8, v9);
               if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
               {
-                sub_9404B2FC("from uboot smc...p[0]:0x%x p1:0x%x p2:0x%x\n", a1[1], a1[2], a1[3]);
+                log_printf("from uboot smc...p[0]:0x%x p1:0x%x p2:0x%x\n", a1[1], a1[2], a1[3]);
                 if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-                  sub_9404B2FC("from uboot smc...addr:0x%x len:0x%x\n", v8, v9);
+                  log_printf("from uboot smc...addr:0x%x len:0x%x\n", v8, v9);
               }
             }
           }
-          v10 = sub_940408CC("sprdsec", v8, (v9 & 0xFFFFF000) + 4096, 48, v26);
+          v10 = sprd_iomap("sprdsec", v8, (v9 & 0xFFFFF000) + 4096, 48, v26);
           v2 = v10;
           if ( v10 != 0 )
             goto LABEL_31;
           v2 = 0;
-          sub_94029B68((__int64)v26[0], v9);
-          v7 = sub_940408F4(v26[0], v9);
+          aes_cbc_encrypt_test((__int64)v26[0], v9);
+          v7 = sprd_iounmap(v26[0], v9);
           if ( v7 == 0 )
             return v2;
           goto LABEL_17;
@@ -6387,51 +6387,51 @@ __int64 __fastcall sub_9402A008(_DWORD *a1)
           }
           else
           {
-            sub_9404B2FC("enter process_sip_call FUNCTYPE_CHECK_PWD !\n");
+            log_printf("enter process_sip_call FUNCTYPE_CHECK_PWD !\n");
             v25 = 0;
             v11 = a1[2];
             v12 = a1[3];
             if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
             {
-              sub_9404B2FC("from uboot smc...addr:0x%x len:0x%x\n", v11, v12);
+              log_printf("from uboot smc...addr:0x%x len:0x%x\n", v11, v12);
               if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
               {
-                sub_9404B2FC("from uboot smc...p[0]:0x%x p1:0x%x p2:0x%x\n", a1[1], a1[2], a1[3]);
+                log_printf("from uboot smc...p[0]:0x%x p1:0x%x p2:0x%x\n", a1[1], a1[2], a1[3]);
                 if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-                  sub_9404B2FC("from uboot smc...addr:0x%x len:0x%x\n", v11, v12);
+                  log_printf("from uboot smc...addr:0x%x len:0x%x\n", v11, v12);
               }
             }
           }
-          v13 = sub_940408CC("sprdsec", v11, (v12 & 0xFFFFF000) + 4096, 48, &v25);
+          v13 = sprd_iomap("sprdsec", v11, (v12 & 0xFFFFF000) + 4096, 48, &v25);
           v2 = v13;
           if ( v13 != 0 )
           {
             if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-              sub_9404B2FC("can not map phy addr, ret:%d\n", v13);
+              log_printf("can not map phy addr, ret:%d\n", v13);
             return v2;
           }
           v21 = v25;
-          sub_94040888(v26, 0, 64);
-          v22 = sub_94040AC4("ab#AB");
-          sub_94040880(v26, "ab#AB", v22);
-          sub_94029B68(v21, 0x40u);
-          sub_94029B68((__int64)v26, 0x40u);
-          if ( (unsigned int)sub_94040870(v21, v26, 64) != 0 )
+          memset(v26, 0, 64);
+          v22 = strlen("ab#AB");
+          memcpy(v26, "ab#AB", v22);
+          aes_cbc_encrypt_test(v21, 0x40u);
+          aes_cbc_encrypt_test((__int64)v26, 0x40u);
+          if ( (unsigned int)memcmp(v21, v26, 64) != 0 )
           {
             v23 = 1;
             if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-              sub_9404B2FC("password is incorrect.\n");
+              log_printf("password is incorrect.\n");
           }
           else
           {
             v23 = 0;
             if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-              sub_9404B2FC("check password passed.\n");
+              log_printf("check password passed.\n");
           }
           v2 = 0;
           v24 = v25;
           *(_BYTE *)(v25 + 128) = v23;
-          v7 = sub_940408F4(v24, v12);
+          v7 = sprd_iounmap(v24, v12);
           if ( v7 != 0 )
             goto LABEL_17;
           return v2;
@@ -6444,79 +6444,79 @@ __int64 __fastcall sub_9402A008(_DWORD *a1)
           }
           else
           {
-            sub_9404B2FC("enter process_sip_call FUNCTYPE_CHECK_LOCK_STATUS !\n");
+            log_printf("enter process_sip_call FUNCTYPE_CHECK_LOCK_STATUS !\n");
             v25 = 0;
             v14 = a1[2];
             v15 = a1[3];
             if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
             {
-              sub_9404B2FC("from uboot smc...addr:0x%x len:0x%x\n", v14, v15);
+              log_printf("from uboot smc...addr:0x%x len:0x%x\n", v14, v15);
               if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
               {
-                sub_9404B2FC("from uboot smc...p[0]:0x%x p1:0x%x p2:0x%x\n", a1[1], a1[2], a1[3]);
+                log_printf("from uboot smc...p[0]:0x%x p1:0x%x p2:0x%x\n", a1[1], a1[2], a1[3]);
                 if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-                  sub_9404B2FC("from uboot smc...addr:0x%x len:0x%x\n", v14, v15);
+                  log_printf("from uboot smc...addr:0x%x len:0x%x\n", v14, v15);
               }
             }
           }
-          v16 = sub_940408CC("sprdsec", v14, (v15 & 0xFFFFF000) + 4096, 48, &v25);
+          v16 = sprd_iomap("sprdsec", v14, (v15 & 0xFFFFF000) + 4096, 48, &v25);
           v2 = v16;
           if ( v16 != 0 )
             goto LABEL_31;
           v17 = v25;
-          sub_94040888(v26, 0, 64);
-          v18 = sub_94040AC4("VerifiedBoot-UNLOCK");
-          sub_94040880(v26, "VerifiedBoot-UNLOCK", v18);
-          sub_94029B68((__int64)v26, 0x40u);
-          if ( (unsigned int)sub_94040870(v17, v26, 64) != 0 )
+          memset(v26, 0, 64);
+          v18 = strlen("VerifiedBoot-UNLOCK");
+          memcpy(v26, "VerifiedBoot-UNLOCK", v18);
+          aes_cbc_encrypt_test((__int64)v26, 0x40u);
+          if ( (unsigned int)memcmp(v17, v26, 64) != 0 )
           {
             v19 = 0;
             if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-              sub_9404B2FC("unlock status isn't matched, return lock.\n");
+              log_printf("unlock status isn't matched, return lock.\n");
           }
           else
           {
             v19 = 1;
             if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-              sub_9404B2FC("unlock status is matched, return unlock.\n");
+              log_printf("unlock status is matched, return unlock.\n");
           }
           v2 = 0;
           v20 = v25;
           *(_BYTE *)(v25 + 64) = v19;
-          v7 = sub_940408F4(v20, v15);
+          v7 = sprd_iounmap(v20, v15);
           if ( v7 != 0 )
             goto LABEL_17;
           return v2;
         case 0x34:
-          return sub_940483B8(a1);
+          return process_vboot_verify_sn_smc(a1);
         case 0x35:
-          return sub_940489D4(a1);
+          return process_config_os_version_smc(a1);
         case 0x40:
           v26[0] = nullptr;
           v4 = a1[2];
           v5 = a1[3];
           if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-            sub_9404B2FC("from uboot smc(set chip uid)...addr:0x%x len:0x%x\n", v4, v5);
-          v6 = sub_940408CC("sprdsec", v4, (v5 & 0xFFFFF000) + 4096, 48, v26);
+            log_printf("from uboot smc(set chip uid)...addr:0x%x len:0x%x\n", v4, v5);
+          v6 = sprd_iomap("sprdsec", v4, (v5 & 0xFFFFF000) + 4096, 48, v26);
           v2 = v6;
           if ( v6 != 0 )
           {
 LABEL_31:
             if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-              sub_9404B2FC("can not map phy addr 1 , ret:%d\n", v2);
+              log_printf("can not map phy addr 1 , ret:%d\n", v2);
           }
           else
           {
             if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-              sub_9404B2FC("get cpu id: 0x%x 0x%x\n", *(_DWORD *)v26[0], *((_DWORD *)v26[0] + 1));
+              log_printf("get cpu id: 0x%x 0x%x\n", *(_DWORD *)v26[0], *((_DWORD *)v26[0] + 1));
             v2 = 0;
-            sub_94029D9C(5u, v26[0], v5);
-            v7 = sub_940408F4(v26[0], v5);
+            save_uboot_key(5u, v26[0], v5);
+            v7 = sprd_iounmap(v26[0], v5);
             if ( v7 != 0 )
             {
 LABEL_17:
               if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-                sub_9404B2FC("can not unmap virt addr, ret:%d\n", v7);
+                log_printf("can not unmap virt addr, ret:%d\n", v7);
               v2 = v7;
             }
           }
@@ -6534,13 +6534,13 @@ LABEL_17:
   {
     v2 = -1;
     if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-      sub_9404B2FC("args is null###\n");
+      log_printf("args is null###\n");
   }
   return v2;
 }
 
-/* ===== sub_9402A6E4 @ 0x9402A6E4 size 264 ===== */
-__int64 __fastcall sub_9402A6E4(unsigned int a1, unsigned int a2, unsigned int a3)
+/* ===== process_uboot_key_smc @ 0x9402A6E4 size 264 ===== */
+__int64 __fastcall process_uboot_key_smc(unsigned int a1, unsigned int a2, unsigned int a3)
 {
   int v6; // w19
   __int64 result; // x0
@@ -6548,28 +6548,28 @@ __int64 __fastcall sub_9402A6E4(unsigned int a1, unsigned int a2, unsigned int a
 
   v8 = nullptr;
   if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-    sub_9404B2FC("from uboot smc...addr:0x%x len:0x%x\n", a1, a2);
-  v6 = sub_9404A878(-536460256, "sprdsec", 4096, &v8, 12, a1, 0, 48);
+    log_printf("from uboot smc...addr:0x%x len:0x%x\n", a1, a2);
+  v6 = vmm_map(-536460256, "sprdsec", 4096, &v8, 12, a1, 0, 48);
   if ( v6 != 0 )
   {
     if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-      sub_9404B2FC("can not map phy addr, ret:%d\n", v6);
+      log_printf("can not map phy addr, ret:%d\n", v6);
     return v6;
   }
-  sub_94029D9C(a3, v8, a2);
-  v6 = sub_9404ABDC(-536460256, v8);
+  save_uboot_key(a3, v8, a2);
+  v6 = vmm_free_region(-536460256, v8);
   result = 0;
   if ( v6 != 0 )
   {
     if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-      sub_9404B2FC("can not unmap virt addr, ret:%d\n", v6);
+      log_printf("can not unmap virt addr, ret:%d\n", v6);
     return v6;
   }
   return result;
 }
 
-/* ===== sub_9402A7EC @ 0x9402A7EC size 164 ===== */
-__int64 __fastcall sub_9402A7EC(_DWORD *a1)
+/* ===== process_uboot_key @ 0x9402A7EC size 164 ===== */
+__int64 __fastcall process_uboot_key(_DWORD *a1)
 {
   __int64 v1; // x19
 
@@ -6577,30 +6577,30 @@ __int64 __fastcall sub_9402A7EC(_DWORD *a1)
   {
     v1 = -1;
     if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-      sub_9404B2FC("args is null###\n", 0);
+      log_printf("args is null###\n", 0);
     return v1;
   }
   if ( *a1 == 872415262 )
-    return sub_9402A6E4(a1[2], a1[3], 1u);
+    return process_uboot_key_smc(a1[2], a1[3], 1u);
   if ( *a1 != 872415263 )
     return 0xFFFFFFFFLL;
-  return sub_9402A6E4(a1[2], a1[3], 2u);
+  return process_uboot_key_smc(a1[2], a1[3], 2u);
 }
 
-/* ===== sub_9402A890 @ 0x9402A890 size 76 ===== */
-__int64 sub_9402A890()
+/* ===== install_stdin_handler @ 0x9402A890 size 76 ===== */
+__int64 install_stdin_handler()
 {
   __int64 result; // x0
 
-  result = sub_9402D420(0, qword_9405AB30);
+  result = trusty_install_handler(0, qword_9405AB30);
   if ( (_DWORD)result != 0 && MEMORY[0xFFFFFFFFE003CB98] > 1 )
-    return sub_9404B2FC("can not install std in handler: %d\n", result);
+    return log_printf("can not install std in handler: %d\n", result);
   return result;
 }
 
-/* ===== sub_9402A8DC @ 0x9402A8DC size 920 ===== */
+/* ===== sys_get_uboot_data @ 0x9402A8DC size 920 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_9402A8DC(__int64 a1, int a2, unsigned int a3)
+__int64 __fastcall sys_get_uboot_data(__int64 a1, int a2, unsigned int a3)
 {
   unsigned int v3; // w19
   __int64 result; // x0
@@ -6617,37 +6617,37 @@ __int64 __fastcall sub_9402A8DC(__int64 a1, int a2, unsigned int a3)
       case 1:
         if ( MEMORY[0xFFFFFFFFE005C234] != 0 )
         {
-          sub_9404D224(a3, -536497612, MEMORY[0xFFFFFFFFE005C234]);
+          copy_to_user(a3, -536497612, MEMORY[0xFFFFFFFFE005C234]);
           return (unsigned int)MEMORY[0xFFFFFFFFE005C234];
         }
         if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-          sub_9404B2FC("there is no public key yet, give you fake data\n");
-        sub_9404CDC4(v10, 255, 264);
-        sub_9404D224(a3, v10, 264);
+          log_printf("there is no public key yet, give you fake data\n");
+        memset(v10, 255, 264);
+        copy_to_user(a3, v10, 264);
         return 264;
       case 2:
         if ( MEMORY[0xFFFFFFFFE005D238] == 0 )
           return 0xFFFFFFFFLL;
-        sub_9404D224(a3, -536493512, MEMORY[0xFFFFFFFFE005D238]);
+        copy_to_user(a3, -536493512, MEMORY[0xFFFFFFFFE005D238]);
         return (unsigned int)MEMORY[0xFFFFFFFFE005D238];
       case 3:
         if ( MEMORY[0xFFFFFFFFE005E23C] != 0 )
           goto LABEL_14;
         v10[0] = 0;
-        v8 = sub_9404A878(-536460256, "sprdrng", 4096, v10, 12, 2516578304LL, 0, 16);
+        v8 = vmm_map(-536460256, "sprdrng", 4096, v10, 12, 2516578304LL, 0, 16);
         if ( v8 != 0 )
         {
           if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-            sub_9404B2FC("can not map sec addr, ret:%d\n", v8);
+            log_printf("can not map sec addr, ret:%d\n", v8);
           return 0xFFFFFFFFLL;
         }
-        sub_9404CC78(-536489412, v10[0], 4096);
+        memcpy(-536489412, v10[0], 4096);
         MEMORY[0xFFFFFFFFE005E23C] = 4096;
-        v9 = sub_9404ABDC(-536460256, v10[0]);
+        v9 = vmm_free_region(-536460256, v10[0]);
         if ( v9 != 0 )
         {
           if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-            sub_9404B2FC("can not unmap virt addr, ret:%d\n", v9);
+            log_printf("can not unmap virt addr, ret:%d\n", v9);
           return 0xFFFFFFFFLL;
         }
 LABEL_14:
@@ -6655,36 +6655,36 @@ LABEL_14:
         v6 = MEMORY[0xFFFFFFFFE003CB98];
         if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
         {
-          sub_9404B2FC("RNG  from kernel is:\n");
+          log_printf("RNG  from kernel is:\n");
           v6 = MEMORY[0xFFFFFFFFE003CB98];
         }
         for ( i = -536489412; i != -536489380; ++i )
         {
           if ( v6 > 1 )
           {
-            sub_9404B2FC("%02x", *(unsigned __int8 *)i);
+            log_printf("%02x", *(unsigned __int8 *)i);
             v6 = MEMORY[0xFFFFFFFFE003CB98];
           }
         }
         if ( v6 > 1 )
-          sub_9404B2FC("\n");
-        sub_9404D224(a3, -536489412, 32);
+          log_printf("\n");
+        copy_to_user(a3, -536489412, 32);
         result = 32;
         break;
       case 5:
         if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-          sub_9404B2FC("SEC_CHIP_UID(%d) len: %d\n", 5, MEMORY[0xFFFFFFFFE0060244]);
+          log_printf("SEC_CHIP_UID(%d) len: %d\n", 5, MEMORY[0xFFFFFFFFE0060244]);
         if ( MEMORY[0xFFFFFFFFE0060244] == 0 )
           return 0xFFFFFFFFLL;
-        sub_9404D224(a3, -536481212, MEMORY[0xFFFFFFFFE0060244]);
+        copy_to_user(a3, -536481212, MEMORY[0xFFFFFFFFE0060244]);
         v3 = MEMORY[0xFFFFFFFFE0060244];
         if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-          sub_9404B2FC("got chip id(len=%d)\n", MEMORY[0xFFFFFFFFE0060244]);
+          log_printf("got chip id(len=%d)\n", MEMORY[0xFFFFFFFFE0060244]);
         return v3;
       case 6:
         if ( MEMORY[0xFFFFFFFFE0061248] == 0 )
           return 0xFFFFFFFFLL;
-        sub_9404D224(a3, -536477112, MEMORY[0xFFFFFFFFE0061248]);
+        copy_to_user(a3, -536477112, MEMORY[0xFFFFFFFFE0061248]);
         return (unsigned int)MEMORY[0xFFFFFFFFE0061248];
       default:
         return (unsigned int)-24;
@@ -6697,34 +6697,34 @@ LABEL_14:
   return result;
 }
 
-/* ===== sub_9402AC74 @ 0x9402AC74 size 340 ===== */
+/* ===== ta_manager_init @ 0x9402AC74 size 340 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 sub_9402AC74()
+__int64 ta_manager_init()
 {
-  sub_9404CB4C("initializing ta_manager enter\n");
+  printf("initializing ta_manager enter\n");
   qword_94067758 = (__int64)&qword_94067758;
   dword_940677A0 = 0;
   qword_94067760 = (__int64)&qword_94067758;
-  sub_94024DFC((__int64)qword_94067728, 0, 1);
-  sub_94024DFC((__int64)qword_940676F8, 0, 1);
-  sub_94024DFC((__int64)qword_940676C8, 0, 1);
-  sub_94024DFC((__int64)qword_940678B8, 0, 1);
+  event_init((__int64)qword_94067728, 0, 1);
+  event_init((__int64)qword_940676F8, 0, 1);
+  event_init((__int64)qword_940676C8, 0, 1);
+  event_init((__int64)qword_940678B8, 0, 1);
   qword_940677D0 = (__int64)&qword_940677D0;
   qword_94067868 = (__int64)&qword_94067868;
   qword_940677D8 = (__int64)&qword_940677D0;
   qword_94067870 = (__int64)&qword_94067868;
-  sub_940251C4((__int64)qword_94067768);
-  sub_940251C4((__int64)qword_940677E0);
-  sub_940251C4((__int64)qword_94067878);
-  qword_940677B8 = sub_940268B8((__int64)"ta_manager", (__int64)sub_9402B14C, 0, 0x10u, 4096);
-  qword_940677C8 = sub_940268B8((__int64)"ta_manager_unload", (__int64)sub_9402ADC8, 0, 0x10u, 4096);
-  sub_9404CB4C("initializing ta_manager thread_resume\n");
+  mutex_init((__int64)qword_94067768);
+  mutex_init((__int64)qword_940677E0);
+  mutex_init((__int64)qword_94067878);
+  qword_940677B8 = thread_create_simple((__int64)"ta_manager", (__int64)ta_manager_thread_fun, 0, 0x10u, 4096);
+  qword_940677C8 = thread_create_simple((__int64)"ta_manager_unload", (__int64)ta_manager_unload_thread_fun, 0, 0x10u, 4096);
+  printf("initializing ta_manager thread_resume\n");
   return 0;
 }
 
-/* ===== sub_9402ADC8 @ 0x9402ADC8 size 752 ===== */
+/* ===== ta_manager_unload_thread_fun @ 0x9402ADC8 size 752 ===== */
 // write access to const memory has been detected, the output may be wrong!
-void __noreturn sub_9402ADC8()
+void __noreturn ta_manager_unload_thread_fun()
 {
   __int64 v0; // x1
   __int64 v1; // x27
@@ -6738,18 +6738,18 @@ void __noreturn sub_9402ADC8()
   __int64 v9; // [xsp+88h] [xbp+88h] BYREF
 
   v8 = 0;
-  sub_9404CB4C("%s:%d: ta_manager_unload_thread_fun enter\n", "ta_manager_unload_thread_fun", 600);
+  printf("%s:%d: ta_manager_unload_thread_fun enter\n", "ta_manager_unload_thread_fun", 600);
 LABEL_2:
-  sub_94024EFC((__int64)qword_940676F8, 0xFFFFFFFFLL);
-  sub_940250FC((__int64)qword_940676F8);
+  event_wait_timeout((__int64)qword_940676F8, 0xFFFFFFFFLL);
+  event_unsignal((__int64)qword_940676F8);
   while ( 1 )
   {
 LABEL_3:
-    sub_940251F8((__int64)qword_94067878, 0xFFFFFFFFLL);
+    mutex_acquire_timeout((__int64)qword_94067878, 0xFFFFFFFFLL);
     if ( &qword_94067868 == nullptr )
     {
 LABEL_15:
-      sub_9402530C((__int64)qword_94067878);
+      mutex_release((__int64)qword_94067878);
       goto LABEL_2;
     }
     while ( 1 )
@@ -6759,39 +6759,39 @@ LABEL_15:
       *(_QWORD *)(MEMORY[0] + 8LL) = v0;
       MEMORY[8] = 0;
       MEMORY[0] = 0;
-      sub_9402530C((__int64)qword_94067878);
-      sub_9404CB4C("%s:%d: look up %s\n", "ta_manager_unload_thread_fun", 614, 16);
-      sub_940251F8((__int64)qword_94067768, 0xFFFFFFFFLL);
+      mutex_release((__int64)qword_94067878);
+      printf("%s:%d: look up %s\n", "ta_manager_unload_thread_fun", 614, 16);
+      mutex_acquire_timeout((__int64)qword_94067768, 0xFFFFFFFFLL);
       v1 = 0;
       if ( &qword_94067758 != nullptr )
       {
         while ( 1 )
         {
-          if ( (unsigned int)sub_9404D040(v1 + 40, 16, 64) == 0 )
+          if ( (unsigned int)strncmp(v1 + 40, 16, 64) == 0 )
             goto LABEL_9;
           if ( *(__int64 **)(v1 + 8) == &qword_94067758 )
             break;
           v1 = *(_QWORD *)(v1 + 8);
         }
-        sub_9402530C((__int64)qword_94067768);
-        sub_9404CC20(0);
+        mutex_release((__int64)qword_94067768);
+        free(0);
       }
       else
       {
         v1 = v8;
 LABEL_9:
-        sub_9402530C((__int64)qword_94067768);
-        sub_9404CC20(0);
+        mutex_release((__int64)qword_94067768);
+        free(0);
         if ( v1 == 0 )
         {
           v8 = 0;
-          sub_9404CB4C("%s:%d: static TA\n", "ta_manager_unload_thread_fun", 626);
+          printf("%s:%d: static TA\n", "ta_manager_unload_thread_fun", 626);
           goto LABEL_3;
         }
       }
       v2 = ((__int64 (__fastcall *)(_QWORD))loc_9402EB7C)(*(_QWORD *)(v1 + 16));
       v3 = ((__int64 (*)(void))loc_9402EBD8)();
-      if ( v3 > (int)sub_9402EC00(v2) )
+      if ( v3 > (int)uctx_get_handle_count(v2) )
         break;
       v4 = 0;
       v5 = *(_QWORD *)(*(_QWORD *)(v1 + 16) + 80LL);
@@ -6800,47 +6800,47 @@ LABEL_9:
       while ( 1 )
       {
         v6 = v4++;
-        if ( (unsigned int)sub_9402E5B8(v2, v6, &v9) == 0 )
+        if ( (unsigned int)uctx_handle_put(v2, v6, &v9) == 0 )
           break;
         if ( v4 == 10 )
           goto LABEL_14;
       }
-      sub_9402DADC(v9);
+      handle_decref(v9);
 LABEL_14:
       v8 = 0;
-      sub_9404CB4C("%s:%d: unload_thread wait for %d\n", "ta_manager_unload_thread_fun", 649, 0);
-      sub_94024EFC((__int64)qword_940676C8, 0xFFFFFFFFLL);
+      printf("%s:%d: unload_thread wait for %d\n", "ta_manager_unload_thread_fun", 649, 0);
+      event_wait_timeout((__int64)qword_940676C8, 0xFFFFFFFFLL);
       byte_940677C0 = 0;
-      sub_940250FC((__int64)qword_940676C8);
-      sub_9402E300(v2);
-      sub_940251F8((__int64)qword_94067768, 0xFFFFFFFFLL);
+      event_unsignal((__int64)qword_940676C8);
+      uctx_destroy(v2);
+      mutex_acquire_timeout((__int64)qword_94067768, 0xFFFFFFFFLL);
       v7 = *(_QWORD **)(v1 + 8);
       *v7 = *(_QWORD *)v1;
       *(_QWORD *)(*(_QWORD *)v1 + 8LL) = v7;
       *(_QWORD *)(v1 + 8) = 0;
       *(_QWORD *)v1 = 0;
       dword_940677A0 = -1;
-      sub_9402530C((__int64)qword_94067768);
-      sub_9404CC20(*(_QWORD *)(v1 + 24));
-      sub_9404CC20(*(_QWORD *)(*(_QWORD *)(v1 + 16) + 88LL));
-      sub_9404CC20(*(_QWORD *)(*(_QWORD *)(v1 + 16) + 96LL));
-      sub_9404CB4C(
+      mutex_release((__int64)qword_94067768);
+      free(*(_QWORD *)(v1 + 24));
+      free(*(_QWORD *)(*(_QWORD *)(v1 + 16) + 88LL));
+      free(*(_QWORD *)(*(_QWORD *)(v1 + 16) + 96LL));
+      printf(
         "%s:%d: will free trusty_app path %s\n",
         "ta_manager_unload_thread_fun",
         663,
         (const char *)(v1 + 40));
-      sub_9404CC20(v1);
-      sub_940251F8((__int64)qword_94067878, 0xFFFFFFFFLL);
+      free(v1);
+      mutex_acquire_timeout((__int64)qword_94067878, 0xFFFFFFFFLL);
       if ( &qword_94067868 == nullptr )
         goto LABEL_15;
     }
     v8 = v1;
-    sub_9404CB4C("%s:%d: list_length %d\n", "ta_manager_unload_thread_fun", 635, v3);
+    printf("%s:%d: list_length %d\n", "ta_manager_unload_thread_fun", 635, v3);
   }
 }
 
-/* ===== sub_9402B0B8 @ 0x9402B0B8 size 148 ===== */
-__int64 __fastcall sub_9402B0B8(__int64 a1, int a2, __int64 a3, unsigned int a4)
+/* ===== ta_manager_send_response @ 0x9402B0B8 size 148 ===== */
+__int64 __fastcall ta_manager_send_response(__int64 a1, int a2, __int64 a3, unsigned int a4)
 {
   __int64 v4; // x19
   __int64 result; // x0
@@ -6860,19 +6860,19 @@ __int64 __fastcall sub_9402B0B8(__int64 a1, int a2, __int64 a3, unsigned int a4)
   v9 = v7;
   v10 = 0;
   v11 = 0;
-  v4 = (int)sub_94030F50(a1, &v8);
+  v4 = (int)sys_msg_send(a1, &v8);
   result = 0;
   if ( v4 < 0 )
   {
-    sub_9404CB4C("%s:%d: failed (%ld) to send_msg\n", "ta_manager_send_response", 150, v4);
+    printf("%s:%d: failed (%ld) to send_msg\n", "ta_manager_send_response", 150, v4);
     return v4;
   }
   return result;
 }
 
-/* ===== sub_9402B14C @ 0x9402B14C size 2892 ===== */
+/* ===== ta_manager_thread_fun @ 0x9402B14C size 2892 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 sub_9402B14C()
+__int64 ta_manager_thread_fun()
 {
   unsigned int v0; // w24
   _QWORD *v1; // x25
@@ -6949,29 +6949,29 @@ __int64 sub_9402B14C()
 
   v6 = (int *)"ta_manager_thread_fun";
   v7 = v5;
-  sub_9404CB4C("%s:%d: ta_manager_thread_fun enter\n", "ta_manager_thread_fun", 541);
-  qword_9405ABA0 = sub_9404CBDC(1, 8LL * MEMORY[0xFFFFFFFFE006124C]);
-  sub_9404B508(v7, "allocate app local storage failed\n");
+  printf("%s:%d: ta_manager_thread_fun enter\n", "ta_manager_thread_fun", 541);
+  qword_9405ABA0 = calloc(1, 8LL * MEMORY[0xFFFFFFFFE006124C]);
+  panic(v7, "allocate app local storage failed\n");
 LABEL_79:
   v54 = -5;
-  sub_9404CB4C("%s:%d: ta_manager_wait_load calloc(%d) failed!\n", "ta_manager_wait_load", 222, 68);
+  printf("%s:%d: ta_manager_wait_load calloc(%d) failed!\n", "ta_manager_wait_load", 222, 68);
   v16 = -5;
 LABEL_22:
-  sub_9404CB4C("%s:%d: ta_manager_handle_request failed %d!\n", "ta_manager_handle_msg", 458, v16);
+  printf("%s:%d: ta_manager_handle_request failed %d!\n", "ta_manager_handle_msg", 458, v16);
   v17 = *v6;
   v65 = v54;
-  v18 = sub_9402B0B8(v64, v17, (__int64)&v65, 8u);
+  v18 = ta_manager_send_response(v64, v17, (__int64)&v65, 8u);
   v12 = v18;
   if ( v18 < 0 )
   {
     v55 = v18;
-    sub_9404CB4C("%s:%d: ta_manager_send_error_response failed %d!\n", "ta_manager_handle_msg", 461, v18);
+    printf("%s:%d: ta_manager_send_error_response failed %d!\n", "ta_manager_handle_msg", 461, v18);
     v12 = v55;
   }
 LABEL_24:
   v56 = v12;
-  sub_9404CC20(v6);
-  sub_940312C8(v64, v63);
+  free(v6);
+  ipc_msg_free(v64, v63);
   v19 = v56;
   if ( v56 == 0 )
   {
@@ -6980,20 +6980,20 @@ LABEL_25:
     goto LABEL_26;
   }
 LABEL_31:
-  sub_9404CB4C("%s:%d: failed (%ld) to handle event on %d\n", "ta_manager_handle_channel", 523, v19, v66);
-  sub_9402EA68(*(_QWORD *)(v7 + 1960), v3);
+  printf("%s:%d: failed (%ld) to handle event on %d\n", "ta_manager_handle_channel", 523, v19, v66);
+  uctx_handle_close(*(_QWORD *)(v7 + 1960), v3);
   v20 = v67;
 LABEL_26:
   if ( (v20 & 4) != 0 )
   {
 LABEL_9:
-    sub_9404CB4C("%s:%d: closed by peer\n", "ta_manager_handle_channel", 530);
-    sub_9402EA68(*(_QWORD *)(v7 + 1960), v3);
+    printf("%s:%d: closed by peer\n", "ta_manager_handle_channel", 530);
+    uctx_handle_close(*(_QWORD *)(v7 + 1960), v3);
   }
   while ( 1 )
   {
     v8 = (_QWORD *)(v7 + 1960);
-    v9 = sub_9402EA9C(*(_QWORD *)(v7 + 1960), qword_9405AB48, 0xFFFFFFFFLL);
+    v9 = uctx_wait_any(*(_QWORD *)(v7 + 1960), qword_9405AB48, 0xFFFFFFFFLL);
     if ( v9 < 0 )
       break;
     if ( v9 == 0 )
@@ -7003,18 +7003,18 @@ LABEL_9:
       {
         if ( (v67 & 0x1E) != 0 )
         {
-          sub_9404CB4C("%s:%d: error event (0x%x) for port (%d)\n", "ta_manager_handle_port", 490, v67, v0);
+          printf("%s:%d: error event (0x%x) for port (%d)\n", "ta_manager_handle_port", 490, v67, v0);
         }
         else if ( (v67 & 1) != 0 )
         {
-          v11 = sub_94030A18(*v8, v0, &v69);
+          v11 = sys_accept_port(*v8, v0, &v69);
           if ( v11 < 0 )
-            sub_9404CB4C("%s:%d: failed (%d) to accept on port %d\n", "ta_manager_handle_port", 499, v11, v66);
+            printf("%s:%d: failed (%d) to accept on port %d\n", "ta_manager_handle_port", 499, v11, v66);
         }
       }
       else if ( (v67 & 3) != 0 )
       {
-        sub_9404CB4C("%s:%d: error event (0x%x) for chan (%d)\n", "ta_manager_handle_channel", 513, v67, v66);
+        printf("%s:%d: error event (0x%x) for chan (%d)\n", "ta_manager_handle_channel", 513, v67, v66);
       }
       else
       {
@@ -7022,17 +7022,17 @@ LABEL_9:
         {
           if ( (unsigned int)((__int64 (__fastcall *)(_QWORD, _QWORD, __int64 *))loc_9402E4E4)(*v8, v66, &v64) != 0 )
           {
-            sub_9404CB4C("%s:%d: uctx_handle_get failed %d!\n", "ta_manager_handle_msg", 424, v3);
+            printf("%s:%d: uctx_handle_get failed %d!\n", "ta_manager_handle_msg", 424, v3);
             v19 = -2;
             goto LABEL_31;
           }
-          if ( (unsigned int)sub_940311BC(v64, &v62) == -4 )
+          if ( (unsigned int)ipc_msg_get_next(v64, &v62) == -4 )
             goto LABEL_25;
-          v6 = (int *)sub_9404CBDC(v62, 1);
+          v6 = (int *)calloc(v62, 1);
           if ( v6 == nullptr )
           {
-            sub_9404CB4C("%s:%d: ta_manager_handle_msg: no message!\n", "ta_manager_handle_msg", 436);
-            sub_940312C8(v64, v63);
+            printf("%s:%d: ta_manager_handle_msg: no message!\n", "ta_manager_handle_msg", 436);
+            ipc_msg_free(v64, v63);
             v19 = -5;
             goto LABEL_31;
           }
@@ -7042,13 +7042,13 @@ LABEL_9:
           v70 = v68;
           v71 = 0;
           v72 = 0;
-          v12 = sub_94031564(v64, v63, 0, &v69);
+          v12 = sys_msg_write(v64, v63, 0, &v69);
           if ( (v12 & 0x80000000) == 0 )
           {
             switch ( *v6 )
             {
               case 2:
-                v50 = (_DWORD *)sub_9404CBDC(8, 1);
+                v50 = (_DWORD *)calloc(8, 1);
                 if ( v50 != nullptr )
                   goto LABEL_52;
                 v13 = "%s:%d: ta_manager_initilze calloc(%d) failed!\n";
@@ -7056,7 +7056,7 @@ LABEL_9:
                 v15 = 168;
                 goto LABEL_21;
               case 4:
-                v50 = (_DWORD *)sub_9404CBDC(8, 1);
+                v50 = (_DWORD *)calloc(8, 1);
                 if ( v50 != nullptr )
                 {
 LABEL_52:
@@ -7069,11 +7069,11 @@ LABEL_52:
                 v15 = 182;
 LABEL_21:
                 v54 = -5;
-                sub_9404CB4C(v13, v14, v15, 8);
+                printf(v13, v14, v15, 8);
                 v16 = -5;
                 goto LABEL_22;
               case 6:
-                v33 = sub_9404CBDC(1, 68);
+                v33 = calloc(1, 68);
                 v50 = (_DWORD *)v33;
                 if ( v33 == 0 )
                   goto LABEL_79;
@@ -7083,38 +7083,38 @@ LABEL_21:
 LABEL_43:
                   while ( 1 )
                   {
-                    sub_94024EFC((__int64)qword_94067728, 0xFFFFFFFFLL);
-                    sub_940251F8(v4, 0xFFFFFFFFLL);
+                    event_wait_timeout((__int64)qword_94067728, 0xFFFFFFFFLL);
+                    mutex_acquire_timeout(v4, 0xFFFFFFFFLL);
                     v57 = v1[1];
                     if ( (_QWORD *)v57 != v1 )
                       break;
-                    sub_9402530C(v4);
-                    sub_940250FC((__int64)qword_94067728);
+                    mutex_release(v4);
+                    event_unsignal((__int64)qword_94067728);
                   }
-                  sub_9402530C(v4);
-                  sub_940250FC((__int64)qword_94067728);
+                  mutex_release(v4);
+                  event_unsignal((__int64)qword_94067728);
                 }
                 while ( v57 == 0 );
                 v52 = v57 + 16;
-                sub_9404CB4C("%s:%d: ta_manager_wait_load %s\n", "ta_manager_wait_load", 235, (const char *)(v57 + 16));
-                v34 = sub_9404CFF4(v57 + 16);
+                printf("%s:%d: ta_manager_wait_load %s\n", "ta_manager_wait_load", 235, (const char *)(v57 + 16));
+                v34 = strlen(v57 + 16);
                 *v50 = v34;
-                sub_9404CC78(v45, v57 + 16, v34);
+                memcpy(v45, v57 + 16, v34);
                 v46 = (unsigned int)*v50;
-                sub_940251F8(v61, 0xFFFFFFFFLL);
+                mutex_acquire_timeout(v61, 0xFFFFFFFFLL);
                 for ( i = (__int64 *)v2[1]; i != v2; i = (__int64 *)v48[1] )
                 {
                   v48 = i;
-                  if ( (unsigned int)sub_9404D040(i + 5, v52, v46) == 0 )
+                  if ( (unsigned int)strncmp(i + 5, v52, v46) == 0 )
                   {
-                    sub_9402530C(v61);
-                    sub_9404CB4C("%s:%d: %s is existing\n", "ta_manager_wait_load", 242, v52);
-                    sub_94033ED8(v52, *(_QWORD *)(v57 + 80), *(unsigned int *)(v57 + 88));
-                    sub_940251F8(v4, 0xFFFFFFFFLL);
+                    mutex_release(v61);
+                    printf("%s:%d: %s is existing\n", "ta_manager_wait_load", 242, v52);
+                    tipc_handle_save_ctx(v52, *(_QWORD *)(v57 + 80), *(unsigned int *)(v57 + 88));
+                    mutex_acquire_timeout(v4, 0xFFFFFFFFLL);
                     v36 = (_QWORD *)v1[1];
                     if ( v36 == v1 )
                     {
-                      sub_9402530C(v4);
+                      mutex_release(v4);
                     }
                     else
                     {
@@ -7124,14 +7124,14 @@ LABEL_43:
                       *(_QWORD *)(*v36 + 8LL) = v37;
                       v36[1] = 0;
                       *v36 = 0;
-                      sub_9402530C(v4);
-                      sub_9404CC20(v58);
+                      mutex_release(v4);
+                      free(v58);
                     }
                     goto LABEL_43;
                   }
                 }
-                sub_9402530C(v61);
-                v12 = sub_9402B0B8(v64, *v6, (__int64)v50, 0x44u);
+                mutex_release(v61);
+                v12 = ta_manager_send_response(v64, *v6, (__int64)v50, 0x44u);
                 if ( v12 < 0 )
                   goto LABEL_57;
                 goto LABEL_54;
@@ -7139,7 +7139,7 @@ LABEL_43:
                 if ( v62 == 4 )
                 {
                   v54 = -8;
-                  sub_9404CB4C("%s:%d: ta_manager_write_ta: invalid parameters!\n", "ta_manager_write_ta", 272);
+                  printf("%s:%d: ta_manager_write_ta: invalid parameters!\n", "ta_manager_write_ta", 272);
                   v16 = -8;
                   goto LABEL_22;
                 }
@@ -7148,7 +7148,7 @@ LABEL_43:
                 if ( v21 == 0 || v22 == 0 )
                 {
                   v54 = -8;
-                  sub_9404CB4C(
+                  printf(
                     "%s:%d: write_ta: total_size %d, payload_len = %d\n",
                     "ta_manager_write_ta",
                     281,
@@ -7161,7 +7161,7 @@ LABEL_43:
                 if ( v21 < v23 + v22 )
                 {
                   v54 = -8;
-                  sub_9404CB4C(
+                  printf(
                     "%s:%d: write_ta: pos %d, payload_len = %d, total_size = %d\n",
                     "ta_manager_write_ta",
                     288,
@@ -7171,12 +7171,12 @@ LABEL_43:
                   v16 = -8;
                   goto LABEL_22;
                 }
-                v50 = (_DWORD *)sub_9404CBDC(1, 4);
+                v50 = (_DWORD *)calloc(1, 4);
                 v24 = v6 + 1;
                 if ( v50 == nullptr )
                 {
                   v54 = -5;
-                  sub_9404CB4C("%s:%d: write_ta:wresq calloc(%d) failed!\n", "ta_manager_write_ta", 294, 4);
+                  printf("%s:%d: write_ta:wresq calloc(%d) failed!\n", "ta_manager_write_ta", 294, 4);
                   v16 = -5;
                   goto LABEL_22;
                 }
@@ -7187,14 +7187,14 @@ LABEL_43:
                 }
                 else
                 {
-                  sub_9404CB4C("%s:%d: ta_manager_write_ta: new ta!\n", "ta_manager_write_ta", 299);
-                  v43 = sub_9404CBDC(1, 112);
+                  printf("%s:%d: ta_manager_write_ta: new ta!\n", "ta_manager_write_ta", 299);
+                  v43 = calloc(1, 112);
                   off_940677B0 = (_UNKNOWN *)v43;
                   if ( v43 == 0 )
                   {
                     v54 = -5;
-                    sub_9404CB4C("%s:%d: write_ta: ta calloc(%d) failed!\n", "ta_manager_write_ta", 303, 112);
-                    sub_9404CC20(v50);
+                    printf("%s:%d: write_ta: ta calloc(%d) failed!\n", "ta_manager_write_ta", 303, 112);
+                    free(v50);
                     v16 = -5;
                     goto LABEL_22;
                   }
@@ -7203,18 +7203,18 @@ LABEL_43:
                   *(_QWORD *)v43 = v43;
                   *(_BYTE *)(v43 + 104) = 0;
                   *(_DWORD *)(v43 + 32) = v44;
-                  *(_QWORD *)(v43 + 24) = sub_9404CBCC(4096, v44);
+                  *(_QWORD *)(v43 + 24) = memalign(4096, v44);
                   v26 = MEMORY[0x18];
                   if ( MEMORY[0x18] == 0 )
                   {
                     v54 = -5;
-                    sub_9404CB4C(
+                    printf(
                       "%s:%d: write_ta: image malloc(%d) failed!\n",
                       "ta_manager_write_ta",
                       313,
                       MEMORY[0x20]);
-                    sub_9404CC20(0);
-                    sub_9404CC20(v50);
+                    free(0);
+                    free(v50);
                     v16 = -5;
                     off_940677B0 = nullptr;
                     goto LABEL_22;
@@ -7223,7 +7223,7 @@ LABEL_43:
                   v25 = v6[2];
                 }
                 v51 = v24;
-                sub_9404CC78(v26 + v25, v6 + 4, (unsigned int)v24[2]);
+                memcpy(v26 + v25, v6 + 4, (unsigned int)v24[2]);
                 v27 = 0;
                 v28 = v51[2];
                 v29 = MEMORY[0x20];
@@ -7232,42 +7232,42 @@ LABEL_43:
                 *v50 = v28;
                 if ( v30 == v29 )
                 {
-                  *(_QWORD *)(v27 + 16) = sub_9402CF10(MEMORY[0x18]);
+                  *(_QWORD *)(v27 + 16) = trusty_tapp_bootloader(MEMORY[0x18]);
                   if ( MEMORY[0x10] != 0 )
-                    sub_9402D228();
-                  sub_94024EFC((__int64)qword_940678B8, 0xFFFFFFFFLL);
-                  sub_940251F8(v4, 0xFFFFFFFFLL);
+                    trusty_tapp_init();
+                  event_wait_timeout((__int64)qword_940678B8, 0xFFFFFFFFLL);
+                  mutex_acquire_timeout(v4, 0xFFFFFFFFLL);
                   v47 = v1[1];
                   if ( (_QWORD *)v47 == v1 )
                   {
-                    sub_9402530C(v4);
-                    sub_9404CB4C(
+                    mutex_release(v4);
+                    printf(
                       "%s:%d: ta_manager_write_ta, load %s accomplished!\n",
                       "ta_manager_write_ta",
                       352,
                       (const char *)qword_94067820);
-                    sub_940250FC((__int64)qword_940678B8);
+                    event_unsignal((__int64)qword_940678B8);
                   }
                   else
                   {
-                    sub_9402530C(v4);
-                    sub_9404CB4C(
+                    mutex_release(v4);
+                    printf(
                       "%s:%d: ta_manager_write_ta, load %s accomplished!\n",
                       "ta_manager_write_ta",
                       352,
                       (const char *)qword_94067820);
-                    sub_940250FC((__int64)qword_940678B8);
+                    event_unsignal((__int64)qword_940678B8);
                     if ( v47 != 0 )
                     {
-                      v38 = sub_9404CFF4(v47 + 16);
-                      if ( (unsigned int)sub_9404D040(qword_94067820, v47 + 16, v38) == 0 )
+                      v38 = strlen(v47 + 16);
+                      if ( (unsigned int)strncmp(qword_94067820, v47 + 16, v38) == 0 )
                       {
-                        sub_94033ED8(v47 + 16, *(_QWORD *)(v47 + 80), *(unsigned int *)(v47 + 88));
-                        sub_940251F8(v4, 0xFFFFFFFFLL);
+                        tipc_handle_save_ctx(v47 + 16, *(_QWORD *)(v47 + 80), *(unsigned int *)(v47 + 88));
+                        mutex_acquire_timeout(v4, 0xFFFFFFFFLL);
                         v41 = (_QWORD *)v1[1];
                         if ( v41 == v1 )
                         {
-                          sub_9402530C(v4);
+                          mutex_release(v4);
                         }
                         else
                         {
@@ -7278,15 +7278,15 @@ LABEL_43:
                           v41[1] = 0;
                           *v41 = 0;
                           v53 = v41 + 2;
-                          sub_9402530C(v4);
-                          sub_9404CC78(40, v53, 64);
-                          sub_9404CC20(v49);
+                          mutex_release(v4);
+                          memcpy(40, v53, 64);
+                          free(v49);
                         }
                       }
                     }
                   }
                   MEMORY[0x68] = 1;
-                  sub_940251F8(v61, 0xFFFFFFFFLL);
+                  mutex_acquire_timeout(v61, 0xFFFFFFFFLL);
                   v39 = *((_DWORD *)v2 + 18) + 1;
                   MEMORY[0] = *v2;
                   MEMORY[8] = v2;
@@ -7294,30 +7294,30 @@ LABEL_43:
                   *v2 = 0;
                   *(_QWORD *)(v40 + 8) = 0;
                   *((_DWORD *)v2 + 18) = v39;
-                  sub_9402530C(v61);
+                  mutex_release(v61);
                   off_940677B0 = nullptr;
                 }
                 v31 = *v6;
                 v32 = 4;
 LABEL_53:
-                v12 = sub_9402B0B8(v64, v31, (__int64)v50, v32);
+                v12 = ta_manager_send_response(v64, v31, (__int64)v50, v32);
                 if ( (v12 & 0x80000000) == 0 )
                 {
 LABEL_54:
                   v59 = v12;
-                  sub_9404CC20(v50);
+                  free(v50);
                   v12 = v59;
                   goto LABEL_24;
                 }
 LABEL_57:
                 v60 = v12;
-                sub_9404CB4C("%s:%d: ta_manager_send_response failed %d!\n", "ta_manager_handle_msg", 467, v12);
+                printf("%s:%d: ta_manager_send_response failed %d!\n", "ta_manager_handle_msg", 467, v12);
                 v12 = v60;
                 if ( v50 != nullptr )
                   goto LABEL_54;
                 break;
               default:
-                v12 = sub_9402B0B8(v64, *v6, 0, 0);
+                v12 = ta_manager_send_response(v64, *v6, 0, 0);
                 if ( (v12 & 0x80000000) == 0 )
                   goto LABEL_24;
                 v50 = nullptr;
@@ -7331,104 +7331,104 @@ LABEL_57:
       }
     }
   }
-  sub_9404CB4C("%s:%d: uctx_wait_any failed %ld\n", "ta_manager_thread_fun", 571, v9);
-  sub_9404CB4C("%s:%d: ta_manager_thread_fun exit\n", "ta_manager_thread_fun", 584);
-  sub_9404CC20(0);
-  sub_9402E300(*(_QWORD *)(v7 + 1960));
+  printf("%s:%d: uctx_wait_any failed %ld\n", "ta_manager_thread_fun", 571, v9);
+  printf("%s:%d: ta_manager_thread_fun exit\n", "ta_manager_thread_fun", 584);
+  free(0);
+  uctx_destroy(*(_QWORD *)(v7 + 1960));
   return 0;
 }
 
-/* ===== sub_9402BC98 @ 0x9402BC98 size 108 ===== */
-void __spoils<> sub_9402BC98()
+/* ===== ta_manager_noop @ 0x9402BC98 size 108 ===== */
+void __spoils<> ta_manager_noop()
 {
   ;
 }
 
-/* ===== sub_9402BD04 @ 0x9402BD04 size 164 ===== */
-const char *__fastcall sub_9402BD04(const char *result, unsigned int a2)
+/* ===== tam_port_publish @ 0x9402BD04 size 164 ===== */
+const char *__fastcall tam_port_publish(const char *result, unsigned int a2)
 {
   const char *v2; // x20
 
   if ( a2 <= 0x3F && &qword_940677D0 != nullptr )
   {
     v2 = result;
-    sub_9404CB4C("%s:%d:  %s\n", "tam_port_publish", 695, result);
-    sub_9404CDC4(qword_94067820, 0, 64);
-    sub_9404CC78(qword_94067820, v2, a2);
-    return (const char *)sub_94024FDC((__int64)qword_940678B8, 0);
+    printf("%s:%d:  %s\n", "tam_port_publish", 695, result);
+    memset(qword_94067820, 0, 64);
+    memcpy(qword_94067820, v2, a2);
+    return (const char *)event_signal((__int64)qword_940678B8, 0);
   }
   return result;
 }
 
-/* ===== sub_9402BDA8 @ 0x9402BDA8 size 244 ===== */
+/* ===== tam_load_request @ 0x9402BDA8 size 244 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_9402BDA8(const char *a1, __int64 a2, int a3)
+__int64 __fastcall tam_load_request(const char *a1, __int64 a2, int a3)
 {
   __int64 v6; // x19
   __int64 v7; // x0
 
-  sub_9404CB4C("%s:%d:  %s\n", "tam_load_request", 707, a1);
-  v6 = sub_9404CBDC(1, 96);
+  printf("%s:%d:  %s\n", "tam_load_request", 707, a1);
+  v6 = calloc(1, 96);
   if ( v6 == 0 )
-    return sub_9404CB4C("%s:%d:  calloc failed!\n", "tam_load_request", 711);
-  v7 = sub_9404CFF4(a1);
-  sub_9404CC78(v6 + 16, a1, v7);
+    return printf("%s:%d:  calloc failed!\n", "tam_load_request", 711);
+  v7 = strlen(a1);
+  memcpy(v6 + 16, a1, v7);
   *(_QWORD *)(v6 + 80) = a2;
   *(_DWORD *)(v6 + 88) = a3;
   *(_QWORD *)(v6 + 8) = v6;
   *(_QWORD *)v6 = v6;
-  sub_940251F8((__int64)qword_940677E0, 0xFFFFFFFFLL);
+  mutex_acquire_timeout((__int64)qword_940677E0, 0xFFFFFFFFLL);
   *(_QWORD *)v6 = 0;
   *(_QWORD *)(v6 + 8) = &qword_940677D0;
   MEMORY[8] = v6;
   qword_940677D0 = v6;
-  sub_9402530C((__int64)qword_940677E0);
-  return sub_94024FDC((__int64)qword_94067728, 0);
+  mutex_release((__int64)qword_940677E0);
+  return event_signal((__int64)qword_94067728, 0);
 }
 
-/* ===== sub_9402BE9C @ 0x9402BE9C size 236 ===== */
+/* ===== tam_unload_request @ 0x9402BE9C size 236 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_9402BE9C(const char *a1, __int64 a2)
+__int64 __fastcall tam_unload_request(const char *a1, __int64 a2)
 {
   _QWORD *v4; // x19
   __int64 v5; // x0
 
-  sub_9404CB4C("%s:%d:  %s\n", "tam_unload_request", 728, a1);
-  v4 = (_QWORD *)sub_9404CBDC(1, 96);
+  printf("%s:%d:  %s\n", "tam_unload_request", 728, a1);
+  v4 = (_QWORD *)calloc(1, 96);
   if ( v4 == nullptr )
-    return sub_9404CB4C("%s:%d:  calloc failed!\n", "tam_unload_request", 732);
-  v5 = sub_9404CFF4(a1);
-  sub_9404CC78(v4 + 2, a1, v5);
+    return printf("%s:%d:  calloc failed!\n", "tam_unload_request", 732);
+  v5 = strlen(a1);
+  memcpy(v4 + 2, a1, v5);
   v4[10] = a2;
   v4[1] = v4;
   *v4 = v4;
-  sub_940251F8((__int64)qword_94067878, 0xFFFFFFFFLL);
+  mutex_acquire_timeout((__int64)qword_94067878, 0xFFFFFFFFLL);
   *v4 = 0;
   v4[1] = &qword_94067868;
   MEMORY[8] = v4;
   qword_94067868 = (__int64)v4;
-  sub_9402530C((__int64)qword_94067878);
-  return sub_94024FDC((__int64)qword_940676F8, 1u);
+  mutex_release((__int64)qword_94067878);
+  return event_signal((__int64)qword_940676F8, 1u);
 }
 
-/* ===== sub_9402BF88 @ 0x9402BF88 size 36 ===== */
+/* ===== trusty_app_init @ 0x9402BF88 size 36 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 sub_9402BF88()
+__int64 trusty_app_init()
 {
-  sub_9404CB4C("initializing trusty (%s)\n", (const char *)0xFFFFFFFFE003CCC8LL);
+  printf("initializing trusty (%s)\n", (const char *)0xFFFFFFFFE003CCC8LL);
   qword_940678F8 = MEMORY[0xFFFFFFFFE03DF028];
   qword_94067910 = -536457216;
   dword_94067908 = MEMORY[0xFFFFFFFFE03DF028] + 536457216;
-  sub_940251F8((__int64)"xtum", 0xFFFFFFFFLL);
+  mutex_acquire_timeout((__int64)"xtum", 0xFFFFFFFFLL);
   byte_94067904 = 1;
-  sub_9402530C((__int64)"xtum");
+  mutex_release((__int64)"xtum");
   if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-    sub_9404B2FC("trusty_app: start %p size 0x%08x end %p\n", nullptr, 0, nullptr);
+    log_printf("trusty_app: start %p size 0x%08x end %p\n", nullptr, 0, nullptr);
   return 0;
 }
 
-/* ===== sub_9402BFAC @ 0x9402BFAC size 1136 ===== */
-__int64 __fastcall sub_9402BFAC(__int64 a1)
+/* ===== trusty_app_load_segments @ 0x9402BFAC size 1136 ===== */
+__int64 __fastcall trusty_app_load_segments(__int64 a1)
 {
   __int64 v1; // x20
   unsigned int v3; // w1
@@ -7493,7 +7493,7 @@ __int64 __fastcall sub_9402BFAC(__int64 a1)
         goto LABEL_3;
       if ( (v11 & 0xFFF) != 0 || ((v12 = v10[1]) & 0xFFF) != 0 )
       {
-        sub_9404B508(
+        panic(
           v40,
           "ASSERT FAILED at (%s:%d): %s\n",
           "lk/trusty/lib/trusty/trusty_app.c",
@@ -7503,7 +7503,7 @@ __int64 __fastcall sub_9402BFAC(__int64 a1)
       }
       v41 = v9;
       v13 = (unsigned int)v10[5];
-      v14 = sub_9404A248(v1 + v12);
+      v14 = pmm_phys_to_virt(v1 + v12);
       v15 = v10[6];
       v16 = v13 + 4095;
       v42 = v14;
@@ -7516,13 +7516,13 @@ __int64 __fastcall sub_9402BFAC(__int64 a1)
       v20 = v16 & 0xFFFFFFFFFFFFF000LL;
       v21 = *(_QWORD *)(a1 + 80);
       v44 = (unsigned int)v10[2];
-      v22 = sub_9404D438(v21, &v44, &v42, v20, v18 | v19 | 0x20u, 4096);
+      v22 = uthread_map(v21, &v44, &v42, v20, v18 | v19 | 0x20u, 4096);
       v9 = v41;
       if ( v22 != 0 )
       {
         v33 = v22;
         if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-          sub_9404B2FC("cannot map the segment\n");
+          log_printf("cannot map the segment\n");
         return v33;
       }
       v23 = (unsigned int)(0x1000000 - *(_DWORD *)(a1 + 48));
@@ -7530,7 +7530,7 @@ __int64 __fastcall sub_9402BFAC(__int64 a1)
       {
         v33 = -25;
         if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-          sub_9404B2FC("failed to load trusty_app: (overlaps user stack 0x%lx)\n", v23);
+          log_printf("failed to load trusty_app: (overlaps user stack 0x%lx)\n", v23);
         return v33;
       }
       v24 = v10[2];
@@ -7551,7 +7551,7 @@ __int64 __fastcall sub_9402BFAC(__int64 a1)
         v39 = (unsigned int)v10[1];
         *(_QWORD *)(a1 + 8) = v28;
         *(_QWORD *)(a1 + 24) = v20 + v25;
-        sub_9404CDC4(v1 + v27 + v39, 0, v20 - v27);
+        memset(v1 + v27 + v39, 0, v20 - v27);
         v3 = *(unsigned __int16 *)(v1 + 44);
         v9 = v41;
 LABEL_3:
@@ -7576,16 +7576,16 @@ LABEL_26:
     v32 = 0x4EC4EC4EC4EC4EC5LL * (a1 >> 3);
     if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
     {
-      sub_9404B2FC("trusty_app %d: code: start 0x%08lx end 0x%08lx\n", v32, v5, v7);
+      log_printf("trusty_app %d: code: start 0x%08lx end 0x%08lx\n", v32, v5, v7);
       if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
       {
-        sub_9404B2FC("trusty_app %d: data: start 0x%08lx end 0x%08lx\n", v32, v4, v6);
+        log_printf("trusty_app %d: data: start 0x%08lx end 0x%08lx\n", v32, v4, v6);
         if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
         {
-          sub_9404B2FC("trusty_app %d: bss:                end 0x%08lx\n", v32, *(_QWORD *)a1);
+          log_printf("trusty_app %d: bss:                end 0x%08lx\n", v32, *(_QWORD *)a1);
           if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
           {
-            sub_9404B2FC(
+            log_printf(
               "trusty_app %d: brk:  start 0x%08lx end 0x%08lx\n",
               v32,
               *(_QWORD *)(a1 + 8),
@@ -7593,7 +7593,7 @@ LABEL_26:
             if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
             {
               v33 = 0;
-              sub_9404B2FC(
+              log_printf(
                 "trusty_app %d: entry 0x%08lx\n",
                 -991146299 * (a1 >> 3),
                 *(_QWORD *)(*(_QWORD *)(a1 + 80) + 8LL));
@@ -7605,15 +7605,15 @@ LABEL_26:
     }
     return 0;
   }
-  v35 = sub_9404CBCC(4096, v30);
+  v35 = memalign(4096, v30);
   v1 = v35;
   if ( v35 != 0 )
   {
-    sub_9404CDC4(v35, 0, *(unsigned int *)(a1 + 52));
+    memset(v35, 0, *(unsigned int *)(a1 + 52));
     v36 = *(_QWORD *)(a1 + 80);
     v43 = *(_QWORD *)(a1 + 24);
-    v44 = sub_9404A248(v1);
-    if ( (unsigned int)sub_9404D438(v36, &v43, &v44, *(unsigned int *)(a1 + 52), 291, 4096) == 0 )
+    v44 = pmm_phys_to_virt(v1);
+    if ( (unsigned int)uthread_map(v36, &v43, &v44, *(unsigned int *)(a1 + 52), 291, 4096) == 0 )
     {
       v37 = *(_QWORD *)(a1 + 24);
       if ( v37 == v43 )
@@ -7626,18 +7626,18 @@ LABEL_26:
     }
 LABEL_39:
     if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-      sub_9404B2FC("cannot map brk\n");
-    sub_9404CC20(v1);
+      log_printf("cannot map brk\n");
+    free(v1);
   }
   v33 = -5;
   if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) != 0 )
     return v33;
-  sub_9404B2FC("failed to load trusty_app: trusty_app heap creation error\n");
+  log_printf("failed to load trusty_app: trusty_app heap creation error\n");
   return 4294967291LL;
 }
 
-/* ===== sub_9402C41C @ 0x9402C41C size 916 ===== */
-__int64 __fastcall sub_9402C41C(__int64 a1, __int64 a2, unsigned int a3, _DWORD *a4)
+/* ===== load_app_config_options @ 0x9402C41C size 916 ===== */
+__int64 __fastcall load_app_config_options(__int64 a1, __int64 a2, unsigned int a3, _DWORD *a4)
 {
   __int64 v4; // x30
   __int64 v7; // x22
@@ -7656,35 +7656,35 @@ __int64 __fastcall sub_9402C41C(__int64 a1, __int64 a2, unsigned int a3, _DWORD 
   v7 = v4;
   if ( *a4 <= 0xFu )
   {
-    sub_9404B508(
+    panic(
       v4,
       "ASSERT FAILED at (%s:%d): %s\n",
       "lk/trusty/lib/trusty/trusty_app.c",
       171,
       "shdr->sh_size >= sizeof(uuid_t)");
 LABEL_25:
-    sub_9404B508(
+    panic(
       v7,
       "ASSERT FAILED at (%s:%d): %s\n",
       "lk/trusty/lib/trusty/trusty_app.c",
       219,
       "(trusty_app->props.config_entry_cnt - i) > 1");
 LABEL_26:
-    sub_9404B508(
+    panic(
       v7,
       "ASSERT FAILED at (%s:%d): %s\n",
       "lk/trusty/lib/trusty/trusty_app.c",
       212,
       "(trusty_app->props.config_entry_cnt - i) > 1");
 LABEL_27:
-    sub_9404B508(
+    panic(
       v7,
       "ASSERT FAILED at (%s:%d): %s\n",
       "lk/trusty/lib/trusty/trusty_app.c",
       226,
       "(trusty_app->props.config_entry_cnt - i) > 3");
 LABEL_28:
-    sub_9404B508(
+    panic(
       v7,
       "ASSERT FAILED at (%s:%d): %s\n",
       "lk/trusty/lib/trusty/trusty_app.c",
@@ -7698,10 +7698,10 @@ LABEL_28:
     *(_DWORD *)(a2 + 52) = 0x4000;
     v9 = &qword_9405BFF0[2];
     *(_DWORD *)(a2 + 48) = 4096;
-    sub_9404CC78(a2 + 32, v8, 16);
+    memcpy(a2 + 32, v8, 16);
     result = MEMORY[0xFFFFFFFFE003CB98];
     if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-      result = sub_9404B2FC(
+      result = log_printf(
                  "trusty_app %d uuid: 0x%x 0x%x 0x%x 0x%x%x 0x%x%x%x%x%x%x\n",
                  -991146299 * (unsigned int)(a2 >> 3),
                  *(_DWORD *)(a2 + 32),
@@ -7734,7 +7734,7 @@ LABEL_28:
         *(_DWORD *)(a2 + 52) = v18;
         if ( v18 == 0 )
         {
-          v12 = sub_9404B508(
+          v12 = panic(
                   v7,
                   "ASSERT FAILED at (%s:%d): %s\n",
                   "lk/trusty/lib/trusty/trusty_app.c",
@@ -7754,10 +7754,10 @@ LABEL_14:
           result = *v17;
           if ( *v17 > 1 )
           {
-            sub_9404B2FC("trusty_app %p: stack_sz=0x%x\n", (const void *)a2, *(_DWORD *)(a2 + 48));
+            log_printf("trusty_app %p: stack_sz=0x%x\n", (const void *)a2, *(_DWORD *)(a2 + 48));
             result = *v17;
             if ( *v17 > 1 )
-              return sub_9404B2FC("trusty_app %p: heap_sz=0x%x\n", (const void *)a2, *(_DWORD *)(a2 + 52));
+              return log_printf("trusty_app %p: heap_sz=0x%x\n", (const void *)a2, *(_DWORD *)(a2 + 52));
           }
           return result;
         }
@@ -7768,8 +7768,8 @@ LABEL_14:
         {
           v9 = (__int64 *)v9[464];
           if ( (*v9 & 0x8000000000000000LL) == 0 )
-            sub_9404B2FC("%s: unknown config key: %d\n", "load_app_config_options", v14);
-          v12 = sub_9404B508(v7, "ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/trusty_app.c", 234, "0");
+            log_printf("%s: unknown config key: %d\n", "load_app_config_options", v14);
+          v12 = panic(v7, "ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/trusty_app.c", 234, "0");
         }
         if ( v11 - v13 <= 1 )
           goto LABEL_26;
@@ -7786,32 +7786,32 @@ LABEL_14:
   return result;
 }
 
-/* ===== sub_9402C7B0 @ 0x9402C7B0 size 120 ===== */
+/* ===== trusty_register_notifier @ 0x9402C7B0 size 120 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_9402C7B0(_QWORD *a1)
+__int64 __fastcall trusty_register_notifier(_QWORD *a1)
 {
-  sub_940251F8((__int64)"xtum", 0xFFFFFFFFLL);
+  mutex_acquire_timeout((__int64)"xtum", 0xFFFFFFFFLL);
   a1[1] = &qword_9405ABE8;
   *a1 = -536630296;
   qword_9405ABE8 = (__int64)a1;
   MEMORY[0xFFFFFFFFE003ABF0] = a1;
-  sub_9402530C((__int64)"xtum");
+  mutex_release((__int64)"xtum");
   return 0;
 }
 
-/* ===== sub_9402C828 @ 0x9402C828 size 96 ===== */
-__int64 sub_9402C828()
+/* ===== trusty_alloc_als_slot @ 0x9402C828 size 96 ===== */
+__int64 trusty_alloc_als_slot()
 {
   unsigned int v0; // w19
 
-  sub_940251F8((__int64)"xtum", 0xFFFFFFFFLL);
+  mutex_acquire_timeout((__int64)"xtum", 0xFFFFFFFFLL);
   v0 = ++MEMORY[0xFFFFFFFFE006124C];
-  sub_9402530C((__int64)"xtum");
+  mutex_release((__int64)"xtum");
   return v0;
 }
 
-/* ===== sub_9402C888 @ 0x9402C888 size 176 ===== */
-__int64 __fastcall sub_9402C888(__int64 a1, int a2, __int64 a3, int a4)
+/* ===== trusty_app_map_segment @ 0x9402C888 size 176 ===== */
+__int64 __fastcall trusty_app_map_segment(__int64 a1, int a2, __int64 a3, int a4)
 {
   unsigned int v4; // w8
   __int64 v5; // x7
@@ -7850,11 +7850,11 @@ __int64 __fastcall sub_9402C888(__int64 a1, int a2, __int64 a3, int a4)
     return 4294967288LL;
   v12 = *(_QWORD *)(a1 + 80);
   v14 = v9;
-  return sub_9404D438(v12, a3, &v14, v11 & 0xFFFFF000, 163, 4096);
+  return uthread_map(v12, a3, &v14, v11 & 0xFFFFF000, 163, 4096);
 }
 
-/* ===== sub_9402CF10 @ 0x9402CF10 size 792 ===== */
-__int64 __fastcall sub_9402CF10(__int64 a1, unsigned int a2)
+/* ===== trusty_tapp_bootloader @ 0x9402CF10 size 792 ===== */
+__int64 __fastcall trusty_tapp_bootloader(__int64 a1, unsigned int a2)
 {
   __int64 v5; // x0
   _QWORD *v6; // x21
@@ -7882,34 +7882,34 @@ __int64 __fastcall sub_9402CF10(__int64 a1, unsigned int a2)
   }
   else
   {
-    sub_9404B2FC("trusty_tapp_bootloader: start %p size 0x%08x end %p\n", (const void *)a1, a2, (const void *)(a1 + a2));
+    log_printf("trusty_tapp_bootloader: start %p size 0x%08x end %p\n", (const void *)a1, a2, (const void *)(a1 + a2));
     if ( a2 == 0 || a1 == 0 )
     {
       if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
       {
-        sub_9404B2FC("trusty_tapp_bootloader:start %p size 0x%08x invalid parameters\n", (const void *)a1, a2);
+        log_printf("trusty_tapp_bootloader:start %p size 0x%08x invalid parameters\n", (const void *)a1, a2);
         return 0;
       }
       return 0;
     }
   }
-  v5 = sub_9404CBDC(1, 104);
+  v5 = calloc(1, 104);
   v6 = (_QWORD *)v5;
   if ( v5 == 0 )
   {
     if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
     {
-      sub_9404B2FC("trusty_tapp_bootloader: calloc failed!\n");
+      log_printf("trusty_tapp_bootloader: calloc failed!\n");
       return 0;
     }
     return 0;
   }
-  sub_9404CDC4(v5, 0, 104);
-  if ( (unsigned int)sub_9404D040(a1, &qword_94050A58, 4) != 0 )
+  memset(v5, 0, 104);
+  if ( (unsigned int)strncmp(a1, &qword_94050A58, 4) != 0 )
   {
     if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-      sub_9404B2FC("trusty_tapp_bootloader: ELF header not found\n");
-    sub_9404CC20(v6);
+      log_printf("trusty_tapp_bootloader: ELF header not found\n");
+    free(v6);
     return 0;
   }
   v7 = *(unsigned int *)(a1 + 32) + a1;
@@ -7928,11 +7928,11 @@ __int64 __fastcall sub_9402CF10(__int64 a1, unsigned int a2)
     if ( v13 != 0 )
     {
       v14 = v8 + *v9;
-      if ( (unsigned int)sub_9404CED8(v14, ".bss") != 0 )
+      if ( (unsigned int)strcmp(v14, ".bss") != 0 )
       {
-        if ( (unsigned int)sub_9404CED8(v14, ".bss-pad") != 0 )
+        if ( (unsigned int)strcmp(v14, ".bss-pad") != 0 )
         {
-          v15 = (unsigned int)sub_9404CED8(v14, ".trusty_app.manifest") == 0;
+          v15 = (unsigned int)strcmp(v14, ".trusty_app.manifest") == 0;
           v16 = v21;
           if ( v15 )
             v16 = v9;
@@ -7960,8 +7960,8 @@ __int64 __fastcall sub_9402CF10(__int64 a1, unsigned int a2)
     v18 = v12[5];
     if ( v18 + v17 <= v10 )
     {
-      sub_9404CDC4(a1 + v17, 0, v18);
-      sub_9402C41C(a1, (__int64)v6, v21[4], v21 + 5);
+      memset(a1 + v17, 0, v18);
+      load_app_config_options(a1, (__int64)v6, v21[4], v21 + 5);
       v6[9] = a1;
       return (__int64)v6;
     }
@@ -7969,25 +7969,25 @@ __int64 __fastcall sub_9402CF10(__int64 a1, unsigned int a2)
   else
   {
 LABEL_35:
-    sub_9404B508(
+    panic(
       vars0,
       "ASSERT FAILED at (%s:%d): %s\n",
       "lk/trusty/lib/trusty/trusty_app.c",
       748,
       "bss_shdr && bss_pad_shdr && manifest_shdr");
   }
-  v19 = sub_9404B508(
+  v19 = panic(
           vars0,
           "ASSERT FAILED at (%s:%d): %s\n",
           "lk/trusty/lib/trusty/trusty_app.c",
           751,
           "(bss_shdr->sh_offset + bss_shdr->sh_size) <= trusty_app_max_extent");
-  return sub_9402D228(v19);
+  return trusty_tapp_init(v19);
 }
 
-/* ===== sub_9402D228 @ 0x9402D228 size 504 ===== */
+/* ===== trusty_tapp_init @ 0x9402D228 size 504 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_9402D228(__int64 a1)
+__int64 __fastcall trusty_tapp_init(__int64 a1)
 {
   __int64 v1; // x30
   __int64 v3; // x23
@@ -8008,8 +8008,8 @@ __int64 __fastcall sub_9402D228(__int64 a1)
 
   v3 = v1;
   if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-    sub_9404B2FC("trusty_tapp_init:\n");
-  sub_9404CAC0(
+    log_printf("trusty_tapp_init:\n");
+  snprintf(
     v18,
     32,
     "trusty_tapp_%d_%08x-%04x-%04x",
@@ -8017,24 +8017,24 @@ __int64 __fastcall sub_9402D228(__int64 a1)
     *(_DWORD *)(a1 + 32),
     *(unsigned __int16 *)(a1 + 36),
     *(unsigned __int16 *)(a1 + 38));
-  v4 = sub_9404D7E8(v18, *(unsigned int *)(*(_QWORD *)(a1 + 72) + 24LL), 16, 0x1000000, *(unsigned int *)(a1 + 48), a1);
+  v4 = uthread_create(v18, *(unsigned int *)(*(_QWORD *)(a1 + 72) + 24LL), 16, 0x1000000, *(unsigned int *)(a1 + 48), a1);
   if ( v4 == 0 )
     goto LABEL_15;
   *(_QWORD *)(a1 + 80) = v4;
-  if ( (unsigned int)sub_9402BFAC(a1) != 0 )
+  if ( (unsigned int)trusty_app_load_segments(a1) != 0 )
   {
 LABEL_14:
-    sub_9404B508(v3, "failed to load address map\n");
+    panic(v3, "failed to load address map\n");
 LABEL_15:
-    sub_9404B508(v3, "allocate user thread failed\n");
+    panic(v3, "allocate user thread failed\n");
     goto LABEL_16;
   }
-  v5 = sub_9404CBDC(1, 8LL * MEMORY[0xFFFFFFFFE006124C]);
+  v5 = calloc(1, 8LL * MEMORY[0xFFFFFFFFE006124C]);
   *(_QWORD *)(a1 + 88) = v5;
   if ( v5 == 0 )
   {
 LABEL_13:
-    sub_9404B508(v3, "allocate app local storage failed\n");
+    panic(v3, "allocate app local storage failed\n");
     goto LABEL_14;
   }
   v6 = -536630296;
@@ -8053,51 +8053,51 @@ LABEL_13:
       if ( (__int64 *)v6 == &qword_9405ABE8 )
         goto LABEL_10;
     }
-    sub_9404B508(v3, "failed (%d) to invoke startup notifier\n", v8);
+    panic(v3, "failed (%d) to invoke startup notifier\n", v8);
     goto LABEL_13;
   }
 LABEL_10:
-  if ( (unsigned int)sub_9404D324(*(_QWORD *)(a1 + 80)) == 0 )
+  if ( (unsigned int)uthread_start(*(_QWORD *)(a1 + 80)) == 0 )
   {
     dword_940678E8 = 1;
     return 1;
   }
 LABEL_16:
-  v10 = sub_9404B508(v3, "Cannot start Trusty app!\n");
+  v10 = panic(v3, "Cannot start Trusty app!\n");
   v12 = v11;
   v13 = v11;
   v14 = v10;
   v16 = v15;
-  if ( (unsigned __int8)sub_9404DC04(*(_QWORD *)(_ReadStatusReg(TPIDR_EL1) + 688), v15, v11) == 0 )
+  if ( (unsigned __int8)uthread_is_mapped(*(_QWORD *)(_ReadStatusReg(TPIDR_EL1) + 688), v15, v11) == 0 )
     return 4294967288LL;
   v17 = 2;
   if ( v14 == 2 )
     v17 = 1;
   if ( v17 <= MEMORY[0xFFFFFFFFE003CB98] )
-    sub_9404B254(v16, v12);
+    console_write_raw(v16, v12);
   return v13;
 }
 
-/* ===== sub_9402D420 @ 0x9402D420 size 116 ===== */
-__int64 __fastcall sub_9402D420(unsigned int a1, __int64 a2)
+/* ===== trusty_install_handler @ 0x9402D420 size 116 ===== */
+__int64 __fastcall trusty_install_handler(unsigned int a1, __int64 a2)
 {
   unsigned int v4; // w20
 
   if ( a1 > 9 )
     return 4294967288LL;
   v4 = -14;
-  sub_940251F8((__int64)"xtum", 0xFFFFFFFFLL);
+  mutex_acquire_timeout((__int64)"xtum", 0xFFFFFFFFLL);
   if ( qword_9405AC48[a1] == 0 )
   {
     qword_9405AC48[a1] = a2;
     v4 = 0;
   }
-  sub_9402530C((__int64)"xtum");
+  mutex_release((__int64)"xtum");
   return v4;
 }
 
-/* ===== sub_9402D494 @ 0x9402D494 size 64 ===== */
-__int64 __fastcall sub_9402D494(unsigned int a1)
+/* ===== trusty_call_handler @ 0x9402D494 size 64 ===== */
+__int64 __fastcall trusty_call_handler(unsigned int a1)
 {
   __int64 v1; // x3
   __int64 v2; // x4
@@ -8117,8 +8117,8 @@ __int64 __fastcall sub_9402D494(unsigned int a1)
   return v1;
 }
 
-/* ===== sub_9402D4D4 @ 0x9402D4D4 size 56 ===== */
-__int64 __fastcall sub_9402D4D4(__int64 result)
+/* ===== trusty_get_brk @ 0x9402D4D4 size 56 ===== */
+__int64 __fastcall trusty_get_brk(__int64 result)
 {
   _QWORD *v1; // x1
 
@@ -8130,8 +8130,8 @@ __int64 __fastcall sub_9402D4D4(__int64 result)
   return result;
 }
 
-/* ===== sub_9402D50C @ 0x9402D50C size 116 ===== */
-__int64 sub_9402D50C()
+/* ===== trusty_exit @ 0x9402D50C size 116 ===== */
+__int64 trusty_exit()
 {
   const char *StatusReg; // x1
   __int64 v1; // x0
@@ -8142,8 +8142,8 @@ __int64 sub_9402D50C()
 
   StatusReg = (const char *)_ReadStatusReg(TPIDR_EL1);
   if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-    sub_9404B2FC("exit called, thread %p, name %s\n", StatusReg, StatusReg + 696);
-  v1 = sub_9404D33C(0);
+    log_printf("exit called, thread %p, name %s\n", StatusReg, StatusReg + 696);
+  v1 = uthread_exit(0);
   v3 = -24;
   if ( (unsigned int)v1 <= 9 )
   {
@@ -8158,8 +8158,8 @@ __int64 sub_9402D50C()
   return v3;
 }
 
-/* ===== sub_9402D580 @ 0x9402D580 size 64 ===== */
-__int64 __fastcall sub_9402D580(unsigned int a1)
+/* ===== trusty_call_handler2 @ 0x9402D580 size 64 ===== */
+__int64 __fastcall trusty_call_handler2(unsigned int a1)
 {
   __int64 v1; // x3
   __int64 v2; // x4
@@ -8179,15 +8179,15 @@ __int64 __fastcall sub_9402D580(unsigned int a1)
   return v1;
 }
 
-/* ===== sub_9402D5C0 @ 0x9402D5C0 size 64 ===== */
-__int64 __fastcall sub_9402D5C0(__int64 a1, __int64 a2, unsigned int a3, __int64 a4)
+/* ===== trusty_sleep_ns @ 0x9402D5C0 size 64 ===== */
+__int64 __fastcall trusty_sleep_ns(__int64 a1, __int64 a2, unsigned int a3, __int64 a4)
 {
-  sub_940263B8(((a4 << 32) + (unsigned __int64)a3 + 999999) / 0xF4240);
+  thread_sleep(((a4 << 32) + (unsigned __int64)a3 + 999999) / 0xF4240);
   return 0;
 }
 
-/* ===== sub_9402D600 @ 0x9402D600 size 92 ===== */
-__int64 __fastcall sub_9402D600(__int64 a1, __int64 a2, unsigned int a3)
+/* ===== trusty_get_time_ms @ 0x9402D600 size 92 ===== */
+__int64 __fastcall trusty_get_time_ms(__int64 a1, __int64 a2, unsigned int a3)
 {
   unsigned __int64 v3; // x0
   __int64 v6; // [xsp+28h] [xbp+28h] BYREF
@@ -8195,13 +8195,13 @@ __int64 __fastcall sub_9402D600(__int64 a1, __int64 a2, unsigned int a3)
   if ( MEMORY[0xFFFFFFFFE0047918] != nullptr )
     v3 = MEMORY[0xFFFFFFFFE0047918]();
   else
-    v3 = sub_94024A84();
+    v3 = arch_time_now();
   v6 = 1000 * v3;
-  return (int)sub_9404D224(a3, &v6, 8);
+  return (int)copy_to_user(a3, &v6, 8);
 }
 
-/* ===== sub_9402D65C @ 0x9402D65C size 84 ===== */
-__int64 __fastcall sub_9402D65C(int a1, int a2, int a3, int a4)
+/* ===== trusty_mmap @ 0x9402D65C size 84 ===== */
+__int64 __fastcall trusty_mmap(int a1, int a2, int a3, int a4)
 {
   bool v4; // zf
   __int64 v5; // x2
@@ -8212,35 +8212,35 @@ __int64 __fastcall sub_9402D65C(int a1, int a2, int a3, int a4)
   v5 = *(_QWORD *)(*(_QWORD *)(_ReadStatusReg(TPIDR_EL1) + 688) + 144LL);
   if ( !v4 || a1 != 0 )
     return -8;
-  result = (int)sub_9402C888(v5, a4, (__int64)&v7, a2);
+  result = (int)trusty_app_map_segment(v5, a4, (__int64)&v7, a2);
   if ( (_DWORD)result == 0 )
     return v7;
   return result;
 }
 
-/* ===== sub_9402D6B0 @ 0x9402D6B0 size 48 ===== */
-__int64 __fastcall sub_9402D6B0(unsigned int a1, unsigned int a2)
+/* ===== trusty_munmap @ 0x9402D6B0 size 48 ===== */
+__int64 __fastcall trusty_munmap(unsigned int a1, unsigned int a2)
 {
-  return (int)sub_9404DA38(
+  return (int)uthread_unmap(
                 *(_QWORD *)(*(_QWORD *)(*(_QWORD *)(_ReadStatusReg(TPIDR_EL1) + 688) + 144LL) + 80LL),
                 a1,
                 a2);
 }
 
-/* ===== sub_9402D6E0 @ 0x9402D6E0 size 8 ===== */
-__int64 sub_9402D6E0()
+/* ===== trusty_stub_ret24_1 @ 0x9402D6E0 size 8 ===== */
+__int64 trusty_stub_ret24_1()
 {
   return -24;
 }
 
-/* ===== sub_9402D6E8 @ 0x9402D6E8 size 8 ===== */
-__int64 sub_9402D6E8()
+/* ===== trusty_stub_ret24_2 @ 0x9402D6E8 size 8 ===== */
+__int64 trusty_stub_ret24_2()
 {
   return -24;
 }
 
-/* ===== sub_9402D6F0 @ 0x9402D6F0 size 364 ===== */
-__int64 __fastcall sub_9402D6F0(__int64 a1, _QWORD *a2, _DWORD *a3, unsigned __int8 a4)
+/* ===== handle_wait_any @ 0x9402D6F0 size 364 ===== */
+__int64 __fastcall handle_wait_any(__int64 a1, _QWORD *a2, _DWORD *a3, unsigned __int8 a4)
 {
   __int64 v4; // x30
   int v8; // w21
@@ -8259,7 +8259,7 @@ __int64 __fastcall sub_9402D6F0(__int64 a1, _QWORD *a2, _DWORD *a3, unsigned __i
   v8 = a4;
   if ( *(_QWORD *)(a1 + 72) == 0 )
   {
-    sub_9404B508(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/handle.c", 272, "hlist->wait_event");
+    panic(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/handle.c", 272, "hlist->wait_event");
     return 4294967294LL;
   }
   v9 = *(_QWORD *)(a1 + 8);
@@ -8272,16 +8272,16 @@ __int64 __fastcall sub_9402D6F0(__int64 a1, _QWORD *a2, _DWORD *a3, unsigned __i
     if ( v8 != 0 )
     {
       v12 = *(_QWORD *)(a1 + 72);
-      sub_940251F8(v10 + 24, 0xFFFFFFFFLL);
+      mutex_acquire_timeout(v10 + 24, 0xFFFFFFFFLL);
       if ( *(_QWORD *)(v10 + 16) != 0 )
       {
         v17 = -6;
-        sub_9402530C(v10 + 24);
+        mutex_release(v10 + 24);
         goto LABEL_13;
       }
       *(_QWORD *)(v10 + 16) = v12;
       v11 = v10;
-      sub_9402530C(v10 + 24);
+      mutex_release(v10 + 24);
     }
     v13 = (**(__int64 (__fastcall ***)(__int64))(v10 + 8))(v10);
     if ( v13 != 0 )
@@ -8304,9 +8304,9 @@ LABEL_13:
     v15 = a1 == v18;
     for ( i = v18 - 80; !v15; i = v20 - 80 )
     {
-      sub_940251F8(i + 24, 0xFFFFFFFFLL);
+      mutex_acquire_timeout(i + 24, 0xFFFFFFFFLL);
       *(_QWORD *)(i + 16) = 0;
-      sub_9402530C(i + 24);
+      mutex_release(i + 24);
       if ( v11 == i )
         break;
       v20 = *(_QWORD *)(i + 88);
@@ -8316,8 +8316,8 @@ LABEL_13:
   return v17;
 }
 
-/* ===== sub_9402D85C @ 0x9402D85C size 212 ===== */
-__int64 __fastcall sub_9402D85C(__int64 a1, __int64 a2)
+/* ===== handle_init @ 0x9402D85C size 212 ===== */
+__int64 __fastcall handle_init(__int64 a1, __int64 a2)
 {
   __int64 v2; // x30
   unsigned int v4; // w0
@@ -8326,15 +8326,15 @@ __int64 __fastcall sub_9402D85C(__int64 a1, __int64 a2)
 
   if ( a1 == 0 )
   {
-    sub_9404B508(v2, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/handle.c", 45, "handle");
+    panic(v2, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/handle.c", 45, "handle");
   }
   else if ( a2 != 0 )
   {
     if ( *(_QWORD *)(a2 + 24) == 0 )
     {
 LABEL_9:
-      v6 = sub_9404B508(v2, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/handle.c", 47, "ops->destroy");
-      return sub_9402D930(v6);
+      v6 = panic(v2, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/handle.c", 47, "ops->destroy");
+      return handle_incref(v6);
     }
     do
       __ldxr((unsigned int *)a1);
@@ -8344,18 +8344,18 @@ LABEL_9:
     while ( __stxr(v4 + 1, (unsigned int *)a1) != 0 );
     *(_QWORD *)(a1 + 8) = a2;
     *(_QWORD *)(a1 + 16) = 0;
-    result = sub_940251C4(a1 + 24);
+    result = mutex_init(a1 + 24);
     *(_QWORD *)(a1 + 96) = 0;
     *(_QWORD *)(a1 + 88) = 0;
     *(_QWORD *)(a1 + 80) = 0;
     return result;
   }
-  sub_9404B508(v2, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/handle.c", 46, "ops");
+  panic(v2, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/handle.c", 46, "ops");
   goto LABEL_9;
 }
 
-/* ===== sub_9402D930 @ 0x9402D930 size 176 ===== */
-__int64 __fastcall sub_9402D930(__int64 result)
+/* ===== handle_incref @ 0x9402D930 size 176 ===== */
+__int64 __fastcall handle_incref(__int64 result)
 {
   __int64 v1; // x30
   unsigned int v2; // w1
@@ -8371,7 +8371,7 @@ __int64 __fastcall sub_9402D930(__int64 result)
   }
   else
   {
-    result = sub_9404B508(v1, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/handle.c", 67, "handle");
+    result = panic(v1, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/handle.c", 67, "handle");
     if ( result != 0 )
     {
       do
@@ -8384,15 +8384,15 @@ __int64 __fastcall sub_9402D930(__int64 result)
     }
     else
     {
-      v5 = sub_9404B508(v3, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/handle.c", 73, "handle");
-      return sub_9402D9E0(v5);
+      v5 = panic(v3, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/handle.c", 73, "handle");
+      return handle_close(v5);
     }
   }
   return result;
 }
 
-/* ===== sub_9402D9E0 @ 0x9402D9E0 size 252 ===== */
-void __fastcall sub_9402D9E0(__int64 a1, _QWORD *a2)
+/* ===== handle_close @ 0x9402D9E0 size 252 ===== */
+void __fastcall handle_close(__int64 a1, _QWORD *a2)
 {
   __int64 v2; // x30
   __int64 v5; // x0
@@ -8406,7 +8406,7 @@ void __fastcall sub_9402D9E0(__int64 a1, _QWORD *a2)
     if ( a2 == nullptr )
     {
 LABEL_10:
-      sub_9404B508(v5, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/handle.c", 204, "handle");
+      panic(v5, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/handle.c", 204, "handle");
       goto LABEL_11;
     }
     v6 = a2[10];
@@ -8419,31 +8419,31 @@ LABEL_10:
       a2[11] = 0;
       a2[10] = 0;
       if ( v8 == 0
-        || (sub_940251F8((__int64)(a2 + 3), 0xFFFFFFFFLL),
+        || (mutex_acquire_timeout((__int64)(a2 + 3), 0xFFFFFFFFLL),
             a2[2] = 0,
-            sub_9402530C((__int64)(a2 + 3)),
+            mutex_release((__int64)(a2 + 3)),
             *(_QWORD *)(a1 + 8) != a1) )
       {
 LABEL_12:
         JUMPOUT(0x9402D978LL);
       }
 LABEL_11:
-      sub_94024FDC(*(_QWORD *)(a1 + 72), 1u);
+      event_signal(*(_QWORD *)(a1 + 72), 1u);
       goto LABEL_12;
     }
-    v5 = sub_9404B508(
+    v5 = panic(
            v2,
            "DEBUG ASSERT FAILED at (%s:%d): %s\n",
            "lk/trusty/lib/trusty/handle.c",
            205,
            "list_in_list(&handle->hlist_node)");
   }
-  v5 = sub_9404B508(v5, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/handle.c", 203, "hlist");
+  v5 = panic(v5, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/handle.c", 203, "hlist");
   goto LABEL_10;
 }
 
-/* ===== sub_9402DADC @ 0x9402DADC size 344 ===== */
-__int64 __fastcall sub_9402DADC(__int64 a1)
+/* ===== handle_decref @ 0x9402DADC size 344 ===== */
+__int64 __fastcall handle_decref(__int64 a1)
 {
   __int64 v1; // x30
   void (*v2)(void); // x1
@@ -8465,29 +8465,29 @@ __int64 __fastcall sub_9402DADC(__int64 a1)
       v2();
     JUMPOUT(0x9402D978LL);
   }
-  v3 = sub_9404B508(v1, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/handle.c", 79, "handle");
+  v3 = panic(v1, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/handle.c", 79, "handle");
   if ( v3 == 0 || v4 == nullptr )
     return 4294967288LL;
   v6 = v3;
   v7 = v5;
   v8 = v4;
-  sub_94024DFC((__int64)v13, 0, 1);
-  sub_940251F8(v6 + 24, 0xFFFFFFFFLL);
+  event_init((__int64)v13, 0, 1);
+  mutex_acquire_timeout(v6 + 24, 0xFFFFFFFFLL);
   if ( *(_QWORD *)(v6 + 16) != 0 )
   {
     v9 = -6;
-    sub_9402530C(v6 + 24);
+    mutex_release(v6 + 24);
   }
   else
   {
     *(_QWORD *)(v6 + 16) = v13;
-    sub_9402530C(v6 + 24);
+    mutex_release(v6 + 24);
     while ( 1 )
     {
       v10 = (**(__int64 (__fastcall ***)(__int64))(v6 + 8))(v6);
       if ( v10 != 0 )
         break;
-      v9 = sub_94024EFC((__int64)v13, v7);
+      v9 = event_wait_timeout((__int64)v13, v7);
       if ( (v9 & 0x80000000) != 0 )
         goto LABEL_14;
     }
@@ -8497,16 +8497,16 @@ __int64 __fastcall sub_9402DADC(__int64 a1)
     *v8 = v10;
     v9 = 0;
 LABEL_14:
-    sub_940251F8(v6 + 24, 0xFFFFFFFFLL);
+    mutex_acquire_timeout(v6 + 24, 0xFFFFFFFFLL);
     *(_QWORD *)(v6 + 16) = 0;
-    sub_9402530C(v6 + 24);
+    mutex_release(v6 + 24);
   }
-  sub_94024E30((__int64)v13);
+  event_destroy((__int64)v13);
   return v9;
 }
 
-/* ===== sub_9402DC34 @ 0x9402DC34 size 104 ===== */
-__int64 __fastcall sub_9402DC34(__int64 a1)
+/* ===== handle_cancel_wait @ 0x9402DC34 size 104 ===== */
+__int64 __fastcall handle_cancel_wait(__int64 a1)
 {
   __int64 v1; // x30
   __int64 v3; // x20
@@ -8516,21 +8516,21 @@ __int64 __fastcall sub_9402DC34(__int64 a1)
   if ( a1 != 0 )
   {
     v3 = a1 + 24;
-    sub_940251F8(a1 + 24, 0xFFFFFFFFLL);
+    mutex_acquire_timeout(a1 + 24, 0xFFFFFFFFLL);
     v4 = *(_QWORD *)(a1 + 16);
     if ( v4 != 0 )
-      sub_94024FDC(v4, 1u);
-    return sub_9402530C(v3);
+      event_signal(v4, 1u);
+    return mutex_release(v3);
   }
   else
   {
-    v6 = sub_9404B508(v1, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/handle.c", 159, "handle");
-    return sub_9402DC9C(v6);
+    v6 = panic(v1, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/handle.c", 159, "handle");
+    return hlist_init(v6);
   }
 }
 
-/* ===== sub_9402DC9C @ 0x9402DC9C size 112 ===== */
-_QWORD *__fastcall sub_9402DC9C(_QWORD *result)
+/* ===== hlist_init @ 0x9402DC9C size 112 ===== */
+_QWORD *__fastcall hlist_init(_QWORD *result)
 {
   __int64 v1; // x30
   __int64 v2; // x0
@@ -8552,14 +8552,14 @@ _QWORD *__fastcall sub_9402DC9C(_QWORD *result)
   }
   else
   {
-    v2 = sub_9404B508(v1, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/handle.c", 174, "hlist");
-    return (_QWORD *)sub_9402DD0C(v2);
+    v2 = panic(v1, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/handle.c", 174, "hlist");
+    return (_QWORD *)hlist_add_handle(v2);
   }
   return result;
 }
 
-/* ===== sub_9402DD0C @ 0x9402DD0C size 300 ===== */
-__int64 __fastcall sub_9402DD0C(_QWORD *a1, __int64 a2)
+/* ===== hlist_add_handle @ 0x9402DD0C size 300 ===== */
+__int64 __fastcall hlist_add_handle(_QWORD *a1, __int64 a2)
 {
   __int64 v2; // x30
   __int64 v5; // x22
@@ -8567,7 +8567,7 @@ __int64 __fastcall sub_9402DD0C(_QWORD *a1, __int64 a2)
 
   if ( a1 == nullptr )
   {
-    sub_9404B508(v2, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/handle.c", 181, "hlist");
+    panic(v2, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/handle.c", 181, "hlist");
   }
   else if ( a2 != 0 )
   {
@@ -8575,7 +8575,7 @@ __int64 __fastcall sub_9402DD0C(_QWORD *a1, __int64 a2)
       goto LABEL_5;
     do
     {
-      sub_9404B508(
+      panic(
         v2,
         "DEBUG ASSERT FAILED at (%s:%d): %s\n",
         "lk/trusty/lib/trusty/handle.c",
@@ -8585,8 +8585,8 @@ LABEL_5:
       ;
     }
     while ( *(_QWORD *)(a2 + 88) != 0 );
-    sub_9402D930(a2);
-    sub_940251F8((__int64)(a1 + 2), 0xFFFFFFFFLL);
+    handle_incref(a2);
+    mutex_acquire_timeout((__int64)(a1 + 2), 0xFFFFFFFFLL);
     v5 = a1[9];
     *(_QWORD *)(a2 + 80) = *a1;
     *(_QWORD *)(a2 + 88) = a1;
@@ -8594,22 +8594,22 @@ LABEL_5:
     *a1 = a2 + 80;
     if ( v5 != 0 )
     {
-      sub_940251F8(a2 + 24, 0xFFFFFFFFLL);
+      mutex_acquire_timeout(a2 + 24, 0xFFFFFFFFLL);
       if ( *(_QWORD *)(a2 + 16) == 0 )
         *(_QWORD *)(a2 + 16) = v5;
-      sub_9402530C(a2 + 24);
+      mutex_release(a2 + 24);
       if ( (**(unsigned int (__fastcall ***)(__int64))(a2 + 8))(a2) != 0 )
-        sub_9402DC34(a2);
+        handle_cancel_wait(a2);
     }
-    return sub_9402530C((__int64)(a1 + 2));
+    return mutex_release((__int64)(a1 + 2));
   }
-  v7 = sub_9404B508(v2, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/handle.c", 182, "handle");
-  return sub_9402DE38(v7);
+  v7 = panic(v2, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/handle.c", 182, "handle");
+  return hlist_remove_handle(v7);
 }
 
-/* ===== sub_9402DE38 @ 0x9402DE38 size 856 ===== */
+/* ===== hlist_remove_handle @ 0x9402DE38 size 856 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_9402DE38(__int64 a1, _QWORD *a2)
+__int64 __fastcall hlist_remove_handle(__int64 a1, _QWORD *a2)
 {
   __int64 v2; // x30
   __int64 v5; // x21
@@ -8645,16 +8645,16 @@ __int64 __fastcall sub_9402DE38(__int64 a1, _QWORD *a2)
     if ( a2 != nullptr )
     {
       v5 = a1 + 16;
-      sub_940251F8(a1 + 16, 0xFFFFFFFFLL);
-      sub_9402D9E0(a1, a2);
-      return sub_9402530C(v5);
+      mutex_acquire_timeout(a1 + 16, 0xFFFFFFFFLL);
+      handle_close(a1, a2);
+      return mutex_release(v5);
     }
   }
   else
   {
-    sub_9404B508(v2, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/handle.c", 224, "hlist");
+    panic(v2, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/handle.c", 224, "hlist");
   }
-  v9 = (_QWORD *)sub_9404B508(
+  v9 = (_QWORD *)panic(
                    v2,
                    "DEBUG ASSERT FAILED at (%s:%d): %s\n",
                    "lk/trusty/lib/trusty/handle.c",
@@ -8666,24 +8666,24 @@ __int64 __fastcall sub_9402DE38(__int64 a1, _QWORD *a2)
   v15 = v14;
   if ( v9 == nullptr )
   {
-    sub_9404B508(v10, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/handle.c", 312, "hlist");
+    panic(v10, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/handle.c", 312, "hlist");
   }
   else if ( v7 != nullptr )
   {
     if ( v8 == nullptr )
     {
 LABEL_28:
-      sub_9404B508(v10, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/handle.c", 314, "event_ptr");
+      panic(v10, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/handle.c", 314, "event_ptr");
       goto LABEL_29;
     }
-    sub_94024DFC((__int64)v31, 0, 1);
+    event_init((__int64)v31, 0, 1);
     *v13 = 0;
     *v12 = 0;
-    sub_940251F8((__int64)(v9 + 2), 0xFFFFFFFFLL);
+    mutex_acquire_timeout((__int64)(v9 + 2), 0xFFFFFFFFLL);
     if ( v9[9] == 0 )
     {
       v9[9] = v31;
-      v16 = sub_9402D6F0((__int64)v9, v12, v13, 1u);
+      v16 = handle_wait_any((__int64)v9, v12, v13, 1u);
       v17 = v16;
       if ( v16 >= 0 )
       {
@@ -8697,9 +8697,9 @@ LABEL_11:
         {
           do
           {
-            sub_9402530C((__int64)(v9 + 2));
-            v17 = sub_94024EFC((__int64)v31, v15);
-            sub_940251F8((__int64)(v9 + 2), 0xFFFFFFFFLL);
+            mutex_release((__int64)(v9 + 2));
+            v17 = event_wait_timeout((__int64)v31, v15);
+            mutex_acquire_timeout((__int64)(v9 + 2), 0xFFFFFFFFLL);
             if ( (v17 & 0x80000000) != 0 )
             {
               v18 = (_QWORD *)v9[1];
@@ -8709,7 +8709,7 @@ LABEL_11:
                 goto LABEL_12;
               goto LABEL_22;
             }
-            v17 = sub_9402D6F0((__int64)v9, v12, v13, 0);
+            v17 = handle_wait_any((__int64)v9, v12, v13, 0);
           }
           while ( v17 == 0 );
           v24 = (_QWORD *)v9[1];
@@ -8720,9 +8720,9 @@ LABEL_11:
           do
           {
 LABEL_22:
-            sub_940251F8((__int64)(v20 + 3), 0xFFFFFFFFLL);
+            mutex_acquire_timeout((__int64)(v20 + 3), 0xFFFFFFFFLL);
             v20[2] = 0;
-            sub_9402530C((__int64)(v20 + 3));
+            mutex_release((__int64)(v20 + 3));
             v25 = (_QWORD *)v20[11];
             v19 = v9 == v25;
             v20 = v25 - 10;
@@ -8736,7 +8736,7 @@ LABEL_22:
         if ( v22 != nullptr )
           v22(*v12, *v13);
         v17 = 0;
-        sub_9402D930(v21);
+        handle_incref(v21);
         v23 = (_QWORD *)v9[1];
         *v23 = *v9;
         *(_QWORD *)(*v9 + 8LL) = v23;
@@ -8748,41 +8748,41 @@ LABEL_22:
       }
 LABEL_12:
       v9[9] = 0;
-      sub_9402530C((__int64)(v9 + 2));
-      sub_94024E30((__int64)v31);
+      mutex_release((__int64)(v9 + 2));
+      event_destroy((__int64)v31);
       return v17;
     }
 LABEL_29:
-    sub_9404B508(
+    panic(
       v11,
       "DEBUG ASSERT FAILED at (%s:%d): %s\n",
       "lk/trusty/lib/trusty/handle.c",
       323,
       "hlist->wait_event == NULL");
     v27 = v26;
-    v28 = sub_9402C828();
+    v28 = trusty_alloc_als_slot();
     if ( v28 < 0 )
     {
-      sub_9404B508(v27, "failed (%d) to alloc als slot\n", v28);
+      panic(v27, "failed (%d) to alloc als slot\n", v28);
       goto LABEL_33;
     }
     dword_94067920 = v28;
-    result = sub_9402C7B0(qword_9405AC98);
+    result = trusty_register_notifier(qword_9405AC98);
     v29 = result;
     if ( (result & 0x80000000) != 0 )
     {
 LABEL_33:
-      v30 = sub_9404B508(v27, "failed (%d) to register uctx notifier\n", v29);
-      return sub_9402E190(v30);
+      v30 = panic(v27, "failed (%d) to register uctx notifier\n", v29);
+      return uctx_get_current(v30);
     }
     return result;
   }
-  sub_9404B508(v10, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/handle.c", 313, "handle_ptr");
+  panic(v10, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/handle.c", 313, "handle_ptr");
   goto LABEL_28;
 }
 
-/* ===== sub_9402E190 @ 0x9402E190 size 232 ===== */
-__int64 sub_9402E190()
+/* ===== uctx_get_current @ 0x9402E190 size 232 ===== */
+__int64 uctx_get_current()
 {
   __int64 v0; // x30
   __int64 v1; // x0
@@ -8794,7 +8794,7 @@ __int64 sub_9402E190()
   __int64 v7; // x19
 
   _ReadStatusReg(TPIDR_EL1);
-  v1 = sub_9404B508(
+  v1 = panic(
          v0,
          "ASSERT FAILED at (%s:%d): %s\n",
          "lk/trusty/lib/tam/../trusty/include/lib/trusty/trusty_app.h",
@@ -8804,21 +8804,21 @@ __int64 sub_9402E190()
   v5 = v1;
   if ( v3 == nullptr )
   {
-    sub_9404B508(v2, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/uctx.c", 164, "ctx");
+    panic(v2, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/uctx.c", 164, "ctx");
     return 4294967291LL;
   }
-  v6 = sub_9404CBDC(1, 616);
+  v6 = calloc(1, 616);
   v7 = v6;
   if ( v6 == 0 )
     return 4294967291LL;
   *(_QWORD *)(v6 + 520) = v5;
-  sub_9402DC9C((_QWORD *)(v6 + 528));
+  hlist_init((_QWORD *)(v6 + 528));
   *v4 = v7;
   return 0;
 }
 
-/* ===== sub_9402E278 @ 0x9402E278 size 136 ===== */
-__int64 sub_9402E278()
+/* ===== uctx_get_current_slot @ 0x9402E278 size 136 ===== */
+__int64 uctx_get_current_slot()
 {
   __int64 v0; // x30
   __int64 v1; // x20
@@ -8829,19 +8829,19 @@ __int64 sub_9402E278()
   result = ((__int64 (*)(void))loc_9402E1F8)();
   if ( (_DWORD)result == 0 )
   {
-    v3 = sub_9404B508(
+    v3 = panic(
            v1,
            "ASSERT FAILED at (%s:%d): %s\n",
            "lk/trusty/lib/tam/../trusty/include/lib/trusty/trusty_app.h",
            109,
            "slot < als_slot_cnt");
-    return sub_9402E300(v3);
+    return uctx_destroy(v3);
   }
   return result;
 }
 
-/* ===== sub_9402E300 @ 0x9402E300 size 696 ===== */
-__int64 __fastcall sub_9402E300(__int64 a1)
+/* ===== uctx_destroy @ 0x9402E300 size 696 ===== */
+__int64 __fastcall uctx_destroy(__int64 a1)
 {
   __int64 v1; // x30
   __int64 *v3; // x19
@@ -8871,27 +8871,27 @@ __int64 __fastcall sub_9402E300(__int64 a1)
     {
       if ( *v3 != 0 )
       {
-        sub_9404CB4C("%s:%d: destroying a non-empty uctx!!!\n", "uctx_destroy", 191);
-        sub_9402DE38(a1 + 528, (_QWORD *)*v3);
-        sub_9402DADC(*v3);
+        printf("%s:%d: destroying a non-empty uctx!!!\n", "uctx_destroy", 191);
+        hlist_remove_handle(a1 + 528, (_QWORD *)*v3);
+        handle_decref(*v3);
         *v3 = 0;
       }
       ++v3;
     }
     while ( v3 != v4 );
-    return sub_9404CC20(a1);
+    return free(a1);
   }
-  v6 = (_QWORD *)sub_9404B508(v1, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/uctx.c", 187, "ctx");
+  v6 = (_QWORD *)panic(v1, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/uctx.c", 187, "ctx");
   if ( v6 == nullptr )
   {
-    sub_9404B508(v9, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/uctx.c", 218, "ctx");
+    panic(v9, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/uctx.c", 218, "ctx");
   }
   else if ( v7 != 0 )
   {
     if ( v8 == nullptr )
     {
 LABEL_17:
-      sub_9404B508(v9, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/uctx.c", 220, "id");
+      panic(v9, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/uctx.c", 220, "id");
       goto LABEL_18;
     }
     if ( *v6 == -1 )
@@ -8906,12 +8906,12 @@ LABEL_17:
         v13 = __ldxr(v12);
       while ( __stxr(v13 | (1 << v11), v12) != 0 );
       v6[v10] = v7;
-      sub_9402DD0C(v6 + 66, v7);
+      hlist_add_handle(v6 + 66, v7);
       *v21 = v11;
       return 0;
     }
 LABEL_18:
-    v14 = (_QWORD *)sub_9404B508(
+    v14 = (_QWORD *)panic(
                       v9,
                       "ASSERT FAILED at (%s:%d): %s\n",
                       "lk/trusty/lib/trusty/uctx.c",
@@ -8919,7 +8919,7 @@ LABEL_18:
                       "ctx->handles[new_id] == NULL");
     if ( v14 == nullptr )
     {
-      sub_9404B508(v17, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/uctx.c", 242, "ctx");
+      panic(v17, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/uctx.c", 242, "ctx");
     }
     else if ( v16 != nullptr )
     {
@@ -8932,11 +8932,11 @@ LABEL_18:
         if ( v19 != 0 )
         {
           v20 = v16;
-          sub_9402D930(v18[1]);
+          handle_incref(v18[1]);
           *v20 = v19;
           return 0;
         }
-        sub_9404B508(
+        panic(
           v17,
           "ASSERT FAILED at (%s:%d): %s\n",
           "lk/trusty/lib/trusty/uctx.c",
@@ -8945,15 +8945,15 @@ LABEL_18:
       }
       return 4294967294LL;
     }
-    sub_9404B508(v17, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/uctx.c", 243, "handle_ptr");
+    panic(v17, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/uctx.c", 243, "handle_ptr");
     return 4294967254LL;
   }
-  sub_9404B508(v9, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/uctx.c", 219, "handle");
+  panic(v9, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/uctx.c", 219, "handle");
   goto LABEL_17;
 }
 
-/* ===== sub_9402E5B8 @ 0x9402E5B8 size 260 ===== */
-__int64 __fastcall sub_9402E5B8(_QWORD *a1, unsigned int a2, _QWORD *a3)
+/* ===== uctx_handle_put @ 0x9402E5B8 size 260 ===== */
+__int64 __fastcall uctx_handle_put(_QWORD *a1, unsigned int a2, _QWORD *a3)
 {
   __int64 v3; // x30
   unsigned __int64 v4; // x3
@@ -8966,7 +8966,7 @@ __int64 __fastcall sub_9402E5B8(_QWORD *a1, unsigned int a2, _QWORD *a3)
 
   if ( a1 == nullptr )
   {
-    sub_9404B508(v3, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/uctx.c", 262, "ctx");
+    panic(v3, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/uctx.c", 262, "ctx");
   }
   else if ( a3 != nullptr )
   {
@@ -8979,7 +8979,7 @@ __int64 __fastcall sub_9402E5B8(_QWORD *a1, unsigned int a2, _QWORD *a3)
     v6 = (_QWORD *)v5[1];
     if ( v6 == nullptr )
     {
-      sub_9404B508(v3, "ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/uctx.c", 134, "ctx->handles[handle_id]");
+      panic(v3, "ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/uctx.c", 134, "ctx->handles[handle_id]");
       return 4294967294LL;
     }
     v7 = ~(1 << a2);
@@ -8988,17 +8988,17 @@ __int64 __fastcall sub_9402E5B8(_QWORD *a1, unsigned int a2, _QWORD *a3)
       v9 = __ldxr(v8);
     while ( __stxr(v9 & v7, v8) != 0 );
     v5[1] = 0;
-    sub_9402DE38((__int64)(a1 + 66), v6);
+    hlist_remove_handle((__int64)(a1 + 66), v6);
     result = 0;
     *a3 = v6;
     return result;
   }
-  sub_9404B508(v3, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/uctx.c", 263, "handle_ptr");
+  panic(v3, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/uctx.c", 263, "handle_ptr");
   return 4294967254LL;
 }
 
-/* ===== sub_9402E6BC @ 0x9402E6BC size 600 ===== */
-__int64 __fastcall sub_9402E6BC(unsigned int a1, unsigned int a2, __int64 a3)
+/* ===== uctx_handle_dup @ 0x9402E6BC size 600 ===== */
+__int64 __fastcall uctx_handle_dup(unsigned int a1, unsigned int a2, __int64 a3)
 {
   __int64 v3; // x23
   __int64 v4; // x30
@@ -9037,13 +9037,13 @@ __int64 __fastcall sub_9402E6BC(unsigned int a1, unsigned int a2, __int64 a3)
   v5 = a1;
   v7 = a2;
   v8 = v4;
-  v9 = sub_9402E190();
+  v9 = uctx_get_current();
   LODWORD(result) = ((__int64 (__fastcall *)(__int64, _QWORD, __int64 *))loc_9402E4E4)(v9, (unsigned int)v5, &v33);
   if ( (_DWORD)result != 0 )
     return (int)result;
   if ( v33 == 0 )
   {
-    v13 = sub_9404B508(v8, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/uctx.c", 305, "handle");
+    v13 = panic(v8, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/uctx.c", 305, "handle");
     v28[1] = (__int64)&v32;
     v28[2] = v14;
     v28[3] = a3;
@@ -9054,27 +9054,27 @@ __int64 __fastcall sub_9402E6BC(unsigned int a1, unsigned int a2, __int64 a3)
     v28[7] = v3;
     v17 = v13;
     v18 = v14;
-    v19 = sub_9402E190();
+    v19 = uctx_get_current();
     v20 = ((__int64 (__fastcall *)(__int64, __int64 *, _DWORD *, _QWORD))loc_9402DED0)(v19 + 528, &v29, v31, v16);
     if ( (v20 & 0x80000000) == 0 )
     {
       if ( v29 == 0 )
       {
-        sub_9404B508(v18, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/uctx.c", 357, "handle");
+        panic(v18, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/uctx.c", 357, "handle");
 LABEL_21:
-        sub_9404B508(v18, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/uctx.c", 144, "ctx");
+        panic(v18, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/uctx.c", 144, "ctx");
 LABEL_22:
-        v27 = sub_9404B508(
+        v27 = panic(
                 v18,
                 "DEBUG ASSERT FAILED at (%s:%d): %s\n",
                 "lk/trusty/lib/trusty/uctx.c",
                 366,
                 "tmp_event.handle < IPC_MAX_HANDLES");
-        v26 = (_QWORD *)sub_9402E190();
-        LODWORD(result) = sub_9402E5B8(v26, v27, v28);
+        v26 = (_QWORD *)uctx_get_current();
+        LODWORD(result) = uctx_handle_put(v26, v27, v28);
         if ( (_DWORD)result != 0 )
           return (int)result;
-        sub_9402DADC(v28[0]);
+        handle_decref(v28[0]);
         return 0;
       }
       v21 = (_QWORD *)(v19 + 8);
@@ -9100,7 +9100,7 @@ LABEL_15:
       ((void (__fastcall *)(__int64))loc_9402D978)(v29);
       if ( v30 > 0x3F )
         goto LABEL_22;
-      v25 = sub_9404D224(v17, &v30, 12);
+      v25 = copy_to_user(v17, &v30, 12);
       if ( v25 != 0 )
         return v25;
     }
@@ -9111,7 +9111,7 @@ LABEL_15:
   {
     v34 = v5;
     v36 = *(_QWORD *)(v33 + 96);
-    v12 = sub_9404D224((unsigned int)v7, &v34, 12);
+    v12 = copy_to_user((unsigned int)v7, &v34, 12);
     if ( v12 != 0 )
       v11 = v12;
   }
@@ -9119,8 +9119,8 @@ LABEL_15:
   return v11;
 }
 
-/* ===== sub_9402E914 @ 0x9402E914 size 88 ===== */
-__int64 __fastcall sub_9402E914(unsigned int a1, unsigned int a2)
+/* ===== uctx_handle_set_cookie @ 0x9402E914 size 88 ===== */
+__int64 __fastcall uctx_handle_set_cookie(unsigned int a1, unsigned int a2)
 {
   __int64 v3; // x19
   __int64 v4; // x0
@@ -9129,7 +9129,7 @@ __int64 __fastcall sub_9402E914(unsigned int a1, unsigned int a2)
   __int64 v7; // [xsp+28h] [xbp+28h] BYREF
 
   v3 = a2;
-  v4 = sub_9402E190();
+  v4 = uctx_get_current();
   LODWORD(result) = ((__int64 (__fastcall *)(__int64, _QWORD, __int64 *))loc_9402E4E4)(v4, a1, &v7);
   if ( (_DWORD)result != 0 )
     return (int)result;
@@ -9139,8 +9139,8 @@ __int64 __fastcall sub_9402E914(unsigned int a1, unsigned int a2)
   return 0;
 }
 
-/* ===== sub_9402E96C @ 0x9402E96C size 252 ===== */
-__int64 sub_9402E96C()
+/* ===== uctx_get_current_slot2 @ 0x9402E96C size 252 ===== */
+__int64 uctx_get_current_slot2()
 {
   __int64 v0; // x30
   __int64 v1; // x21
@@ -9149,36 +9149,36 @@ __int64 sub_9402E96C()
 
   v1 = v0;
   if ( (unsigned int)((__int64 (*)(void))loc_9402E1F8)() != 0 )
-    sub_9404B508(
+    panic(
       v1,
       "ASSERT FAILED at (%s:%d): %s\n",
       "lk/trusty/lib/tam/../trusty/include/lib/trusty/trusty_app.h",
       102,
       "slot < als_slot_cnt");
-  v2 = sub_9404B508(
+  v2 = panic(
          v1,
          "ASSERT FAILED at (%s:%d): %s\n",
          "lk/trusty/lib/tam/../trusty/include/lib/trusty/trusty_app.h",
          109,
          "slot < als_slot_cnt");
-  return sub_9402EA68(v2, v3);
+  return uctx_handle_close(v2, v3);
 }
 
-/* ===== sub_9402EA68 @ 0x9402EA68 size 52 ===== */
-__int64 __fastcall sub_9402EA68(_QWORD *a1, unsigned int a2)
+/* ===== uctx_handle_close @ 0x9402EA68 size 52 ===== */
+__int64 __fastcall uctx_handle_close(_QWORD *a1, unsigned int a2)
 {
   __int64 result; // x0
   __int64 v3; // [xsp+18h] [xbp+18h] BYREF
 
-  LODWORD(result) = sub_9402E5B8(a1, a2, &v3);
+  LODWORD(result) = uctx_handle_put(a1, a2, &v3);
   if ( (_DWORD)result != 0 )
     return (int)result;
-  sub_9402DADC(v3);
+  handle_decref(v3);
   return 0;
 }
 
-/* ===== sub_9402EA9C @ 0x9402EA9C size 356 ===== */
-__int64 __fastcall sub_9402EA9C(__int64 a1, int *a2, __int64 a3)
+/* ===== uctx_wait_any @ 0x9402EA9C size 356 ===== */
+__int64 __fastcall uctx_wait_any(__int64 a1, int *a2, __int64 a3)
 {
   __int64 v3; // x30
   __int64 v6; // x22
@@ -9199,7 +9199,7 @@ __int64 __fastcall sub_9402EA9C(__int64 a1, int *a2, __int64 a3)
     return v7;
   if ( v17 == 0 )
   {
-    sub_9404B508(v6, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/uctx.c", 453, "handle");
+    panic(v6, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/uctx.c", 453, "handle");
     goto LABEL_11;
   }
   v8 = (_QWORD *)(a1 + 8);
@@ -9222,8 +9222,8 @@ __int64 __fastcall sub_9402EA9C(__int64 a1, int *a2, __int64 a3)
     return v7;
   }
 LABEL_11:
-  sub_9404B508(v6, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/uctx.c", 144, "ctx");
-  v12 = sub_9404B508(
+  panic(v6, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/uctx.c", 144, "ctx");
+  v12 = panic(
           v11,
           "ASSERT FAILED at (%s:%d): %s\n",
           "lk/trusty/lib/tam/../trusty/include/lib/trusty/trusty_app.h",
@@ -9242,25 +9242,25 @@ LABEL_11:
   return v14;
 }
 
-/* ===== sub_9402EC00 @ 0x9402EC00 size 8 ===== */
-__int64 __fastcall sub_9402EC00(__int64 a1)
+/* ===== uctx_get_handle_count @ 0x9402EC00 size 8 ===== */
+__int64 __fastcall uctx_get_handle_count(__int64 a1)
 {
   return *(unsigned int *)(a1 + 608);
 }
 
-/* ===== sub_9402EC08 @ 0x9402EC08 size 16 ===== */
-__int64 __fastcall sub_9402EC08(__int64 result, int a2)
+/* ===== uctx_add_handle_count @ 0x9402EC08 size 16 ===== */
+__int64 __fastcall uctx_add_handle_count(__int64 result, int a2)
 {
   *(_DWORD *)(result + 608) += a2;
   return result;
 }
 
-/* ===== sub_9402EC18 @ 0x9402EC18 size 112 ===== */
-__int64 __fastcall sub_9402EC18(int a1, __int64 a2, __int64 *a3)
+/* ===== ipc_chan_ref_create @ 0x9402EC18 size 112 ===== */
+__int64 __fastcall ipc_chan_ref_create(int a1, __int64 a2, __int64 *a3)
 {
   __int64 result; // x0
 
-  result = sub_9404CBDC(1, 232);
+  result = calloc(1, 232);
   if ( result != 0 )
   {
     *(_QWORD *)(result + 8) = a3;
@@ -9280,8 +9280,8 @@ __int64 __fastcall sub_9402EC18(int a1, __int64 a2, __int64 *a3)
   return result;
 }
 
-/* ===== sub_9402EC88 @ 0x9402EC88 size 812 ===== */
-__int64 __fastcall sub_9402EC88(__int64 a1, __int64 a2)
+/* ===== ipc_chan_connect @ 0x9402EC88 size 812 ===== */
+__int64 __fastcall ipc_chan_connect(__int64 a1, __int64 a2)
 {
   __int64 v2; // x30
   int v3; // w21
@@ -9316,20 +9316,20 @@ __int64 __fastcall sub_9402EC88(__int64 a1, __int64 a2)
     return 4294967253LL;
   v5 = a2;
   v6 = v2;
-  if ( (unsigned __int8)sub_94034218() != 0 )
+  if ( (unsigned __int8)is_tipc_uuid() != 0 )
     goto LABEL_10;
   if ( (*(_DWORD *)(a1 + 76) & 1) == 0 )
     return 4294967253LL;
   while ( 1 )
   {
-    v7 = sub_9402EC18(1, *(_QWORD *)(a1 + 64), &v25);
+    v7 = ipc_chan_ref_create(1, *(_QWORD *)(a1 + 64), &v25);
     if ( v7 == 0 )
       return 4294967291LL;
-    if ( (unsigned int)sub_94030CA4(*(unsigned int *)(a1 + 80), *(_QWORD *)(a1 + 88), v5 + 216) != 0 )
+    if ( (unsigned int)ipc_msg_queue_create(*(unsigned int *)(a1 + 80), *(_QWORD *)(a1 + 88), v5 + 216) != 0 )
       goto LABEL_28;
-    if ( (unsigned int)sub_94030CA4(*(unsigned int *)(a1 + 80), *(_QWORD *)(a1 + 88), v7 + 216) != 0 )
+    if ( (unsigned int)ipc_msg_queue_create(*(unsigned int *)(a1 + 80), *(_QWORD *)(a1 + 88), v7 + 216) != 0 )
     {
-      sub_94030DEC(*(_QWORD *)(v5 + 216));
+      ipc_msg_queue_destroy(*(_QWORD *)(v5 + 216));
       *(_QWORD *)(v5 + 216) = 0;
 LABEL_28:
       v18 = v25;
@@ -9363,7 +9363,7 @@ LABEL_28:
           break;
       }
     }
-    sub_9404B508(
+    panic(
       v6,
       "DEBUG ASSERT FAILED at (%s:%d): %s\n",
       "lk/trusty/include/reflist.h",
@@ -9383,8 +9383,8 @@ LABEL_10:
   *(_QWORD *)(v7 + 208) = a1 + 200;
   *(_QWORD *)(*(_QWORD *)(a1 + 200) + 8LL) = v7 + 200;
   *(_QWORD *)(a1 + 200) = v7 + 200;
-  sub_9402D930(a1 + 96);
-  sub_9402DC34(a1 + 96);
+  handle_incref(a1 + 96);
+  handle_cancel_wait(a1 + 96);
   v15 = v25;
   v16 = v26;
   if ( v25 == 0 )
@@ -9402,7 +9402,7 @@ LABEL_10:
     {
       while ( 1 )
       {
-        v19 = (__int64 *)sub_9404B508(
+        v19 = (__int64 *)panic(
                            v6,
                            "ASSERT FAILED at (%s:%d): %s\n",
                            "lk/trusty/lib/trusty/ipc.c",
@@ -9425,19 +9425,19 @@ LABEL_29:
             goto LABEL_23;
           v21 = *(_QWORD *)(v7 + 224);
           if ( v21 != 0 )
-            sub_9404CC20(v21);
+            free(v21);
           v22 = *(_QWORD *)(v7 + 216);
           if ( v22 != 0 )
           {
-            sub_94030DEC(v22);
+            ipc_msg_queue_destroy(v22);
             *(_QWORD *)(v7 + 216) = 0;
           }
-          sub_9404CC20(v7);
+          free(v7);
           return 4294967291LL;
         }
       }
 LABEL_25:
-      sub_9404B508(
+      panic(
         v6,
         "DEBUG ASSERT FAILED at (%s:%d): %s\n",
         "lk/trusty/include/reflist.h",
@@ -9448,7 +9448,7 @@ LABEL_25:
     if ( *(_QWORD *)(v7 + 200) == 0 && *(_QWORD *)(v5 + 8) == 0 )
       break;
 LABEL_23:
-    v16 = (__int64 *)sub_9404B508(
+    v16 = (__int64 *)panic(
                        v6,
                        "ASSERT FAILED at (%s:%d): %s\n",
                        "lk/trusty/lib/trusty/ipc.c",
@@ -9460,19 +9460,19 @@ LABEL_24:
   }
   v23 = *(_QWORD *)(v7 + 224);
   if ( v23 != 0 )
-    sub_9404CC20(v23);
+    free(v23);
   v24 = *(_QWORD *)(v7 + 216);
   if ( v24 != 0 )
   {
-    sub_94030DEC(v24);
+    ipc_msg_queue_destroy(v24);
     *(_QWORD *)(v7 + 216) = 0;
   }
-  sub_9404CC20(v7);
+  free(v7);
   return 0;
 }
 
-/* ===== sub_9402EFB4 @ 0x9402EFB4 size 800 ===== */
-__int64 __fastcall sub_9402EFB4(__int64 a1)
+/* ===== ipc_chan_close @ 0x9402EFB4 size 800 ===== */
+__int64 __fastcall ipc_chan_close(__int64 a1)
 {
   __int64 v1; // x20
   __int64 v2; // x21
@@ -9541,7 +9541,7 @@ LABEL_4:
     else
     {
 LABEL_44:
-      v13 = (_QWORD *)sub_9404B508(
+      v13 = (_QWORD *)panic(
                         v5,
                         "ASSERT FAILED at (%s:%d): %s\n",
                         "lk/trusty/lib/trusty/ipc.c",
@@ -9553,7 +9553,7 @@ LABEL_44:
 LABEL_33:
       while ( 1 )
       {
-        sub_9404B508(
+        panic(
           v5,
           "DEBUG ASSERT FAILED at (%s:%d): %s\n",
           "lk/trusty/include/reflist.h",
@@ -9566,14 +9566,14 @@ LABEL_34:
           goto LABEL_24;
         v23 = *(_QWORD *)(v1 + 224);
         if ( v23 != 0 )
-          sub_9404CC20(v23);
+          free(v23);
         v24 = *(_QWORD *)(v1 + 216);
         if ( v24 != 0 )
         {
-          sub_94030DEC(v24);
+          ipc_msg_queue_destroy(v24);
           *(_QWORD *)(v1 + 216) = 0;
         }
-        sub_9404CC20(v1);
+        free(v1);
         v1 = *(_QWORD *)(a1 + 32);
 LABEL_29:
         *(_DWORD *)(v2 + 48) = 4;
@@ -9599,14 +9599,14 @@ LABEL_17:
             goto LABEL_24;
           v25 = *(_QWORD *)(v2 + 224);
           if ( v25 != 0 )
-            sub_9404CC20(v25);
+            free(v25);
           v26 = *(_QWORD *)(v2 + 216);
           if ( v26 != 0 )
           {
-            sub_94030DEC(v26);
+            ipc_msg_queue_destroy(v26);
             *(_QWORD *)(v2 + 216) = 0;
           }
-          result = sub_9404CC20(v2);
+          result = free(v2);
           *(_QWORD *)(a1 + 32) = 0;
           return result;
         }
@@ -9622,7 +9622,7 @@ LABEL_5:
     if ( *(_QWORD *)(a1 + 32) == 0 )
       break;
 LABEL_42:
-    v10 = (_QWORD *)sub_9404B508(
+    v10 = (_QWORD *)panic(
                       v5,
                       "ASSERT FAILED at (%s:%d): %s\n",
                       "lk/trusty/lib/trusty/ipc.c",
@@ -9633,24 +9633,24 @@ LABEL_42:
   {
     v14 = *(_QWORD *)(a1 + 224);
     if ( v14 != 0 )
-      sub_9404CC20(v14);
+      free(v14);
     v15 = *(_QWORD *)(a1 + 216);
     if ( v15 != 0 )
     {
-      sub_94030DEC(v15);
+      ipc_msg_queue_destroy(v15);
       *(_QWORD *)(a1 + 216) = 0;
     }
-    sub_9404CC20(a1);
+    free(a1);
 LABEL_14:
     result = 4;
     *(_DWORD *)(a1 + 48) = 4;
     goto LABEL_15;
   }
 LABEL_24:
-  sub_9404B508(v5, "ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc.c", 393, "!list_in_list(&chan->node)");
+  panic(v5, "ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc.c", 393, "!list_in_list(&chan->node)");
 LABEL_25:
   *(_DWORD *)(a1 + 48) = 4;
-  result = sub_9402DC34(a1 + 80);
+  result = handle_cancel_wait(a1 + 80);
 LABEL_15:
   v1 = *(_QWORD *)(a1 + 32);
   v2 = v1;
@@ -9664,7 +9664,7 @@ LABEL_15:
       case 2:
       case 3:
         *(_DWORD *)(v1 + 48) = 4;
-        sub_9402DC34(v1 + 80);
+        handle_cancel_wait(v1 + 80);
         v2 = *(_QWORD *)(a1 + 32);
         goto LABEL_17;
       case 5:
@@ -9695,14 +9695,14 @@ LABEL_15:
   return result;
 }
 
-/* ===== sub_9402F2D4 @ 0x9402F2D4 size 24 ===== */
-bool __fastcall sub_9402F2D4(__int64 a1)
+/* ===== ipc_is_channel @ 0x9402F2D4 size 24 ===== */
+bool __fastcall ipc_is_channel(__int64 a1)
 {
   return *(_QWORD *)(a1 + 8) == (_QWORD)qword_9405ACC8;
 }
 
-/* ===== sub_9402F2EC @ 0x9402F2EC size 1008 ===== */
-__int64 __fastcall sub_9402F2EC(__int64 a1)
+/* ===== ipc_chan_release @ 0x9402F2EC size 1008 ===== */
+__int64 __fastcall ipc_chan_release(__int64 a1)
 {
   _QWORD *v1; // x20
   __int64 *v2; // x21
@@ -9750,11 +9750,11 @@ __int64 __fastcall sub_9402F2EC(__int64 a1)
   v5 = v3;
   if ( a1 == 0 )
     goto LABEL_11;
-  if ( !sub_9402F2D4(a1) )
+  if ( !ipc_is_channel(a1) )
     goto LABEL_12;
   v2 = &qword_9405BFF0[2];
   v1 = (_QWORD *)(a1 - 80);
-  sub_940251F8(-536630024, 0xFFFFFFFFLL);
+  mutex_acquire_timeout(-536630024, 0xFFFFFFFFLL);
   v6 = *(_QWORD *)(a1 - 16);
   v7 = *(_QWORD **)(a1 - 8);
   if ( v6 == 0 )
@@ -9767,10 +9767,10 @@ __int64 __fastcall sub_9402F2EC(__int64 a1)
     v8 = *(_QWORD **)(a1 - 72);
     *(_QWORD *)(a1 - 16) = 0;
     if ( v1 != v8 )
-      return sub_9402530C(v2[495]);
+      return mutex_release(v2[495]);
     if ( *(_QWORD *)(a1 - 48) != 0 )
     {
-      v11 = sub_9404B508(
+      v11 = panic(
               v5,
               "ASSERT FAILED at (%s:%d): %s\n",
               "lk/trusty/lib/trusty/ipc.c",
@@ -9784,18 +9784,18 @@ __int64 __fastcall sub_9402F2EC(__int64 a1)
       v14 = v12;
       if ( v11 != 0 )
       {
-        if ( sub_9402F2D4(v11) )
+        if ( ipc_is_channel(v11) )
         {
-          sub_940251F8(-536630024, 0xFFFFFFFFLL);
-          sub_9402EFB4(v13 - 80);
-          return sub_9402530C(-536630024);
+          mutex_acquire_timeout(-536630024, 0xFFFFFFFFLL);
+          ipc_chan_close(v13 - 80);
+          return mutex_release(-536630024);
         }
       }
       else
       {
-        sub_9404B508(v12, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc.c", 492, "chandle");
+        panic(v12, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc.c", 492, "chandle");
       }
-      v16 = sub_9404B508(
+      v16 = panic(
               v14,
               "DEBUG ASSERT FAILED at (%s:%d): %s\n",
               "lk/trusty/lib/trusty/ipc.c",
@@ -9811,26 +9811,26 @@ __int64 __fastcall sub_9402F2EC(__int64 a1)
       v21 = v20;
       if ( v16 != 0 )
       {
-        if ( sub_9402F2D4(v16) )
+        if ( ipc_is_channel(v16) )
         {
           result = 17;
           if ( (v21 & 0x11) != 0 )
           {
-            sub_940251F8(-536630024, 0xFFFFFFFFLL);
+            mutex_acquire_timeout(-536630024, 0xFFFFFFFFLL);
             if ( (v21 & 0x10) != 0 )
               *(_DWORD *)(v18 - 24) &= ~2u;
             if ( (v21 & 1) != 0 )
               *(_DWORD *)(v18 - 24) &= ~4u;
-            return sub_9402530C(-536630024);
+            return mutex_release(-536630024);
           }
           return result;
         }
       }
       else
       {
-        sub_9404B508(v17, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc.c", 563, "chandle");
+        panic(v17, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc.c", 563, "chandle");
       }
-      v22 = sub_9404B508(
+      v22 = panic(
               v19,
               "DEBUG ASSERT FAILED at (%s:%d): %s\n",
               "lk/trusty/lib/trusty/ipc.c",
@@ -9843,9 +9843,9 @@ __int64 __fastcall sub_9402F2EC(__int64 a1)
       v25 = v23;
       if ( v22 != 0 )
       {
-        if ( sub_9402F2D4(v22) )
+        if ( ipc_is_channel(v22) )
         {
-          sub_940251F8(-536630024, 0xFFFFFFFFLL);
+          mutex_acquire_timeout(-536630024, 0xFFFFFFFFLL);
           v30 = *(_DWORD *)(v24 - 32);
           if ( v30 != 0 )
           {
@@ -9861,7 +9861,7 @@ __int64 __fastcall sub_9402F2EC(__int64 a1)
               v34 |= 1u;
             if ( v33 != 0 )
             {
-              v36 = ((__int64 (__fastcall *)(__int64, __int64, __int64, __int64, __int64, __int64, __int64, __int64, _QWORD *, __int64, __int64, __int64, __int64))sub_94030E14)(
+              v36 = ((__int64 (__fastcall *)(__int64, __int64, __int64, __int64, __int64, __int64, __int64, __int64, _QWORD *, __int64, __int64, __int64, __int64))ipc_msg_queue_is_empty)(
                       v33,
                       v31,
                       v35,
@@ -9881,27 +9881,27 @@ __int64 __fastcall sub_9402F2EC(__int64 a1)
             }
             if ( (v31 & 2) != 0 )
               v34 |= 0x10u;
-            sub_9402530C(-536630024);
+            mutex_release(-536630024);
             return v34;
           }
           else
           {
-            sub_9402530C(-536630024);
+            mutex_release(-536630024);
             return 2;
           }
         }
       }
       else
       {
-        sub_9404B508(v23, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc.c", 520, "chandle");
+        panic(v23, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc.c", 520, "chandle");
       }
-      v37 = sub_9404B508(
+      v37 = panic(
               v25,
               "DEBUG ASSERT FAILED at (%s:%d): %s\n",
               "lk/trusty/lib/trusty/ipc.c",
               521,
               "ipc_is_channel(chandle)");
-      return sub_9402F6DC(v37);
+      return ipc_is_port(v37);
     }
     if ( v1[25] == 0 )
     {
@@ -9909,7 +9909,7 @@ LABEL_13:
       if ( v1[26] == 0 )
         break;
     }
-    v7 = (_QWORD *)sub_9404B508(
+    v7 = (_QWORD *)panic(
                      v5,
                      "ASSERT FAILED at (%s:%d): %s\n",
                      "lk/trusty/lib/trusty/ipc.c",
@@ -9918,16 +9918,16 @@ LABEL_13:
 LABEL_9:
     if ( v7 == nullptr )
     {
-      sub_9404B508(
+      panic(
         v5,
         "DEBUG ASSERT FAILED at (%s:%d): %s\n",
         "lk/trusty/include/reflist.h",
         71,
         "list_in_list(&ref->ref_node)");
 LABEL_11:
-      sub_9404B508(v3, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc.c", 506, "chandle");
+      panic(v3, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc.c", 506, "chandle");
 LABEL_12:
-      sub_9404B508(
+      panic(
         v5,
         "DEBUG ASSERT FAILED at (%s:%d): %s\n",
         "lk/trusty/lib/trusty/ipc.c",
@@ -9938,25 +9938,25 @@ LABEL_12:
   }
   v9 = v1[28];
   if ( v9 != 0 )
-    sub_9404CC20(v9);
+    free(v9);
   v10 = v1[27];
   if ( v10 != 0 )
   {
-    sub_94030DEC(v10);
+    ipc_msg_queue_destroy(v10);
     v1[27] = 0;
   }
-  sub_9404CC20(v1);
-  return sub_9402530C(v2[495]);
+  free(v1);
+  return mutex_release(v2[495]);
 }
 
-/* ===== sub_9402F6DC @ 0x9402F6DC size 24 ===== */
-bool __fastcall sub_9402F6DC(__int64 a1)
+/* ===== ipc_is_port @ 0x9402F6DC size 24 ===== */
+bool __fastcall ipc_is_port(__int64 a1)
 {
   return *(_QWORD *)(a1 + 8) == (_QWORD)qword_9405AD30;
 }
 
-/* ===== sub_9402F6F4 @ 0x9402F6F4 size 768 ===== */
-__int64 __fastcall sub_9402F6F4(__int64 a1)
+/* ===== ipc_port_destroy @ 0x9402F6F4 size 768 ===== */
+__int64 __fastcall ipc_port_destroy(__int64 a1)
 {
   _QWORD *v1; // x22
   __int64 *v2; // x23
@@ -9984,9 +9984,9 @@ __int64 __fastcall sub_9402F6F4(__int64 a1)
   v5 = v3;
   if ( a1 == 0 )
   {
-    sub_9404B508(v3, "ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc.c", 217, "phandle");
+    panic(v3, "ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc.c", 217, "phandle");
   }
-  else if ( sub_9402F6DC(a1) )
+  else if ( ipc_is_port(a1) )
   {
     v6 = (__int64)(v4 - 12);
     if ( (_QWORD *)v4[14] != v4 + 13 )
@@ -9997,7 +9997,7 @@ __int64 __fastcall sub_9402F6F4(__int64 a1)
       goto LABEL_6;
     do
     {
-      v6 = sub_9404B508(
+      v6 = panic(
              v5,
              "DEBUG ASSERT FAILED at (%s:%d): %s\n",
              "lk/trusty/lib/trusty/ipc.c",
@@ -10007,11 +10007,11 @@ LABEL_6:
       ;
     }
     while ( v8[1] != 0 );
-    return sub_9404CC20(v6);
+    return free(v6);
   }
-  sub_9404B508(v5, "ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc.c", 218, (const char *)sub_94051138);
+  panic(v5, "ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc.c", 218, (const char *)invalid_handle_stub);
 LABEL_10:
-  v10 = sub_9404B508(
+  v10 = panic(
           v5,
           "DEBUG ASSERT FAILED at (%s:%d): %s\n",
           "lk/trusty/lib/trusty/ipc.c",
@@ -10021,11 +10021,11 @@ LABEL_10:
   v13 = v11;
   if ( v10 != 0 )
   {
-    if ( sub_9402F6DC(v10) )
+    if ( ipc_is_port(v10) )
     {
       v2 = &qword_9405BFF0[2];
       v1 = (_QWORD *)(v12 - 96);
-      sub_940251F8(-536630024, 0xFFFFFFFFLL);
+      mutex_acquire_timeout(-536630024, 0xFFFFFFFFLL);
       v14 = *(_QWORD *)(v12 + 120);
       *(_DWORD *)(v12 - 24) = 2;
       v15 = *(__int64 **)(v12 + 128);
@@ -10041,10 +10041,10 @@ LABEL_14:
       v4 = (_QWORD *)(v1[26] - 200LL);
       v5 = *(_QWORD *)(v1[26] + 8LL) - 200LL;
       if ( v1 == v4 )
-        return sub_9402530C(v2[495]);
+        return mutex_release(v2[495]);
       while ( 1 )
       {
-        sub_9402EFB4((__int64)v4);
+        ipc_chan_close((__int64)v4);
         v16 = (_QWORD *)v4[26];
         v17 = v4 + 25;
         v18 = v4 + 23;
@@ -10073,18 +10073,18 @@ LABEL_29:
             {
               v21 = v4[28];
               if ( v21 != 0 )
-                sub_9404CC20(v21);
+                free(v21);
               v22 = v4[27];
               if ( v22 != 0 )
               {
-                sub_94030DEC(v22);
+                ipc_msg_queue_destroy(v22);
                 v4[27] = 0;
               }
-              sub_9404CC20(v4);
+              free(v4);
               break;
             }
           }
-          v18 = (_QWORD *)sub_9404B508(
+          v18 = (_QWORD *)panic(
                             v13,
                             "ASSERT FAILED at (%s:%d): %s\n",
                             "lk/trusty/lib/trusty/ipc.c",
@@ -10093,14 +10093,14 @@ LABEL_29:
 LABEL_22:
           if ( v20 == nullptr )
           {
-            sub_9404B508(
+            panic(
               v13,
               "DEBUG ASSERT FAILED at (%s:%d): %s\n",
               "lk/trusty/include/reflist.h",
               71,
               "list_in_list(&ref->ref_node)");
 LABEL_24:
-            v14 = sub_9404B508(
+            v14 = panic(
                     v13,
                     "ASSERT FAILED at (%s:%d): %s\n",
                     "lk/trusty/lib/trusty/ipc.c",
@@ -10116,20 +10116,20 @@ LABEL_25:
         ((void (__fastcall *)(__int64))loc_9402D978)(v12);
         v5 = *(_QWORD *)(v5 + 208) - 200LL;
         if ( v1 == v4 )
-          return sub_9402530C(v2[495]);
+          return mutex_release(v2[495]);
       }
     }
   }
   else
   {
-    sub_9404B508(v11, "ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc.c", 170, "phandle");
+    panic(v11, "ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc.c", 170, "phandle");
   }
-  sub_9404B508(v13, "ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc.c", 171, (const char *)sub_94051138);
+  panic(v13, "ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc.c", 171, (const char *)invalid_handle_stub);
   goto LABEL_29;
 }
 
-/* ===== sub_9402F9F4 @ 0x9402F9F4 size 216 ===== */
-__int64 __fastcall sub_9402F9F4(__int64 a1)
+/* ===== ipc_port_has_pending @ 0x9402F9F4 size 216 ===== */
+__int64 __fastcall ipc_port_has_pending(__int64 a1)
 {
   __int64 v1; // x30
   __int64 v3; // x20
@@ -10139,34 +10139,34 @@ __int64 __fastcall sub_9402F9F4(__int64 a1)
   v3 = v1;
   if ( a1 == 0 )
   {
-    sub_9404B508(v1, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc.c", 365, "phandle");
+    panic(v1, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc.c", 365, "phandle");
   }
-  else if ( sub_9402F6DC(a1) )
+  else if ( ipc_is_port(a1) )
   {
-    sub_940251F8(-536630024, 0xFFFFFFFFLL);
+    mutex_acquire_timeout(-536630024, 0xFFFFFFFFLL);
     if ( *(_DWORD *)(a1 - 24) == 1 )
     {
       v5 = *(_QWORD *)(a1 + 112) != a1 + 104;
-      sub_9402530C(-536630024);
+      mutex_release(-536630024);
       return v5;
     }
     else
     {
-      sub_9402530C(-536630024);
+      mutex_release(-536630024);
       return 2;
     }
   }
-  v6 = sub_9404B508(
+  v6 = panic(
          v3,
          "DEBUG ASSERT FAILED at (%s:%d): %s\n",
          "lk/trusty/lib/trusty/ipc.c",
          366,
-         (const char *)sub_94051138);
-  return sub_9402FACC(v6);
+         (const char *)invalid_handle_stub);
+  return ipc_port_create(v6);
 }
 
-/* ===== sub_9402FACC @ 0x9402FACC size 288 ===== */
-__int64 __fastcall sub_9402FACC(__int64 a1, __int64 a2, int a3, __int64 a4, int a5, _QWORD *a6)
+/* ===== ipc_port_create @ 0x9402FACC size 288 ===== */
+__int64 __fastcall ipc_port_create(__int64 a1, __int64 a2, int a3, __int64 a4, int a5, _QWORD *a6)
 {
   __int64 v12; // x0
   __int64 v13; // x20
@@ -10175,11 +10175,11 @@ __int64 __fastcall sub_9402FACC(__int64 a1, __int64 a2, int a3, __int64 a4, int 
 
   if ( a1 == 0 || (unsigned int)(a3 - 1) > 0x1F || (unsigned __int64)(a4 - 1) > 0xFFF )
     return 4294967288LL;
-  v12 = sub_9404CBDC(1, 232);
+  v12 = calloc(1, 232);
   v13 = v12;
   if ( v12 == 0 )
     return 4294967291LL;
-  v14 = sub_9404CF6C(v12, a2, 64);
+  v14 = strlcpy(v12, a2, 64);
   if ( v14 != 0 )
   {
     v15 = -25;
@@ -10192,7 +10192,7 @@ __int64 __fastcall sub_9402FACC(__int64 a1, __int64 a2, int a3, __int64 a4, int 
       *(_DWORD *)(v13 + 72) = 0;
       *(_QWORD *)(v13 + 208) = v13 + 200;
       *(_QWORD *)(v13 + 200) = v13 + 200;
-      sub_9402D85C(v13 + 96, (__int64)qword_9405AD30);
+      handle_init(v13 + 96, (__int64)qword_9405AD30);
       *a6 = v13 + 96;
       return 0;
     }
@@ -10201,12 +10201,12 @@ __int64 __fastcall sub_9402FACC(__int64 a1, __int64 a2, int a3, __int64 a4, int 
   {
     v15 = -8;
   }
-  sub_9404CC20(v13);
+  free(v13);
   return v15;
 }
 
-/* ===== sub_9402FBEC @ 0x9402FBEC size 916 ===== */
-__int64 __fastcall sub_9402FBEC(__int64 a1)
+/* ===== ipc_port_publish @ 0x9402FBEC size 916 ===== */
+__int64 __fastcall ipc_port_publish(__int64 a1)
 {
   __int64 *v1; // x21
   __int64 v2; // x23
@@ -10239,18 +10239,18 @@ __int64 __fastcall sub_9402FBEC(__int64 a1)
   v6 = v4;
   if ( a1 == 0 )
   {
-    sub_9404B508(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc.c", 240, "phandle");
+    panic(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc.c", 240, "phandle");
   }
-  else if ( sub_9402F6DC(a1) )
+  else if ( ipc_is_port(a1) )
   {
     v1 = &qword_9405BFF0[2];
     v2 = a1 - 96;
-    sub_940251F8(-536630024, 0xFFFFFFFFLL);
+    mutex_acquire_timeout(-536630024, 0xFFFFFFFFLL);
     if ( *(_QWORD *)(a1 + 120) == 0 )
       goto LABEL_5;
     do
     {
-      sub_9404B508(
+      panic(
         v6,
         "DEBUG ASSERT FAILED at (%s:%d): %s\n",
         "lk/trusty/lib/trusty/ipc.c",
@@ -10264,7 +10264,7 @@ LABEL_5:
     v7 = -536630304;
     if ( &qword_9405ACB8 == (__int64 *)-536630088LL )
       goto LABEL_14;
-    while ( (unsigned int)sub_9404CED8(a1 - 96, v7) != 0 )
+    while ( (unsigned int)strcmp(a1 - 96, v7) != 0 )
     {
       v8 = *(__int64 **)(v7 + 224);
       v9 = &qword_9405ACB8 == v8;
@@ -10282,7 +10282,7 @@ LABEL_14:
       *(_QWORD *)(v2 + 224) = v3 + 407;
       *((_QWORD *)v12 + 1) = v2 + 216;
       v3[407] = (__int64 (__fastcall *)())(v2 + 216);
-      sub_9402D930(v2 + 96);
+      handle_incref(v2 + 96);
       v28 = 0;
       v29 = nullptr;
       v13 = -536630240;
@@ -10296,9 +10296,9 @@ LABEL_18:
       while ( 1 )
       {
         v15 = *(_QWORD *)(v13 + 224);
-        if ( (unsigned int)sub_9404CED8(v15, v2) != 0 )
+        if ( (unsigned int)strcmp(v15, v2) != 0 )
           goto LABEL_16;
-        sub_9404CC20(v15);
+        free(v15);
         *(_QWORD *)(v13 + 224) = 0;
         if ( v28 != 0 )
           break;
@@ -10323,7 +10323,7 @@ LABEL_21:
         {
           while ( 1 )
           {
-            v23 = (_QWORD *)sub_9404B508(
+            v23 = (_QWORD *)panic(
                               v6,
                               "DEBUG ASSERT FAILED at (%s:%d): %s\n",
                               "lk/trusty/include/reflist.h",
@@ -10347,7 +10347,7 @@ LABEL_39:
             if ( *v18 == 0 && *(_QWORD *)(v13 + 208) == 0 )
               break;
 LABEL_30:
-            sub_9404B508(
+            panic(
               v6,
               "ASSERT FAILED at (%s:%d): %s\n",
               "lk/trusty/lib/trusty/ipc.c",
@@ -10357,13 +10357,13 @@ LABEL_30:
           v25 = *(_QWORD *)(v13 + 216);
           if ( v25 != 0 )
           {
-            sub_94030DEC(v25);
+            ipc_msg_queue_destroy(v25);
             *(_QWORD *)(v13 + 216) = 0;
           }
-          sub_9404CC20(v13);
+          free(v13);
         }
-        if ( (unsigned int)sub_9402EC88(v2, v13) != 0 )
-          sub_9402EFB4(v13);
+        if ( (unsigned int)ipc_chan_connect(v2, v13) != 0 )
+          ipc_chan_close(v13);
         v22 = v28;
         v23 = v29;
         if ( v28 == 0 )
@@ -10385,21 +10385,21 @@ LABEL_42:
               {
                 v26 = *(_QWORD *)(v13 + 224);
                 if ( v26 != 0 )
-                  sub_9404CC20(v26);
+                  free(v26);
                 v27 = *(_QWORD *)(v13 + 216);
                 if ( v27 != 0 )
                 {
-                  sub_94030DEC(v27);
+                  ipc_msg_queue_destroy(v27);
                   *(_QWORD *)(v13 + 216) = 0;
                 }
-                sub_9404CC20(v13);
+                free(v13);
                 goto LABEL_16;
               }
             }
             goto LABEL_30;
           }
 LABEL_41:
-          sub_9404B508(
+          panic(
             v6,
             "ASSERT FAILED at (%s:%d): %s\n",
             "lk/trusty/lib/trusty/ipc.c",
@@ -10414,7 +10414,7 @@ LABEL_16:
         if ( v9 )
           goto LABEL_18;
       }
-      sub_9404B508(
+      panic(
         v6,
         "DEBUG ASSERT FAILED at (%s:%d): %s\n",
         "lk/trusty/include/reflist.h",
@@ -10423,20 +10423,20 @@ LABEL_16:
       goto LABEL_21;
     }
 LABEL_11:
-    sub_9402530C(v1[495]);
+    mutex_release(v1[495]);
     return v10;
   }
-  sub_9404B508(
+  panic(
     v6,
     "DEBUG ASSERT FAILED at (%s:%d): %s\n",
     "lk/trusty/lib/trusty/ipc.c",
     241,
-    (const char *)sub_94051138);
+    (const char *)invalid_handle_stub);
   goto LABEL_14;
 }
 
-/* ===== sub_9402FF80 @ 0x9402FF80 size 308 ===== */
-__int64 __fastcall sub_9402FF80(unsigned int a1, int a2, __int64 a3, int a4)
+/* ===== sys_port_connect @ 0x9402FF80 size 308 ===== */
+__int64 __fastcall sys_port_connect(unsigned int a1, int a2, __int64 a3, int a4)
 {
   __int64 v8; // x24
   _QWORD *v9; // x26
@@ -10448,37 +10448,37 @@ __int64 __fastcall sub_9402FF80(unsigned int a1, int a2, __int64 a3, int a4)
   char v15[64]; // [xsp+60h] [xbp+60h] BYREF
 
   v8 = *(_QWORD *)(*(_QWORD *)(_ReadStatusReg(TPIDR_EL1) + 688) + 144LL);
-  v9 = (_QWORD *)sub_9402E190();
+  v9 = (_QWORD *)uctx_get_current();
   v14 = 0;
-  LODWORD(result) = sub_9404D264(v15, a1, 64);
+  LODWORD(result) = copy_from_user_string(v15, a1, 64);
   if ( (result & 0x80000000) != 0 )
     return (int)result;
   if ( (unsigned int)result > 0x3F )
     return -8;
-  v11 = sub_9402FACC(v8 + 32, (__int64)v15, a2, a3, a4, &v14);
+  v11 = ipc_port_create(v8 + 32, (__int64)v15, a2, a3, a4, &v14);
   if ( v11 == 0 )
   {
     v11 = ((__int64 (__fastcall *)(_QWORD *, __int64, unsigned int *))loc_9402E3B0)(v9, v14, &v13);
     if ( v11 == 0 )
     {
-      sub_9402EC08((__int64)v9, 1);
-      v11 = sub_9402FBEC(v14);
+      uctx_add_handle_count((__int64)v9, 1);
+      v11 = ipc_port_publish(v14);
       if ( v11 == 0 )
       {
-        v12 = sub_9404CFF4(v15);
-        sub_9402BD04(v15, v12);
+        v12 = strlen(v15);
+        tam_port_publish(v15, v12);
         return v13;
       }
-      sub_9402E5B8(v9, v13, &v14);
+      uctx_handle_put(v9, v13, &v14);
     }
     ((void (__fastcall *)(__int64))loc_9402D978)(v14);
   }
   return v11;
 }
 
-/* ===== sub_940300B4 @ 0x940300B4 size 704 ===== */
+/* ===== ipc_chan_open @ 0x940300B4 size 704 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_940300B4(__int64 a1, __int64 a2, unsigned __int64 a3, char a4, _QWORD *a5)
+__int64 __fastcall ipc_chan_open(__int64 a1, __int64 a2, unsigned __int64 a3, char a4, _QWORD *a5)
 {
   __int64 v5; // x30
   __int64 v7; // x24
@@ -10506,17 +10506,17 @@ __int64 __fastcall sub_940300B4(__int64 a1, __int64 a2, unsigned __int64 a3, cha
   v7 = v5;
   if ( a1 == 0 )
     return 4294967288LL;
-  v11 = sub_9404D0A0(a2, a3);
+  v11 = strnlen(a2, a3);
   if ( v11 >= a3 || v11 == 0 )
     return 4294967288LL;
-  v12 = sub_9402EC18(0, a1, &v29);
+  v12 = ipc_chan_ref_create(0, a1, &v29);
   if ( v12 != 0 )
   {
-    sub_940251F8(-536630024, 0xFFFFFFFFLL);
+    mutex_acquire_timeout(-536630024, 0xFFFFFFFFLL);
     v13 = -536630304;
     if ( &qword_9405ACB8 == (__int64 *)-536630088LL )
       goto LABEL_13;
-    while ( (unsigned int)sub_9404CED8(a2, v13) != 0 )
+    while ( (unsigned int)strcmp(a2, v13) != 0 )
     {
       v14 = *(__int64 **)(v13 + 224);
       v15 = &qword_9405ACB8 == v14;
@@ -10526,7 +10526,7 @@ __int64 __fastcall sub_940300B4(__int64 a1, __int64 a2, unsigned __int64 a3, cha
     }
     if ( v13 == 0 )
       goto LABEL_13;
-    v16 = sub_9402EC88(v13, v12);
+    v16 = ipc_chan_connect(v13, v12);
     if ( v16 == 0 )
       goto LABEL_11;
     while ( 1 )
@@ -10535,7 +10535,7 @@ LABEL_15:
       v18 = v30;
       if ( v29 == 0 && v30 == nullptr )
       {
-        sub_9404B508(
+        panic(
           v7,
           "DEBUG ASSERT FAILED at (%s:%d): %s\n",
           "lk/trusty/include/reflist.h",
@@ -10556,19 +10556,19 @@ LABEL_15:
       {
         v26 = *(_QWORD *)(v12 + 224);
         if ( v26 != 0 )
-          sub_9404CC20(v26);
+          free(v26);
         v27 = *(_QWORD *)(v12 + 216);
         if ( v27 != 0 )
         {
-          sub_94030DEC(v27);
+          ipc_msg_queue_destroy(v27);
           *(_QWORD *)(v12 + 216) = 0;
         }
-        sub_9404CC20(v12);
+        free(v12);
 LABEL_17:
-        sub_9402530C(-536630024);
+        mutex_release(-536630024);
         return v16;
       }
-      sub_9404B508(
+      panic(
         v7,
         "ASSERT FAILED at (%s:%d): %s\n",
         "lk/trusty/lib/trusty/ipc.c",
@@ -10577,7 +10577,7 @@ LABEL_17:
       while ( 1 )
       {
         v16 = -5;
-        v21 = sub_9404CF24(a2);
+        v21 = strdup(a2);
         *(_QWORD *)(v12 + 224) = v21;
         if ( v21 == 0 )
           break;
@@ -10596,7 +10596,7 @@ LABEL_17:
           *(_QWORD *)(v24 + 8) = v23;
           *(_QWORD *)v12 = v23;
 LABEL_11:
-          sub_9402D85C(v12 + 80, (__int64)qword_9405ACC8);
+          handle_init(v12 + 80, (__int64)qword_9405ACC8);
           v17 = v12 + 64;
           if ( *(_QWORD *)(v12 + 64) == 0 && *(_QWORD *)(v12 + 72) == 0 )
           {
@@ -10610,7 +10610,7 @@ LABEL_11:
             goto LABEL_15;
           }
         }
-        sub_9404B508(
+        panic(
           v7,
           "DEBUG ASSERT FAILED at (%s:%d): %s\n",
           "lk/trusty/include/reflist.h",
@@ -10624,13 +10624,13 @@ LABEL_13:
         }
       }
     }
-    sub_9404B508(v7, "ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc.c", 390, (const char *)&loc_94051058);
+    panic(v7, "ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc.c", 390, (const char *)&loc_94051058);
   }
   return 4294967291LL;
 }
 
-/* ===== sub_94030374 @ 0x94030374 size 400 ===== */
-__int64 __fastcall sub_94030374(unsigned int a1, int a2)
+/* ===== sys_connect @ 0x94030374 size 400 ===== */
+__int64 __fastcall sys_connect(unsigned int a1, int a2)
 {
   __int64 v4; // x22
   __int64 v5; // x23
@@ -10641,15 +10641,15 @@ __int64 __fastcall sub_94030374(unsigned int a1, int a2)
   char v10[64]; // [xsp+50h] [xbp+50h] BYREF
 
   v4 = *(_QWORD *)(*(_QWORD *)(_ReadStatusReg(TPIDR_EL1) + 688) + 144LL);
-  v5 = sub_9402E190();
+  v5 = uctx_get_current();
   if ( (a2 & 0xFFFFFFFC) == 0 )
   {
-    LODWORD(result) = sub_9404D264(v10, a1, 64);
+    LODWORD(result) = copy_from_user_string(v10, a1, 64);
     if ( (result & 0x80000000) != 0 )
       return (int)result;
     if ( (unsigned int)result <= 0x3F )
     {
-      LODWORD(result) = sub_940300B4(v4 + 32, (__int64)v10, 0x40u, a2, &v9);
+      LODWORD(result) = ipc_chan_open(v4 + 32, (__int64)v10, 0x40u, a2, &v9);
       if ( (_DWORD)result != 0 )
         return (int)result;
       if ( (a2 & 2) != 0 )
@@ -10660,17 +10660,17 @@ __int64 __fastcall sub_94030374(unsigned int a1, int a2)
         if ( (v7 & 0x80000000) == 0 )
           goto LABEL_8;
 LABEL_14:
-        sub_9402DADC(v9);
+        handle_decref(v9);
         return v7;
       }
-      sub_9404CB4C("%s:%d: Timedout connecting to %s\n", "sys_connect", 792, v10);
+      printf("%s:%d: Timedout connecting to %s\n", "sys_connect", 792, v10);
       v7 = ((__int64 (__fastcall *)(__int64, unsigned int *, __int64))loc_9402DB34)(v9, &v8, 0xFFFFFFFFLL);
       if ( v7 < 0 )
         goto LABEL_14;
 LABEL_8:
       if ( (v8 & 0xC) == 4 )
       {
-        sub_9402DADC(v9);
+        handle_decref(v9);
         return -15;
       }
       else
@@ -10683,8 +10683,8 @@ LABEL_10:
             return v8;
           goto LABEL_14;
         }
-        sub_9404CB4C("%s:%d: Unexpected channel state: event = 0x%x\n", "sys_connect", 811, v8);
-        sub_9402DADC(v9);
+        printf("%s:%d: Unexpected channel state: event = 0x%x\n", "sys_connect", 811, v8);
+        handle_decref(v9);
         return -3;
       }
     }
@@ -10692,8 +10692,8 @@ LABEL_10:
   return -8;
 }
 
-/* ===== sub_94030504 @ 0x94030504 size 920 ===== */
-__int64 __fastcall sub_94030504(__int64 a1, _QWORD *a2, _QWORD *a3)
+/* ===== ipc_chan_accept @ 0x94030504 size 920 ===== */
+__int64 __fastcall ipc_chan_accept(__int64 a1, _QWORD *a2, _QWORD *a3)
 {
   __int64 v3; // x30
   __int64 v5; // x25
@@ -10726,14 +10726,14 @@ __int64 __fastcall sub_94030504(__int64 a1, _QWORD *a2, _QWORD *a3)
   if ( a3 == nullptr )
   {
 LABEL_13:
-    sub_9404B508(v3, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc.c", 840, "uuid_ptr");
+    panic(v3, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc.c", 840, "uuid_ptr");
     return 4294967288LL;
   }
-  if ( a1 == 0 || !sub_9402F6DC(a1) )
+  if ( a1 == 0 || !ipc_is_port(a1) )
     return 4294967288LL;
   v8 = a1 - 96;
   v9 = -15;
-  sub_940251F8(-536630024, 0xFFFFFFFFLL);
+  mutex_acquire_timeout(-536630024, 0xFFFFFFFFLL);
   if ( *(_DWORD *)(a1 - 24) != 1 )
     goto LABEL_6;
   v11 = *(_QWORD **)(a1 + 112);
@@ -10751,7 +10751,7 @@ LABEL_13:
   }
   if ( (*((_DWORD *)v11 - 37) & 1) == 0 )
   {
-    v18 = (_QWORD *)sub_9404B508(
+    v18 = (_QWORD *)panic(
                       v5,
                       "DEBUG ASSERT FAILED at (%s:%d): %s\n",
                       "lk/trusty/lib/trusty/ipc.c",
@@ -10762,14 +10762,14 @@ LABEL_13:
   if ( v27 != 0 || v28 != nullptr )
   {
 LABEL_11:
-    sub_9404B508(
+    panic(
       v5,
       "DEBUG ASSERT FAILED at (%s:%d): %s\n",
       "lk/trusty/include/reflist.h",
       62,
       "!list_in_list(&ref->ref_node)");
 LABEL_12:
-    sub_9404B508(v3, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc.c", 839, "chandle_ptr");
+    panic(v3, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc.c", 839, "chandle_ptr");
     goto LABEL_13;
   }
   v14 = *(v11 - 25);
@@ -10794,18 +10794,18 @@ LABEL_12:
     if ( *v11 == 0 && v11[1] == 0 )
       break;
 LABEL_26:
-    sub_9404B508(v5, "ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc.c", 393, "!list_in_list(&chan->node)");
+    panic(v5, "ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc.c", 393, "!list_in_list(&chan->node)");
   }
   v20 = v11[3];
   if ( v20 != 0 )
-    sub_9404CC20(v20);
+    free(v20);
   v21 = v11[2];
   if ( v21 != 0 )
   {
-    sub_94030DEC(v21);
+    ipc_msg_queue_destroy(v21);
     v11[2] = 0;
   }
-  sub_9404CC20(v11 - 25);
+  free(v11 - 25);
 LABEL_19:
   ((void (__fastcall *)(__int64))loc_9402D978)(v8 + 96);
   v8 = *(v11 - 21);
@@ -10813,7 +10813,7 @@ LABEL_19:
   {
 LABEL_21:
     v9 = -15;
-    sub_9402EFB4((__int64)(v11 - 25));
+    ipc_chan_close((__int64)(v11 - 25));
     goto LABEL_22;
   }
   while ( 1 )
@@ -10824,7 +10824,7 @@ LABEL_21:
     *((_DWORD *)v11 - 38) = 3;
     *(_DWORD *)(v8 + 56) = v22 | 4;
     *(_DWORD *)(v8 + 48) = 3;
-    sub_9402D85C((__int64)(v11 - 15), (__int64)qword_9405ACC8);
+    handle_init((__int64)(v11 - 15), (__int64)qword_9405ACC8);
     v23 = v11 - 17;
     if ( *(v11 - 17) != 0 || *(v11 - 16) != 0 )
       goto LABEL_11;
@@ -10836,7 +10836,7 @@ LABEL_21:
     *(v11 - 25) = v23;
     *a2 = v11 - 15;
     *a3 = *(_QWORD *)(v8 + 40);
-    sub_9402DC34(v8 + 80);
+    handle_cancel_wait(v8 + 80);
 LABEL_22:
     v17 = v27;
     v18 = v28;
@@ -10846,7 +10846,7 @@ LABEL_42:
     if ( v18 != nullptr )
       break;
 LABEL_36:
-    sub_9404B508(
+    panic(
       v5,
       "DEBUG ASSERT FAILED at (%s:%d): %s\n",
       "lk/trusty/include/reflist.h",
@@ -10863,7 +10863,7 @@ LABEL_36:
   if ( *(v11 - 21) != 0 )
   {
 LABEL_44:
-    sub_9404B508(v5, "ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc.c", 390, (const char *)&loc_94051058);
+    panic(v5, "ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc.c", 390, (const char *)&loc_94051058);
     goto LABEL_45;
   }
   if ( *v11 != 0 )
@@ -10873,21 +10873,21 @@ LABEL_45:
     goto LABEL_26;
   v25 = v11[3];
   if ( v25 != 0 )
-    sub_9404CC20(v25);
+    free(v25);
   v26 = v11[2];
   if ( v26 != 0 )
   {
-    sub_94030DEC(v26);
+    ipc_msg_queue_destroy(v26);
     v11[2] = 0;
   }
-  sub_9404CC20(v11 - 25);
+  free(v11 - 25);
 LABEL_6:
-  sub_9402530C(-536630024);
+  mutex_release(-536630024);
   return v9;
 }
 
-/* ===== sub_9403089C @ 0x9403089C size 220 ===== */
-__int64 __fastcall sub_9403089C(unsigned int a1, unsigned int a2)
+/* ===== sys_accept @ 0x9403089C size 220 ===== */
+__int64 __fastcall sys_accept(unsigned int a1, unsigned int a2)
 {
   _QWORD *v4; // x20
   __int64 result; // x0
@@ -10898,26 +10898,26 @@ __int64 __fastcall sub_9403089C(unsigned int a1, unsigned int a2)
   __int64 v10; // [xsp+48h] [xbp+48h] BYREF
 
   v8 = 0;
-  v4 = (_QWORD *)sub_9402E190();
+  v4 = (_QWORD *)uctx_get_current();
   v9 = 0;
   LODWORD(result) = ((__int64 (__fastcall *)(_QWORD *, _QWORD, __int64 *))loc_9402E4E4)(v4, a1, &v8);
   if ( (_DWORD)result == 0 )
   {
-    v6 = sub_94030504(v8, &v9, &v10);
+    v6 = ipc_chan_accept(v8, &v9, &v10);
     if ( v6 == 0 )
     {
       v6 = ((__int64 (__fastcall *)(_QWORD *, __int64, unsigned int *))loc_9402E3B0)(v4, v9, &v7);
       if ( v6 == 0 )
       {
-        v6 = sub_9404D224(a2, v10, 16);
+        v6 = copy_to_user(a2, v10, 16);
         if ( v6 == 0 )
         {
           ((void (__fastcall *)(__int64))loc_9402D978)(v8);
           return v7;
         }
-        sub_9402E5B8(v4, v7, &v9);
+        uctx_handle_put(v4, v7, &v9);
       }
-      sub_9402DADC(v9);
+      handle_decref(v9);
     }
     ((void (__fastcall *)(__int64))loc_9402D978)(v8);
     return v6;
@@ -10925,32 +10925,32 @@ __int64 __fastcall sub_9403089C(unsigned int a1, unsigned int a2)
   return (int)result;
 }
 
-/* ===== sub_94030978 @ 0x94030978 size 160 ===== */
-__int64 __fastcall sub_94030978(__int64 a1, _QWORD *a2, __int64 a3, int a4, __int64 a5, int a6)
+/* ===== ipc_chan_create_pair @ 0x94030978 size 160 ===== */
+__int64 __fastcall ipc_chan_create_pair(__int64 a1, _QWORD *a2, __int64 a3, int a4, __int64 a5, int a6)
 {
   int v7; // w19
   unsigned int v9; // [xsp+34h] [xbp+34h] BYREF
   __int64 v10; // [xsp+38h] [xbp+38h] BYREF
 
   v10 = 0;
-  v7 = sub_9402FACC(a1 + 32, a3, a4, a5, a6, &v10);
+  v7 = ipc_port_create(a1 + 32, a3, a4, a5, a6, &v10);
   if ( v7 == 0 )
   {
     v7 = ((__int64 (__fastcall *)(_QWORD *, __int64, unsigned int *))loc_9402E3B0)(a2, v10, &v9);
     if ( v7 == 0 )
     {
-      v7 = sub_9402FBEC(v10);
+      v7 = ipc_port_publish(v10);
       if ( v7 == 0 )
         return v9;
-      sub_9402E5B8(a2, v9, &v10);
+      uctx_handle_put(a2, v9, &v10);
     }
     ((void (__fastcall *)(__int64))loc_9402D978)(v10);
   }
   return v7;
 }
 
-/* ===== sub_94030A18 @ 0x94030A18 size 152 ===== */
-__int64 __fastcall sub_94030A18(__int64 a1, __int64 a2, __int64 a3)
+/* ===== sys_accept_port @ 0x94030A18 size 152 ===== */
+__int64 __fastcall sys_accept_port(__int64 a1, __int64 a2, __int64 a3)
 {
   __int64 result; // x0
   int v5; // w19
@@ -10965,7 +10965,7 @@ __int64 __fastcall sub_94030A18(__int64 a1, __int64 a2, __int64 a3)
   LODWORD(result) = ((__int64 (__fastcall *)(__int64, __int64, __int64 *))loc_9402E4E4)(a1, a2, &v8);
   if ( (_DWORD)result == 0 )
   {
-    v5 = sub_94030504(v8, &v9, &v6);
+    v5 = ipc_chan_accept(v8, &v9, &v6);
     if ( v5 == 0 )
     {
       v5 = ((__int64 (__fastcall *)(__int64, __int64, unsigned int *))loc_9402E3B0)(a1, v9, &v7);
@@ -10974,7 +10974,7 @@ __int64 __fastcall sub_94030A18(__int64 a1, __int64 a2, __int64 a3)
         ((void (__fastcall *)(__int64))loc_9402D978)(v8);
         return v7;
       }
-      sub_9402DADC(v9);
+      handle_decref(v9);
     }
     ((void (__fastcall *)(__int64))loc_9402D978)(v8);
     return v5;
@@ -10982,8 +10982,8 @@ __int64 __fastcall sub_94030A18(__int64 a1, __int64 a2, __int64 a3)
   return (int)result;
 }
 
-/* ===== sub_94030AB0 @ 0x94030AB0 size 312 ===== */
-__int64 __fastcall sub_94030AB0(__int64 a1, _DWORD *a2)
+/* ===== ipc_msg_put @ 0x94030AB0 size 312 ===== */
+__int64 __fastcall ipc_msg_put(__int64 a1, _DWORD *a2)
 {
   __int64 v2; // x30
   _QWORD *v3; // x20
@@ -11006,7 +11006,7 @@ __int64 __fastcall sub_94030AB0(__int64 a1, _DWORD *a2)
   }
   if ( *((_BYTE *)v4 - 47) != 0 )
   {
-    sub_9404B508(
+    panic(
       v2,
       "DEBUG ASSERT FAILED at (%s:%d): %s\n",
       "lk/trusty/lib/trusty/ipc_msg.c",
@@ -11027,14 +11027,14 @@ __int64 __fastcall sub_94030AB0(__int64 a1, _DWORD *a2)
       return 4294967288LL;
     if ( a2[4] == 0 )
     {
-      result = sub_940318E4(v10, v7, (unsigned int)a2[3], (unsigned int)a2[2]);
+      result = iov_copy_from_user_handle(v10, v7, (unsigned int)a2[3], (unsigned int)a2[2]);
       goto LABEL_9;
     }
     return 4294967272LL;
   }
   if ( a2[6] != 0 )
     return 4294967272LL;
-  result = sub_94031708(v10, v7, *((_QWORD *)a2 + 2), (unsigned int)a2[2]);
+  result = iov_copy_from_user(v10, v7, *((_QWORD *)a2 + 2), (unsigned int)a2[2]);
 LABEL_9:
   if ( (result & 0x8000000000000000LL) == 0 )
   {
@@ -11053,8 +11053,8 @@ LABEL_9:
   return result;
 }
 
-/* ===== sub_94030BE8 @ 0x94030BE8 size 188 ===== */
-__int64 __fastcall sub_94030BE8(__int64 a1, unsigned int a2, unsigned int a3, __int64 a4)
+/* ===== ipc_msg_get @ 0x94030BE8 size 188 ===== */
+__int64 __fastcall ipc_msg_get(__int64 a1, unsigned int a2, unsigned int a3, __int64 a4)
 {
   __int64 v4; // x7
   __int64 v5; // x1
@@ -11078,13 +11078,13 @@ __int64 __fastcall sub_94030BE8(__int64 a1, unsigned int a2, unsigned int a3, __
       if ( *(_DWORD *)a4 == 1 )
       {
         if ( *(_DWORD *)(a4 + 24) == 0 )
-          return sub_9403161C(*(_QWORD *)(a4 + 16), *(unsigned int *)(a4 + 8), v10, v9);
+          return iov_copy_to_user(*(_QWORD *)(a4 + 16), *(unsigned int *)(a4 + 8), v10, v9);
         return 4294967272LL;
       }
       if ( *(_DWORD *)a4 == 0 )
       {
         if ( *(_DWORD *)(a4 + 16) == 0 )
-          return sub_940317F4(*(unsigned int *)(a4 + 12), *(unsigned int *)(a4 + 8), v10, v9);
+          return iov_copy_to_user_handle(*(unsigned int *)(a4 + 12), *(unsigned int *)(a4 + 8), v10, v9);
         return 4294967272LL;
       }
     }
@@ -11093,8 +11093,8 @@ __int64 __fastcall sub_94030BE8(__int64 a1, unsigned int a2, unsigned int a3, __
   return 4294967272LL;
 }
 
-/* ===== sub_94030CA4 @ 0x94030CA4 size 328 ===== */
-__int64 __fastcall sub_94030CA4(unsigned int a1, __int64 a2, __int64 *a3)
+/* ===== ipc_msg_queue_create @ 0x94030CA4 size 328 ===== */
+__int64 __fastcall ipc_msg_queue_create(unsigned int a1, __int64 a2, __int64 *a3)
 {
   __int64 v4; // x23
   __int64 v6; // x19
@@ -11106,10 +11106,10 @@ __int64 __fastcall sub_94030CA4(unsigned int a1, __int64 a2, __int64 *a3)
   __int64 v13; // x0
 
   v4 = a1;
-  v6 = sub_9404CBDC(1, ((unsigned __int64)a1 << 6) + 72);
+  v6 = calloc(1, ((unsigned __int64)a1 << 6) + 72);
   if ( v6 != 0 )
   {
-    v7 = sub_9404CBC4(v4 * a2);
+    v7 = malloc(v4 * a2);
     *(_QWORD *)(v6 + 64) = v7;
     if ( v7 != 0 )
     {
@@ -11144,35 +11144,35 @@ __int64 __fastcall sub_94030CA4(unsigned int a1, __int64 a2, __int64 *a3)
     else
     {
       if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-        sub_9404B2FC("cannot allocate memory for message queue buf\n");
+        log_printf("cannot allocate memory for message queue buf\n");
       v13 = v6;
       v11 = -5;
-      sub_9404CC20(v13);
+      free(v13);
     }
     return v11;
   }
   v11 = -5;
   if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) != 0 )
     return v11;
-  sub_9404B2FC("cannot allocate memory for message queue\n");
+  log_printf("cannot allocate memory for message queue\n");
   return 4294967291LL;
 }
 
-/* ===== sub_94030DEC @ 0x94030DEC size 40 ===== */
-__int64 __fastcall sub_94030DEC(__int64 a1)
+/* ===== ipc_msg_queue_destroy @ 0x94030DEC size 40 ===== */
+__int64 __fastcall ipc_msg_queue_destroy(__int64 a1)
 {
-  sub_9404CC20(*(_QWORD *)(a1 + 64));
-  return sub_9404CC20(a1);
+  free(*(_QWORD *)(a1 + 64));
+  return free(a1);
 }
 
-/* ===== sub_94030E14 @ 0x94030E14 size 20 ===== */
-bool __fastcall sub_94030E14(__int64 a1)
+/* ===== ipc_msg_queue_is_empty @ 0x94030E14 size 20 ===== */
+bool __fastcall ipc_msg_queue_is_empty(__int64 a1)
 {
   return *(_QWORD *)(a1 + 24) == a1 + 16;
 }
 
-/* ===== sub_94030E28 @ 0x94030E28 size 296 ===== */
-__int64 __fastcall sub_94030E28(unsigned int a1, __int64 a2)
+/* ===== sys_msg_put @ 0x94030E28 size 296 ===== */
+__int64 __fastcall sys_msg_put(unsigned int a1, __int64 a2)
 {
   __int64 v2; // x30
   __int64 v4; // x22
@@ -11192,20 +11192,20 @@ __int64 __fastcall sub_94030E28(unsigned int a1, __int64 a2)
 
   v16 = 0;
   v4 = v2;
-  LODWORD(result) = sub_9404D244(&v17, a2, 16);
+  LODWORD(result) = copy_from_user(&v17, a2, 16);
   if ( (_DWORD)result != 0 )
     return (int)result;
-  v6 = sub_9402E190();
+  v6 = uctx_get_current();
   LODWORD(result) = ((__int64 (__fastcall *)(__int64, _QWORD, __int64 *))loc_9402E4E4)(v6, a1, &v15);
   if ( (_DWORD)result != 0 )
     return (int)result;
-  sub_940251F8(-536630024, 0xFFFFFFFFLL);
+  mutex_acquire_timeout(-536630024, 0xFFFFFFFFLL);
   v7 = v15;
-  if ( v15 == 0 || !sub_9402F2D4(v15) )
+  if ( v15 == 0 || !ipc_is_channel(v15) )
   {
     v12 = -8;
 LABEL_9:
-    sub_9402530C(-536630024);
+    mutex_release(-536630024);
     ((void (__fastcall *)(__int64))loc_9402D978)(v15);
     return v12;
   }
@@ -11220,7 +11220,7 @@ LABEL_9:
   if ( *(_QWORD *)(v7 - 48) != 0 )
   {
     v9 = v15;
-    v10 = sub_94030AB0(v15 - 80, &v16);
+    v10 = ipc_msg_put(v15 - 80, &v16);
     if ( v10 < 0 )
     {
       v12 = v10;
@@ -11229,16 +11229,16 @@ LABEL_9:
     {
       v11 = *(_QWORD *)(v9 - 48);
       v12 = v10;
-      sub_9402DC34(v11 + 80);
+      handle_cancel_wait(v11 + 80);
     }
     goto LABEL_9;
   }
-  v13 = sub_9404B508(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc_msg.c", 206, "chan->peer");
-  return sub_94030F50(v13, v14);
+  v13 = panic(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc_msg.c", 206, "chan->peer");
+  return sys_msg_send(v13, v14);
 }
 
-/* ===== sub_94030F50 @ 0x94030F50 size 240 ===== */
-__int64 __fastcall sub_94030F50(__int64 a1, __int64 a2)
+/* ===== sys_msg_send @ 0x94030F50 size 240 ===== */
+__int64 __fastcall sys_msg_send(__int64 a1, __int64 a2)
 {
   __int64 v2; // x30
   __int64 v4; // x20
@@ -11251,9 +11251,9 @@ __int64 __fastcall sub_94030F50(__int64 a1, __int64 a2)
     return 4294967288LL;
   v4 = v2;
   v8 = 1;
-  sub_9404CC78(&v9, a2, 32);
-  sub_940251F8(-536630024, 0xFFFFFFFFLL);
-  if ( a1 != 0 && sub_9402F2D4(a1) )
+  memcpy(&v9, a2, 32);
+  mutex_acquire_timeout(-536630024, 0xFFFFFFFFLL);
+  if ( a1 != 0 && ipc_is_channel(a1) )
   {
     v5 = *(_DWORD *)(a1 - 32);
     if ( v5 != 3 )
@@ -11266,22 +11266,22 @@ __int64 __fastcall sub_94030F50(__int64 a1, __int64 a2)
     }
     if ( *(_QWORD *)(a1 - 48) != 0 )
     {
-      v6 = sub_94030AB0(a1 - 80, &v8);
+      v6 = ipc_msg_put(a1 - 80, &v8);
       if ( (v6 & 0x80000000) == 0 )
-        sub_9402DC34(*(_QWORD *)(a1 - 48) + 80LL);
+        handle_cancel_wait(*(_QWORD *)(a1 - 48) + 80LL);
       goto LABEL_8;
     }
-    sub_9404B508(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc_msg.c", 206, "chan->peer");
+    panic(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc_msg.c", 206, "chan->peer");
     return 4294967288LL;
   }
   v6 = -8;
 LABEL_8:
-  sub_9402530C(-536630024);
+  mutex_release(-536630024);
   return v6;
 }
 
-/* ===== sub_94031040 @ 0x94031040 size 380 ===== */
-__int64 __fastcall sub_94031040(unsigned int a1, unsigned int a2)
+/* ===== sys_msg_get @ 0x94031040 size 380 ===== */
+__int64 __fastcall sys_msg_get(unsigned int a1, unsigned int a2)
 {
   __int64 v2; // x30
   __int64 v4; // x20
@@ -11301,12 +11301,12 @@ __int64 __fastcall sub_94031040(unsigned int a1, unsigned int a2)
   _DWORD v19[2]; // [xsp+38h] [xbp+38h] BYREF
 
   v4 = v2;
-  v6 = sub_9402E190();
+  v6 = uctx_get_current();
   LODWORD(result) = ((__int64 (__fastcall *)(__int64, _QWORD, __int64 *))loc_9402E4E4)(v6, a1, &v18);
   if ( (_DWORD)result != 0 )
     return (int)result;
-  sub_940251F8(-536630024, 0xFFFFFFFFLL);
-  if ( v18 == 0 || !sub_9402F2D4(v18) )
+  mutex_acquire_timeout(-536630024, 0xFFFFFFFFLL);
+  if ( v18 == 0 || !ipc_is_channel(v18) )
   {
     v15 = -8;
     goto LABEL_13;
@@ -11321,7 +11321,7 @@ __int64 __fastcall sub_94031040(unsigned int a1, unsigned int a2)
   }
   v19[0] = *(_QWORD *)(v10 - 8);
   v19[1] = *(unsigned __int8 *)(v10 - 48);
-  v11 = sub_9404D224(a2, v19, 8);
+  v11 = copy_to_user(a2, v19, 8);
   if ( v11 != 0 )
   {
     v15 = v11;
@@ -11342,30 +11342,30 @@ __int64 __fastcall sub_94031040(unsigned int a1, unsigned int a2)
     v12[4] = v13;
     *((_BYTE *)v13 - 47) = 2;
 LABEL_13:
-    sub_9402530C(-536630024);
+    mutex_release(-536630024);
     ((void (__fastcall *)(__int64))loc_9402D978)(v18);
     return v15;
   }
-  v16 = sub_9404B508(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc_msg.c", 349, "item");
-  return sub_940311BC(v16, v17);
+  v16 = panic(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc_msg.c", 349, "item");
+  return ipc_msg_get_next(v16, v17);
 }
 
-/* ===== sub_940311BC @ 0x940311BC size 268 ===== */
-__int64 __fastcall sub_940311BC(__int64 a1, _DWORD *a2)
+/* ===== ipc_msg_get_next @ 0x940311BC size 268 ===== */
+__int64 __fastcall ipc_msg_get_next(__int64 a1, _DWORD *a2)
 {
   _QWORD *v4; // x2
   _QWORD *v5; // x0
   unsigned int v6; // w19
   _QWORD *v7; // x4
 
-  sub_940251F8(-536630024, 0xFFFFFFFFLL);
-  if ( a1 != 0 && sub_9402F2D4(a1) )
+  mutex_acquire_timeout(-536630024, 0xFFFFFFFFLL);
+  if ( a1 != 0 && ipc_is_channel(a1) )
   {
     v4 = *(_QWORD **)(a1 + 136);
     v5 = (_QWORD *)v4[3];
     if ( v5 == v4 + 2 || v5 == nullptr )
     {
-      sub_9402530C(-536630024);
+      mutex_release(-536630024);
       return 4294967292LL;
     }
     else
@@ -11386,19 +11386,19 @@ __int64 __fastcall sub_940311BC(__int64 a1, _DWORD *a2)
         v4[4] = v5;
         *((_BYTE *)v5 - 47) = 2;
       }
-      sub_9402530C(-536630024);
+      mutex_release(-536630024);
       return v6;
     }
   }
   else
   {
-    sub_9402530C(-536630024);
+    mutex_release(-536630024);
     return 4294967288LL;
   }
 }
 
-/* ===== sub_940312C8 @ 0x940312C8 size 352 ===== */
-__int64 __fastcall sub_940312C8(__int64 a1, unsigned int a2)
+/* ===== ipc_msg_free @ 0x940312C8 size 352 ===== */
+__int64 __fastcall ipc_msg_free(__int64 a1, unsigned int a2)
 {
   __int64 v2; // x30
   __int64 v3; // x22
@@ -11414,19 +11414,19 @@ __int64 __fastcall sub_940312C8(__int64 a1, unsigned int a2)
 
   v3 = v2;
   v5 = a2;
-  sub_940251F8(-536630024, 0xFFFFFFFFLL);
-  if ( a1 == 0 || !sub_9402F2D4(a1) )
+  mutex_acquire_timeout(-536630024, 0xFFFFFFFFLL);
+  if ( a1 == 0 || !ipc_is_channel(a1) )
     goto LABEL_10;
   if ( a1 == 80 )
   {
-    sub_9404B508(v3, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc_msg.c", 358, "chan");
+    panic(v3, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc_msg.c", 358, "chan");
     goto LABEL_13;
   }
   v6 = *(_QWORD *)(a1 + 136);
   if ( v6 == 0 )
   {
 LABEL_13:
-    sub_9404B508(v3, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc_msg.c", 359, "chan->msg_queue");
+    panic(v3, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/ipc_msg.c", 359, "chan->msg_queue");
     goto LABEL_14;
   }
   if ( (unsigned int)v5 >= *(_DWORD *)(v6 + 48)
@@ -11457,34 +11457,34 @@ LABEL_14:
   if ( (v12 & 1) != 0 )
   {
     *(_DWORD *)(v11 + 56) = v12 & 0xFFFFFFFC | 2;
-    sub_9402DC34(v11 + 80);
-    sub_9402530C(-536630024);
+    handle_cancel_wait(v11 + 80);
+    mutex_release(-536630024);
     return 0;
   }
 LABEL_11:
-  sub_9402530C(-536630024);
+  mutex_release(-536630024);
   return v13;
 }
 
-/* ===== sub_94031428 @ 0x94031428 size 96 ===== */
-__int64 __fastcall sub_94031428(unsigned int a1, unsigned int a2)
+/* ===== sys_msg_free @ 0x94031428 size 96 ===== */
+__int64 __fastcall sys_msg_free(unsigned int a1, unsigned int a2)
 {
   __int64 v4; // x0
   __int64 result; // x0
   int v6; // w19
   __int64 v7; // [xsp+28h] [xbp+28h] BYREF
 
-  v4 = sub_9402E190();
+  v4 = uctx_get_current();
   LODWORD(result) = ((__int64 (__fastcall *)(__int64, _QWORD, __int64 *))loc_9402E4E4)(v4, a1, &v7);
   if ( (_DWORD)result != 0 )
     return (int)result;
-  v6 = sub_940312C8(v7, a2);
+  v6 = ipc_msg_free(v7, a2);
   ((void (__fastcall *)(__int64))loc_9402D978)(v7);
   return v6;
 }
 
-/* ===== sub_94031488 @ 0x94031488 size 220 ===== */
-__int64 __fastcall sub_94031488(unsigned int a1, unsigned int a2, unsigned int a3, unsigned int a4)
+/* ===== sys_msg_read @ 0x94031488 size 220 ===== */
+__int64 __fastcall sys_msg_read(unsigned int a1, unsigned int a2, unsigned int a3, unsigned int a4)
 {
   __int64 result; // x0
   __int64 v8; // x0
@@ -11495,25 +11495,25 @@ __int64 __fastcall sub_94031488(unsigned int a1, unsigned int a2, unsigned int a
   __int64 v13; // [xsp+40h] [xbp+40h] BYREF
 
   v12 = 0;
-  LODWORD(result) = sub_9404D244(&v13, a4, 16);
+  LODWORD(result) = copy_from_user(&v13, a4, 16);
   if ( (_DWORD)result != 0 )
     return (int)result;
-  v8 = sub_9402E190();
+  v8 = uctx_get_current();
   LODWORD(result) = ((__int64 (__fastcall *)(__int64, _QWORD, __int64 *))loc_9402E4E4)(v8, a1, &v11);
   if ( (_DWORD)result != 0 )
     return (int)result;
-  sub_940251F8(-536630024, 0xFFFFFFFFLL);
-  if ( v11 != 0 && sub_9402F2D4(v11) && *(_DWORD *)((v9 = *(_QWORD *)(v11 + 136)) + 48) > a2 )
-    v10 = (int)sub_94030BE8(v9, a2, a3, (__int64)&v12);
+  mutex_acquire_timeout(-536630024, 0xFFFFFFFFLL);
+  if ( v11 != 0 && ipc_is_channel(v11) && *(_DWORD *)((v9 = *(_QWORD *)(v11 + 136)) + 48) > a2 )
+    v10 = (int)ipc_msg_get(v9, a2, a3, (__int64)&v12);
   else
     v10 = -8;
-  sub_9402530C(-536630024);
+  mutex_release(-536630024);
   ((void (__fastcall *)(__int64))loc_9402D978)(v11);
   return v10;
 }
 
-/* ===== sub_94031564 @ 0x94031564 size 184 ===== */
-__int64 __fastcall sub_94031564(__int64 a1, unsigned int a2, unsigned int a3, __int64 a4)
+/* ===== sys_msg_write @ 0x94031564 size 184 ===== */
+__int64 __fastcall sys_msg_write(__int64 a1, unsigned int a2, unsigned int a3, __int64 a4)
 {
   __int64 v7; // x0
   unsigned int v8; // w19
@@ -11523,18 +11523,18 @@ __int64 __fastcall sub_94031564(__int64 a1, unsigned int a2, unsigned int a3, __
   if ( a4 == 0 )
     return 4294967288LL;
   v10 = 1;
-  sub_9404CC78(&v11, a4, 32);
-  sub_940251F8(-536630024, 0xFFFFFFFFLL);
-  if ( a1 != 0 && sub_9402F2D4(a1) && *(_DWORD *)((v7 = *(_QWORD *)(a1 + 136)) + 48) > a2 )
-    v8 = sub_94030BE8(v7, a2, a3, (__int64)&v10);
+  memcpy(&v11, a4, 32);
+  mutex_acquire_timeout(-536630024, 0xFFFFFFFFLL);
+  if ( a1 != 0 && ipc_is_channel(a1) && *(_DWORD *)((v7 = *(_QWORD *)(a1 + 136)) + 48) > a2 )
+    v8 = ipc_msg_get(v7, a2, a3, (__int64)&v10);
   else
     v8 = -8;
-  sub_9402530C(-536630024);
+  mutex_release(-536630024);
   return v8;
 }
 
-/* ===== sub_9403161C @ 0x9403161C size 236 ===== */
-__int64 __fastcall sub_9403161C(_QWORD *a1, int a2, __int64 a3, unsigned __int64 a4)
+/* ===== iov_copy_to_user @ 0x9403161C size 236 ===== */
+__int64 __fastcall iov_copy_to_user(_QWORD *a1, int a2, __int64 a3, unsigned __int64 a4)
 {
   _QWORD *v4; // x20
   __int64 v5; // x22
@@ -11565,7 +11565,7 @@ __int64 __fastcall sub_9403161C(_QWORD *a1, int a2, __int64 a3, unsigned __int64
     v5 += v10;
     if ( *v4 == 0 )
       return -8;
-    sub_9404CC78(*v4, v9, v4[1]);
+    memcpy(*v4, v9, v4[1]);
     v6 -= v10;
     if ( v6 != 0 )
     {
@@ -11578,12 +11578,12 @@ LABEL_19:
   }
   if ( *v4 == 0 )
     return -8;
-  sub_9404CC78(*v4, v5, v6);
+  memcpy(*v4, v5, v6);
   return v7 + v6;
 }
 
-/* ===== sub_94031708 @ 0x94031708 size 236 ===== */
-__int64 __fastcall sub_94031708(__int64 a1, unsigned __int64 a2, _QWORD *a3, int a4)
+/* ===== iov_copy_from_user @ 0x94031708 size 236 ===== */
+__int64 __fastcall iov_copy_from_user(__int64 a1, unsigned __int64 a2, _QWORD *a3, int a4)
 {
   __int64 v4; // x22
   unsigned __int64 v5; // x21
@@ -11614,7 +11614,7 @@ __int64 __fastcall sub_94031708(__int64 a1, unsigned __int64 a2, _QWORD *a3, int
     v4 += v10;
     if ( *v6 == 0 )
       return -8;
-    sub_9404CC78(v9, *v6, v6[1]);
+    memcpy(v9, *v6, v6[1]);
     v5 -= v10;
     if ( v5 != 0 )
     {
@@ -11627,12 +11627,12 @@ LABEL_19:
   }
   if ( *v6 == 0 )
     return -8;
-  sub_9404CC78(v4, *v6, v5);
+  memcpy(v4, *v6, v5);
   return v7 + v5;
 }
 
-/* ===== sub_940317F4 @ 0x940317F4 size 240 ===== */
-__int64 __fastcall sub_940317F4(unsigned int a1, int a2, __int64 a3, unsigned __int64 a4)
+/* ===== iov_copy_to_user_handle @ 0x940317F4 size 240 ===== */
+__int64 __fastcall iov_copy_to_user_handle(unsigned int a1, int a2, __int64 a3, unsigned __int64 a4)
 {
   __int64 v5; // x22
   unsigned __int64 v6; // x20
@@ -11658,7 +11658,7 @@ __int64 __fastcall sub_940317F4(unsigned int a1, int a2, __int64 a3, unsigned __
     v10 = a1;
     ++v8;
     a1 += 8;
-    LODWORD(result) = sub_9404D244(&v14, v10, 8);
+    LODWORD(result) = copy_from_user(&v14, v10, 8);
     v12 = v5;
     if ( (_DWORD)result != 0 )
       break;
@@ -11667,7 +11667,7 @@ __int64 __fastcall sub_940317F4(unsigned int a1, int a2, __int64 a3, unsigned __
       v13 = v6;
     v9 += v13;
     v5 += v13;
-    LODWORD(result) = sub_9404D224(v14, v12, v13);
+    LODWORD(result) = copy_to_user(v14, v12, v13);
     v6 -= v13;
     if ( (_DWORD)result != 0 )
       break;
@@ -11677,8 +11677,8 @@ __int64 __fastcall sub_940317F4(unsigned int a1, int a2, __int64 a3, unsigned __
   return (int)result;
 }
 
-/* ===== sub_940318E4 @ 0x940318E4 size 272 ===== */
-__int64 __fastcall sub_940318E4(__int64 a1, unsigned __int64 a2, unsigned int a3, int a4)
+/* ===== iov_copy_from_user_handle @ 0x940318E4 size 272 ===== */
+__int64 __fastcall iov_copy_from_user_handle(__int64 a1, unsigned __int64 a2, unsigned int a3, int a4)
 {
   __int64 v5; // x22
   unsigned __int64 v6; // x20
@@ -11705,7 +11705,7 @@ __int64 __fastcall sub_940318E4(__int64 a1, unsigned __int64 a2, unsigned int a3
     v10 = a3;
     ++v8;
     a3 += 8;
-    v11 = sub_9404D244(&v15, v10, 8);
+    v11 = copy_from_user(&v15, v10, 8);
     v12 = v5;
     if ( v11 != 0 )
       return v11;
@@ -11714,7 +11714,7 @@ __int64 __fastcall sub_940318E4(__int64 a1, unsigned __int64 a2, unsigned int a3
       v13 = v6;
     v9 += v13;
     v5 += v13;
-    LODWORD(result) = sub_9404D244(v12, v15, v13);
+    LODWORD(result) = copy_from_user(v12, v15, v13);
     v6 -= v13;
     if ( (_DWORD)result != 0 )
       break;
@@ -11724,8 +11724,8 @@ __int64 __fastcall sub_940318E4(__int64 a1, unsigned __int64 a2, unsigned int a3
   return (int)result;
 }
 
-/* ===== sub_940319F4 @ 0x940319F4 size 716 ===== */
-__int64 __fastcall sub_940319F4(
+/* ===== vqueue_init @ 0x940319F4 size 716 ===== */
+__int64 __fastcall vqueue_init(
         __int64 a1,
         int a2,
         __int64 a3,
@@ -11756,10 +11756,10 @@ __int64 __fastcall sub_940319F4(
   {
     v17 = 8 * a4 + 6 + (((_DWORD)a5 - 1 + 2 * (a4 + 3 + 8 * a4)) & -(int)a5);
     *(_QWORD *)(a1 + 48) = v17;
-    v18 = sub_9404A878(-536460256, "vqueue", (v17 + 4095) & 0x1FFFFF000LL, &v40, 12, a3, 0, 48);
+    v18 = vmm_map(-536460256, "vqueue", (v17 + 4095) & 0x1FFFFF000LL, &v40, 12, a3, 0, 48);
     if ( v18 != 0 )
     {
-      sub_9404CC20(a1);
+      free(a1);
       return v18;
     }
     else
@@ -11775,73 +11775,73 @@ __int64 __fastcall sub_940319F4(
       *(_QWORD *)(a1 + 120) = a7;
       *(_QWORD *)(a1 + 40) = v19;
       *(_QWORD *)(a1 + 128) = a8;
-      sub_94024DFC(a1 + 72, 0, 0);
+      event_init(a1 + 72, 0, 0);
       return 0;
     }
   }
   else
   {
-    v22 = sub_9404B508(v8, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/vqueue.c", 51, "vq");
+    v22 = panic(v8, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/vqueue.c", 51, "vq");
     v24 = v22;
     if ( v22 != 0 )
     {
       v25 = (unsigned __int64 *)(v22 + 56);
       if ( (_ReadStatusReg(DAIF) & 0x80) != 0 )
       {
-        sub_940223B4(v25);
+        spin_lock(v25);
         *(_QWORD *)(v24 + 48) = 0;
         v26 = *(_QWORD *)(v24 + 40);
         *(_QWORD *)(v24 + 40) = 0;
         v39 = v26;
-        sub_940223D4(v25);
+        spin_unlock(v25);
       }
       else
       {
         __asm { MSR             DAIFSet, #2 }
-        sub_940223B4(v25);
+        spin_lock(v25);
         *(_QWORD *)(v24 + 48) = 0;
         v32 = *(_QWORD *)(v24 + 40);
         *(_QWORD *)(v24 + 40) = 0;
         v39 = v32;
-        sub_940223D4(v25);
+        spin_unlock(v25);
         __asm { MSR             DAIFClr, #2 }
       }
-      return sub_9404ABDC(-536460256, v39);
+      return vmm_free_region(-536460256, v39);
     }
     else
     {
-      v34 = sub_9404B508(v23, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/vqueue.c", 84, "vq");
+      v34 = panic(v23, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/vqueue.c", 84, "vq");
       v35 = (unsigned __int64 *)(v34 + 56);
       if ( (_ReadStatusReg(DAIF) & 0x80) != 0 )
       {
-        sub_940223B4(v35);
+        spin_lock(v35);
         if ( *(_QWORD *)(v34 + 40) != 0 )
           **(_WORD **)(v34 + 32) |= 1u;
-        sub_940223D4(v35);
+        spin_unlock(v35);
       }
       else
       {
         __asm { MSR             DAIFSet, #2 }
-        sub_940223B4(v35);
+        spin_lock(v35);
         if ( *(_QWORD *)(v34 + 40) != 0 )
         {
           **(_WORD **)(v34 + 32) |= 1u;
-          sub_940223D4(v35);
+          spin_unlock(v35);
           __asm { MSR             DAIFClr, #2 }
         }
         else
         {
-          sub_940223D4(v35);
+          spin_unlock(v35);
           __asm { MSR             DAIFClr, #2 }
         }
       }
-      return sub_94024FDC(v34 + 72, 1u);
+      return event_signal(v34 + 72, 1u);
     }
   }
 }
 
-/* ===== sub_94031CC0 @ 0x94031CC0 size 576 ===== */
-__int64 __fastcall sub_94031CC0(__int64 a1, __int64 a2)
+/* ===== vqueue_get_buf @ 0x94031CC0 size 576 ===== */
+__int64 __fastcall vqueue_get_buf(__int64 a1, __int64 a2)
 {
   __int64 v2; // x30
   __int64 v4; // x23
@@ -11871,7 +11871,7 @@ __int64 __fastcall sub_94031CC0(__int64 a1, __int64 a2)
     __asm { MSR             DAIFSet, #2 }
     v7 = 1;
   }
-  sub_940223B4(v6);
+  spin_lock(v6);
   if ( a1 != 0 )
   {
     if ( a2 != 0 )
@@ -11893,14 +11893,14 @@ LABEL_28:
     }
     else
     {
-      sub_9404B508(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/vqueue.c", 118, "iovbuf");
+      panic(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/vqueue.c", 118, "iovbuf");
     }
-    sub_9404B508(v4, "vq %p: new avail idx out of range (old %u new %u)\n", (const void *)a1, v13, v14);
+    panic(v4, "vq %p: new avail idx out of range (old %u new %u)\n", (const void *)a1, v13, v14);
     goto LABEL_27;
   }
-  sub_9404B508(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/vqueue.c", 117, "vq");
+  panic(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/vqueue.c", 117, "vq");
 LABEL_23:
-  sub_940250FC(a1 + 72);
+  event_unsignal(a1 + 72);
   **(_WORD **)(a1 + 32) &= ~1u;
   __dmb(0xBu);
   if ( *(unsigned __int16 *)(a1 + 64) == *(unsigned __int16 *)(*(_QWORD *)(a1 + 24) + 2LL) )
@@ -11909,7 +11909,7 @@ LABEL_23:
     goto LABEL_17;
   }
   **(_WORD **)(a1 + 32) |= 1u;
-  sub_94024FDC(a1 + 72, 0);
+  event_signal(a1 + 72, 0);
 LABEL_8:
   __dmb(9u);
   v15 = *(unsigned __int16 *)(a1 + 64);
@@ -11919,7 +11919,7 @@ LABEL_8:
   if ( v16 <= v17 )
   {
 LABEL_27:
-    sub_9404B508(v4, "vq %p: head out of range %u (max %u)\n", (const void *)a1, v17, v16);
+    panic(v4, "vq %p: head out of range %u (max %u)\n", (const void *)a1, v17, v16);
     goto LABEL_28;
   }
   v18 = *(_QWORD *)(a1 + 16);
@@ -11961,14 +11961,14 @@ LABEL_27:
   }
   v27 = 0;
 LABEL_17:
-  sub_940223D4(v6);
+  spin_unlock(v6);
   if ( v7 != 0 )
     __asm { MSR             DAIFClr, #2 }
   return v27;
 }
 
-/* ===== sub_94031F00 @ 0x94031F00 size 404 ===== */
-__int64 __fastcall sub_94031F00(__int64 a1, unsigned int a2)
+/* ===== vqueue_map_iovs @ 0x94031F00 size 404 ===== */
+__int64 __fastcall vqueue_map_iovs(__int64 a1, unsigned int a2)
 {
   __int64 v2; // x30
   __int64 v5; // x0
@@ -11988,34 +11988,34 @@ __int64 __fastcall sub_94031F00(__int64 a1, unsigned int a2)
   v5 = v2;
   if ( a1 == 0 )
   {
-    v5 = sub_9404B508(v2, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/vqueue.c", 216, "vqiovs");
+    v5 = panic(v2, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/vqueue.c", 216, "vqiovs");
     goto LABEL_16;
   }
   v6 = *(_QWORD *)(a1 + 16);
   if ( v6 == 0 )
   {
 LABEL_16:
-    v5 = sub_9404B508(v5, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/vqueue.c", 217, "vqiovs->phys");
+    v5 = panic(v5, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/vqueue.c", 217, "vqiovs->phys");
     goto LABEL_17;
   }
   v7 = *(_QWORD *)(a1 + 24);
   if ( v7 == 0 )
   {
 LABEL_17:
-    v5 = sub_9404B508(v5, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/vqueue.c", 218, "vqiovs->iovs");
+    v5 = panic(v5, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/vqueue.c", 218, "vqiovs->iovs");
     goto LABEL_18;
   }
   v8 = *(_DWORD *)(a1 + 4);
   if ( v8 > *(_DWORD *)a1 )
   {
 LABEL_18:
-    v18 = sub_9404B508(
+    v18 = panic(
             v5,
             "DEBUG ASSERT FAILED at (%s:%d): %s\n",
             "lk/trusty/lib/trusty/vqueue.c",
             219,
             "vqiovs->used <= vqiovs->cnt");
-    return sub_94032094(v18);
+    return vqueue_unmap_iovs(v18);
   }
   if ( v8 == 0 )
     return 0;
@@ -12025,7 +12025,7 @@ LABEL_18:
     v10 = *(_QWORD *)(v6 + 8LL * v9);
     v11 = (_QWORD *)(v7 + 16LL * v9);
     *v11 = 0;
-    v12 = sub_9404A878(-536460256, "vqueue", (v11[1] + 4095LL) & 0xFFFFFFFFFFFFF000LL, v11, 12, v10, 0, a2);
+    v12 = vmm_map(-536460256, "vqueue", (v11[1] + 4095LL) & 0xFFFFFFFFFFFFF000LL, v11, 12, v10, 0, a2);
     if ( v12 != 0 )
       break;
     if ( *(_DWORD *)(a1 + 4) <= ++v9 )
@@ -12040,7 +12040,7 @@ LABEL_18:
     do
     {
       v15 = 16LL * v13;
-      sub_9404ABDC(-536460256, *(_QWORD *)(v14 + v15));
+      vmm_free_region(-536460256, *(_QWORD *)(v14 + v15));
       v14 = *(_QWORD *)(a1 + 24);
       v16 = v13--;
       *(_QWORD *)(v14 + v15) = 0;
@@ -12050,8 +12050,8 @@ LABEL_18:
   return v12;
 }
 
-/* ===== sub_94032094 @ 0x94032094 size 332 ===== */
-__int64 *__fastcall sub_94032094(__int64 a1)
+/* ===== vqueue_unmap_iovs @ 0x94032094 size 332 ===== */
+__int64 *__fastcall vqueue_unmap_iovs(__int64 a1)
 {
   __int64 v1; // x30
   __int64 v3; // x23
@@ -12066,7 +12066,7 @@ __int64 *__fastcall sub_94032094(__int64 a1)
   v3 = v1;
   if ( a1 == 0 )
   {
-    sub_9404B508(v1, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/vqueue.c", 244, "vqiovs");
+    panic(v1, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/vqueue.c", 244, "vqiovs");
   }
   else if ( *(_QWORD *)(a1 + 16) != 0 )
   {
@@ -12074,20 +12074,20 @@ __int64 *__fastcall sub_94032094(__int64 a1)
     if ( result == nullptr )
     {
 LABEL_14:
-      sub_9404B508(v1, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/vqueue.c", 246, "vqiovs->iovs");
+      panic(v1, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/vqueue.c", 246, "vqiovs->iovs");
       goto LABEL_15;
     }
     v5 = *(_DWORD *)(a1 + 4);
     if ( v5 > *(_DWORD *)a1 )
     {
 LABEL_15:
-      v10 = sub_9404B508(
+      v10 = panic(
               v1,
               "DEBUG ASSERT FAILED at (%s:%d): %s\n",
               "lk/trusty/lib/trusty/vqueue.c",
               247,
               "vqiovs->used <= vqiovs->cnt");
-      return (__int64 *)sub_940321E0(v10);
+      return (__int64 *)vqueue_add_buf(v10);
     }
     if ( v5 != 0 )
     {
@@ -12099,7 +12099,7 @@ LABEL_15:
         while ( 1 )
         {
           ++v8;
-          sub_9404ABDC(-536460256, v6);
+          vmm_free_region(-536460256, v6);
           result = *(__int64 **)(a1 + 24);
           v9 = *(_DWORD *)(a1 + 4);
           result[v7] = 0;
@@ -12108,7 +12108,7 @@ LABEL_15:
           v7 = 2LL * v8;
           v6 = result[v7];
           if ( v6 == 0 )
-            return (__int64 *)sub_9404B508(
+            return (__int64 *)panic(
                                 v3,
                                 "DEBUG ASSERT FAILED at (%s:%d): %s\n",
                                 "lk/trusty/lib/trusty/vqueue.c",
@@ -12118,7 +12118,7 @@ LABEL_15:
       }
       else
       {
-        return (__int64 *)sub_9404B508(
+        return (__int64 *)panic(
                             v3,
                             "DEBUG ASSERT FAILED at (%s:%d): %s\n",
                             "lk/trusty/lib/trusty/vqueue.c",
@@ -12128,12 +12128,12 @@ LABEL_15:
     }
     return result;
   }
-  sub_9404B508(v1, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/vqueue.c", 245, "vqiovs->phys");
+  panic(v1, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/vqueue.c", 245, "vqiovs->phys");
   goto LABEL_14;
 }
 
-/* ===== sub_940321E0 @ 0x940321E0 size 280 ===== */
-__int64 __fastcall sub_940321E0(__int64 a1, unsigned __int16 *a2, int a3)
+/* ===== vqueue_add_buf @ 0x940321E0 size 280 ===== */
+__int64 __fastcall vqueue_add_buf(__int64 a1, unsigned __int16 *a2, int a3)
 {
   __int64 v3; // x30
   __int64 v4; // x22
@@ -12153,10 +12153,10 @@ __int64 __fastcall sub_940321E0(__int64 a1, unsigned __int16 *a2, int a3)
     __asm { MSR             DAIFSet, #2 }
     v7 = 1;
   }
-  sub_940223B4(v6);
+  spin_lock(v6);
   if ( a1 == 0 )
   {
-    sub_9404B508(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/vqueue.c", 262, "vq");
+    panic(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/vqueue.c", 262, "vq");
   }
   else if ( a2 != nullptr )
   {
@@ -12183,47 +12183,47 @@ LABEL_13:
       ++*(_WORD *)(v16 + 2);
     }
 LABEL_8:
-    sub_940223D4(v6);
+    spin_unlock(v6);
     if ( v7 != 0 )
       __asm { MSR             DAIFClr, #2 }
     return v17;
   }
-  sub_9404B508(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/vqueue.c", 263, "buf");
+  panic(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/vqueue.c", 263, "buf");
   goto LABEL_13;
 }
 
-/* ===== sub_940322F8 @ 0x940322F8 size 100 ===== */
-__int64 sub_940322F8()
+/* ===== trusty_sm_init @ 0x940322F8 size 100 ===== */
+__int64 trusty_sm_init()
 {
   __int64 result; // x0
 
   if ( MEMORY[0xFFFFFFFFE003CB98] > 0 )
-    sub_9404B2FC("Initializing Trusted OS SMC handler\n");
-  result = sub_9402985C(0x32u, &qword_9405AD50);
+    log_printf("Initializing Trusted OS SMC handler\n");
+  result = sm_register_entity_ex(0x32u, &qword_9405AD50);
   if ( (_DWORD)result != 0 )
-    return sub_9404CB4C("%s:%d: WARNING: Cannot register SMC entity! (%d)\n", "trusty_sm_init", 138, result);
+    return printf("%s:%d: WARNING: Cannot register SMC entity! (%d)\n", "trusty_sm_init", 138, result);
   return result;
 }
 
-/* ===== sub_9403235C @ 0x9403235C size 192 ===== */
-__int64 __fastcall sub_9403235C(unsigned int *a1, __int64 *a2, _DWORD *a3, int *a4)
+/* ===== smcall_decode_ns_mem @ 0x9403235C size 192 ===== */
+__int64 __fastcall smcall_decode_ns_mem(unsigned int *a1, __int64 *a2, _DWORD *a3, int *a4)
 {
   __int64 v4; // x30
   __int64 result; // x0
 
   if ( a2 == nullptr )
   {
-    sub_9404B508(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/smcall.c", 45, "ppa");
+    panic(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/smcall.c", 45, "ppa");
   }
   else if ( a3 != nullptr )
   {
     if ( a4 == nullptr )
     {
 LABEL_12:
-      sub_9404B508(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/smcall.c", 47, "pflags");
+      panic(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/smcall.c", 47, "pflags");
       return 4294967288LL;
     }
-    result = sub_94029A5C(a1, a2, a3, a4);
+    result = sm_decode_ns_mem_args(a1, a2, a3, a4);
     if ( (_DWORD)result != 0 )
       return result;
     if ( (*a4 & 3u) > 1 )
@@ -12233,12 +12233,12 @@ LABEL_12:
     else
       return 0;
   }
-  sub_9404B508(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/smcall.c", 46, "psz");
+  panic(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/smcall.c", 46, "psz");
   goto LABEL_12;
 }
 
-/* ===== sub_9403241C @ 0x9403241C size 260 ===== */
-__int64 __fastcall sub_9403241C(unsigned int *a1)
+/* ===== smcall_handler @ 0x9403241C size 260 ===== */
+__int64 __fastcall smcall_handler(unsigned int *a1)
 {
   __int64 result; // x0
   unsigned int v2; // [xsp+10h] [xbp+10h] BYREF
@@ -12248,25 +12248,25 @@ __int64 __fastcall sub_9403241C(unsigned int *a1)
   switch ( *a1 )
   {
     case 0x32000014u:
-      result = (int)sub_9403235C(a1, &v4, &v2, (int *)&v3);
+      result = (int)smcall_decode_ns_mem(a1, &v4, &v2, (int *)&v3);
       if ( (_DWORD)result == 0 )
-        result = sub_940325BC(v4, v2, v3);
+        result = virtio_init(v4, v2, v3);
       break;
     case 0x32000015u:
-      result = (int)sub_9403235C(a1, &v4, &v2, (int *)&v3);
+      result = (int)smcall_decode_ns_mem(a1, &v4, &v2, (int *)&v3);
       if ( (_DWORD)result == 0 )
-        result = (int)sub_94032838(v4, v2, v3);
+        result = (int)virtio_setup(v4, v2, v3);
       break;
     case 0x32000016u:
-      result = (int)sub_9403235C(a1, &v4, &v2, (int *)&v3);
+      result = (int)smcall_decode_ns_mem(a1, &v4, &v2, (int *)&v3);
       if ( (_DWORD)result == 0 )
-        result = (int)sub_940329CC(v4, v2, v3);
+        result = (int)virtio_reset(v4, v2, v3);
       break;
     case 0x32000017u:
-      result = (int)sub_94032A80(a1[1]);
+      result = (int)virtio_notify_stub1(a1[1]);
       break;
     case 0x32000018u:
-      result = (int)sub_94032AFC(a1[1], a1[2]);
+      result = (int)virtio_notify_stub2(a1[1], a1[2]);
       break;
     default:
       result = -24;
@@ -12275,9 +12275,9 @@ __int64 __fastcall sub_9403241C(unsigned int *a1)
   return result;
 }
 
-/* ===== sub_94032520 @ 0x94032520 size 156 ===== */
+/* ===== virtio_register_device @ 0x94032520 size 156 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_94032520(__int64 a1)
+__int64 __fastcall virtio_register_device(__int64 a1)
 {
   _QWORD *v1; // x1
   unsigned int v2; // w7
@@ -12306,9 +12306,9 @@ __int64 __fastcall sub_94032520(__int64 a1)
   return v2;
 }
 
-/* ===== sub_940325BC @ 0x940325BC size 636 ===== */
+/* ===== virtio_init @ 0x940325BC size 636 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_940325BC(__int64 a1, int a2, int a3)
+__int64 __fastcall virtio_init(__int64 a1, int a2, int a3)
 {
   __int64 v3; // x30
   __int64 v5; // x24
@@ -12353,7 +12353,7 @@ __int64 __fastcall sub_940325BC(__int64 a1, int a2, int a3)
     if ( a1 == 0 || (a1 & 0xFFF) != 0 )
       return -8;
     v6 = &qword_9405BFF0[2];
-    LODWORD(result) = sub_9404A878(
+    LODWORD(result) = vmm_map(
                         -536460256,
                         "virtio",
                         (v9 + 4095) & 0xFFFFFFFFFFFFF000LL,
@@ -12364,7 +12364,7 @@ __int64 __fastcall sub_940325BC(__int64 a1, int a2, int a3)
                         (unsigned int)v7);
     if ( (_DWORD)result != 0 )
       return (int)result;
-    sub_9404CDC4(v16, 0, 0);
+    memset(v16, 0, 0);
     v7 = v16;
     v16[1] = 0;
     *v7 = 1;
@@ -12375,13 +12375,13 @@ __int64 __fastcall sub_940325BC(__int64 a1, int a2, int a3)
     if ( MEMORY[0xFFFFFFFFE003AD70] == 0 )
     {
       if ( v15 + ((__int64 (__fastcall *)(__int64))*MEMORY[0xFFFFFFFFE003AD88])(-536629912) != 0 )
-        sub_9404B508(
+        panic(
           v5,
           "DEBUG ASSERT FAILED at (%s:%d): %s\n",
           "lk/trusty/lib/trusty/trusty_virtio.c",
           215,
           "vd->descr_offset + vd->ops->descr_sz(vd) <= vb->descr_size");
-      sub_9404B508(
+      panic(
         v5,
         "DEBUG ASSERT FAILED at (%s:%d): %s\n",
         "lk/trusty/lib/trusty/trusty_virtio.c",
@@ -12389,7 +12389,7 @@ __int64 __fastcall sub_940325BC(__int64 a1, int a2, int a3)
         "vdev_idx < vb->vdev_cnt");
       return -9;
     }
-    sub_9404B508(
+    panic(
       v5,
       "DEBUG ASSERT FAILED at (%s:%d): %s\n",
       "lk/trusty/lib/trusty/trusty_virtio.c",
@@ -12397,13 +12397,13 @@ __int64 __fastcall sub_940325BC(__int64 a1, int a2, int a3)
       "vd->descr_offset <= vb->descr_size");
     v9 = -536629896;
   }
-  sub_9404ABDC(-536460256, v7);
+  vmm_free_region(-536460256, v7);
   return 0;
 }
 
-/* ===== sub_94032838 @ 0x94032838 size 404 ===== */
+/* ===== virtio_setup @ 0x94032838 size 404 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_94032838(__int64 a1, int a2, unsigned int a3)
+__int64 __fastcall virtio_setup(__int64 a1, int a2, unsigned int a3)
 {
   unsigned int v3; // w4
   unsigned int v4; // w20
@@ -12427,21 +12427,21 @@ __int64 __fastcall sub_94032838(__int64 a1, int a2, unsigned int a3)
   v4 = -8;
   if ( a2 != 0 )
     goto LABEL_8;
-  v8 = sub_9404CBC4(0);
+  v8 = malloc(0);
   if ( v8 == 0 )
   {
     v4 = -5;
     goto LABEL_8;
   }
-  if ( a1 == 0 || (a1 & 0xFFF) != 0 || (v4 = sub_9404A878(-536460256, "virtio", 0, &v13, 12, a1, 0, a3)) != 0 )
+  if ( a1 == 0 || (a1 & 0xFFF) != 0 || (v4 = vmm_map(-536460256, "virtio", 0, &v13, 12, a1, 0, a3)) != 0 )
   {
-    sub_9404CC20(v8);
+    free(v8);
 LABEL_8:
     result = v4;
     dword_9405AD70 = 1;
     return result;
   }
-  sub_9404CC78(v8, v13, 0);
+  memcpy(v8, v13, 0);
   v9 = -536629912;
   if ( &off_9405AD78 != (_UNKNOWN **)-536629896LL )
   {
@@ -12454,15 +12454,15 @@ LABEL_8:
     }
     while ( !v11 );
   }
-  sub_9404ABDC(-536460256, v13);
-  sub_9404CC20(v8);
+  vmm_free_region(-536460256, v13);
+  free(v8);
   dword_9405AD70 = 3;
   return 0;
 }
 
-/* ===== sub_940329CC @ 0x940329CC size 180 ===== */
+/* ===== virtio_reset @ 0x940329CC size 180 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 sub_940329CC()
+__int64 virtio_reset()
 {
   unsigned int v0; // w2
   __int64 v1; // x19
@@ -12496,48 +12496,48 @@ __int64 sub_940329CC()
   return result;
 }
 
-/* ===== sub_94032A80 @ 0x94032A80 size 124 ===== */
-__int64 sub_94032A80()
+/* ===== virtio_notify_stub1 @ 0x94032A80 size 124 ===== */
+__int64 virtio_notify_stub1()
 {
   return 4294967265LL;
 }
 
-/* ===== sub_94032AFC @ 0x94032AFC size 124 ===== */
-__int64 sub_94032AFC()
+/* ===== virtio_notify_stub2 @ 0x94032AFC size 124 ===== */
+__int64 virtio_notify_stub2()
 {
   return 4294967265LL;
 }
 
-/* ===== sub_94032B78 @ 0x94032B78 size 8 ===== */
-__int64 __fastcall sub_94032B78(__int64 a1)
+/* ===== virtio_get_config @ 0x94032B78 size 8 ===== */
+__int64 __fastcall virtio_get_config(__int64 a1)
 {
   return *(_QWORD *)(a1 + 56);
 }
 
-/* ===== sub_94032B80 @ 0x94032B80 size 60 ===== */
-__int64 __fastcall sub_94032B80(__int64 a1, __int64 a2)
+/* ===== virtio_read_config @ 0x94032B80 size 60 ===== */
+__int64 __fastcall virtio_read_config(__int64 a1, __int64 a2)
 {
-  sub_9404CC78(a2, *(_QWORD *)(a1 + 48), *(_QWORD *)(a1 + 56));
+  memcpy(a2, *(_QWORD *)(a1 + 48), *(_QWORD *)(a1 + 56));
   *(_DWORD *)(a2 + 8) = *(_DWORD *)(a1 + 4);
   return *(_QWORD *)(a1 + 56);
 }
 
-/* ===== sub_94032BBC @ 0x94032BBC size 24 ===== */
-__int64 sub_94032BBC()
+/* ===== virtio_kick_rx @ 0x94032BBC size 24 ===== */
+__int64 virtio_kick_rx()
 {
   ((void (*)(void))loc_94031C08)();
   return 0;
 }
 
-/* ===== sub_94032BD4 @ 0x94032BD4 size 24 ===== */
-__int64 sub_94032BD4()
+/* ===== virtio_kick_tx @ 0x94032BD4 size 24 ===== */
+__int64 virtio_kick_tx()
 {
   ((void (*)(void))loc_94031C08)();
   return 0;
 }
 
-/* ===== sub_94032BEC @ 0x94032BEC size 132 ===== */
-__int64 __fastcall sub_94032BEC(__int64 a1, int a2)
+/* ===== tipc_dev_notify @ 0x94032BEC size 132 ===== */
+__int64 __fastcall tipc_dev_notify(__int64 a1, int a2)
 {
   __int64 v2; // x30
   __int64 v3; // x0
@@ -12545,7 +12545,7 @@ __int64 __fastcall sub_94032BEC(__int64 a1, int a2)
 
   if ( a1 == 0 )
   {
-    sub_9404B508(v2, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/tipc_dev.c", 1071, "vd");
+    panic(v2, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/tipc_dev.c", 1071, "vd");
     return 4294967294LL;
   }
   if ( *(_DWORD *)(a1 + 64) == a2 )
@@ -12565,8 +12565,8 @@ __int64 __fastcall sub_94032BEC(__int64 a1, int a2)
   return v4(v3, *(_QWORD *)(v3 + 136));
 }
 
-/* ===== sub_94032C70 @ 0x94032C70 size 372 ===== */
-__int64 __fastcall sub_94032C70(__int64 a1, unsigned __int64 a2, _QWORD *a3)
+/* ===== tipc_copy_to_buf @ 0x94032C70 size 372 ===== */
+__int64 __fastcall tipc_copy_to_buf(__int64 a1, unsigned __int64 a2, _QWORD *a3)
 {
   __int64 v3; // x30
   unsigned int v4; // w19
@@ -12587,23 +12587,23 @@ __int64 __fastcall sub_94032C70(__int64 a1, unsigned __int64 a2, _QWORD *a3)
   v4 = a2;
   if ( a1 == 0 )
   {
-    sub_9404B508(v3, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/tipc_dev.c", 1204, "dst");
+    panic(v3, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/tipc_dev.c", 1204, "dst");
   }
   else if ( a3 != nullptr )
   {
     if ( *a3 == 0 )
     {
 LABEL_8:
-      sub_9404B508(v3, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/tipc_dev.c", 1206, "buf->data");
+      panic(v3, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/tipc_dev.c", 1206, "buf->data");
       goto LABEL_9;
     }
     if ( a3[1] >= a2 )
     {
-      sub_9404CC78(a1, *a3, a2);
+      memcpy(a1, *a3, a2);
       return v4;
     }
 LABEL_9:
-    v6 = sub_9404B508(
+    v6 = panic(
            v3,
            "DEBUG ASSERT FAILED at (%s:%d): %s\n",
            "lk/trusty/lib/trusty/tipc_dev.c",
@@ -12622,22 +12622,22 @@ LABEL_9:
         v16 = v14;
         v17 = 0;
         v18 = 0;
-        return sub_94031564(v11, v12, 0, (__int64)&v15);
+        return sys_msg_write(v11, v12, 0, (__int64)&v15);
       }
     }
     else
     {
-      sub_9404B508(v8, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/tipc_dev.c", 668, "buf");
+      panic(v8, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/tipc_dev.c", 668, "buf");
     }
-    v13 = sub_9404B508(v8, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/tipc_dev.c", 669, "cb_ctx");
-    return sub_94032DE4(v13);
+    v13 = panic(v8, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/tipc_dev.c", 669, "cb_ctx");
+    return tipc_send_msg(v13);
   }
-  sub_9404B508(v3, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/tipc_dev.c", 1205, "buf");
+  panic(v3, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/tipc_dev.c", 1205, "buf");
   goto LABEL_8;
 }
 
-/* ===== sub_94032DE4 @ 0x94032DE4 size 428 ===== */
-__int64 __fastcall sub_94032DE4(
+/* ===== tipc_send_msg @ 0x94032DE4 size 428 ===== */
+__int64 __fastcall tipc_send_msg(
         __int64 a1,
         int a2,
         int a3,
@@ -12666,31 +12666,31 @@ __int64 __fastcall sub_94032DE4(
   v12 = a1 + 64;
   if ( a1 == 0 )
   {
-    sub_9404B508(v6, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/tipc_dev.c", 1100, "dev");
+    panic(v6, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/tipc_dev.c", 1100, "dev");
   }
   else if ( a4 != nullptr )
   {
     v13 = a1 + 136;
     v14 = a1 + 69632;
-    sub_9404CDC4(v24, 0, 72);
+    memset(v24, 0, 72);
     v25[0] = 1;
     v26 = &v22;
     v27 = (__int64 *)&v23;
     while ( 1 )
     {
-      result = sub_94031CC0(v12, (__int64)v24);
+      result = vqueue_get_buf(v12, (__int64)v24);
       if ( (_DWORD)result == 0 )
         break;
       if ( (_DWORD)result != -9 )
         return result;
-      sub_94024EFC(v13, 0xFFFFFFFFLL);
+      event_wait_timeout(v13, 0xFFFFFFFFLL);
       if ( *(_BYTE *)(v14 + 584) != 0 )
         return 4294967281LL;
     }
     v16 = -9;
     if ( v25[1] != 0 && (unsigned __int64)v27[1] > 0xF )
     {
-      v16 = sub_94031F00((__int64)v25, 0x30u);
+      v16 = vqueue_map_iovs((__int64)v25, 0x30u);
       if ( v16 == 0 )
       {
         v17 = a6;
@@ -12707,17 +12707,17 @@ __int64 __fastcall sub_94032DE4(
         v21 = v20;
         if ( v20 >= 0 )
           v21 = v20 + 16;
-        sub_94032094((__int64)v25);
+        vqueue_unmap_iovs((__int64)v25);
         v16 = v21;
       }
     }
-    return sub_940321E0(v12, v24, v16);
+    return vqueue_add_buf(v12, v24, v16);
   }
   return 4294967288LL;
 }
 
-/* ===== sub_94032F90 @ 0x94032F90 size 548 ===== */
-__int64 __fastcall sub_94032F90(__int64 a1, __int64 a2)
+/* ===== tipc_dev_start @ 0x94032F90 size 548 ===== */
+__int64 __fastcall tipc_dev_start(__int64 a1, __int64 a2)
 {
   __int64 v2; // x30
   __int64 v4; // x0
@@ -12736,7 +12736,7 @@ __int64 __fastcall sub_94032F90(__int64 a1, __int64 a2)
   v4 = v2;
   if ( a1 == 0 )
   {
-    v4 = sub_9404B508(v2, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/tipc_dev.c", 1062, "vd");
+    v4 = panic(v2, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/tipc_dev.c", 1062, "vd");
   }
   else if ( a2 != 0 )
   {
@@ -12751,7 +12751,7 @@ __int64 __fastcall sub_94032F90(__int64 a1, __int64 a2)
       v10 = 0;
       do
       {
-        v11 = sub_940319F4(v8, v7[3], *v7 | ((unsigned __int64)v7[4] << 32), v7[2], v7[1], a1, qword_9405ADB0[v9], 0);
+        v11 = vqueue_init(v8, v7[3], *v7 | ((unsigned __int64)v7[4] << 32), v7[2], v7[1], a1, qword_9405ADB0[v9], 0);
         if ( v11 != 0 )
         {
           if ( v10 != 0 )
@@ -12764,24 +12764,24 @@ __int64 __fastcall sub_94032F90(__int64 a1, __int64 a2)
         v8 += 144;
       }
       while ( v10 < *(unsigned __int8 *)(a2 + 25) );
-      sub_9404CAC0(v16, 32, "tipc-dev%d-rx", *(_DWORD *)(a1 + 4));
-      v12 = (_DWORD *)sub_940268B8((__int64)v16, (__int64)sub_94033318, a1, 0x10u, 4096);
+      snprintf(v16, 32, "tipc-dev%d-rx", *(_DWORD *)(a1 + 4));
+      v12 = (_DWORD *)thread_create_simple((__int64)v16, (__int64)handle_rx_msg, a1, 0x10u, 4096);
       *(_QWORD *)(a1 + 70200) = v12;
       if ( v12 != nullptr )
-        sub_940260B0(v12);
-      sub_9404CAC0(v16, 32, "tipc-dev%d-tx", *(_DWORD *)(a1 + 4));
-      v13 = (_DWORD *)sub_940268B8((__int64)v16, (__int64)sub_94033B30, a1, 0x10u, 4096);
+        thread_resume_full(v12);
+      snprintf(v16, 32, "tipc-dev%d-tx", *(_DWORD *)(a1 + 4));
+      v13 = (_DWORD *)thread_create_simple((__int64)v16, (__int64)handle_tx_msg, a1, 0x10u, 4096);
       *(_QWORD *)(a1 + 70208) = v13;
       if ( v13 != nullptr )
-        sub_940260B0(v13);
+        thread_resume_full(v13);
       v15[1] = 8;
       v14 = 1;
       v15[0] = &v14;
-      result = sub_94032DE4(
+      result = tipc_send_msg(
                  a1,
                  53,
                  53,
-                 (__int64 (__fastcall *)(__int64, __int64, __int64))sub_94032C70,
+                 (__int64 (__fastcall *)(__int64, __int64, __int64))tipc_copy_to_buf,
                  (__int64)v15,
                  8u);
       if ( (_DWORD)result == 0 )
@@ -12789,12 +12789,12 @@ __int64 __fastcall sub_94032F90(__int64 a1, __int64 a2)
     }
     return result;
   }
-  sub_9404B508(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/tipc_dev.c", 1063, "descr");
+  panic(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/tipc_dev.c", 1063, "descr");
   return 4294967265LL;
 }
 
-/* ===== sub_940331B4 @ 0x940331B4 size 96 ===== */
-__int64 __fastcall sub_940331B4(__int64 a1, int a2, int a3, int a4, int a5, int a6)
+/* ===== tipc_send_cmd @ 0x940331B4 size 96 ===== */
+__int64 __fastcall tipc_send_cmd(__int64 a1, int a2, int a3, int a4, int a5, int a6)
 {
   _QWORD v7[2]; // [xsp+10h] [xbp+10h] BYREF
   _DWORD v8[8]; // [xsp+20h] [xbp+20h] BYREF
@@ -12808,11 +12808,11 @@ __int64 __fastcall sub_940331B4(__int64 a1, int a2, int a3, int a4, int a5, int 
   v8[1] = 20;
   v7[1] = 28;
   v7[0] = v8;
-  return sub_94032DE4(a1, 53, 53, (__int64 (__fastcall *)(__int64, __int64, __int64))sub_94032C70, (__int64)v7, 0x1Cu);
+  return tipc_send_msg(a1, 53, 53, (__int64 (__fastcall *)(__int64, __int64, __int64))tipc_copy_to_buf, (__int64)v7, 0x1Cu);
 }
 
-/* ===== sub_94033214 @ 0x94033214 size 260 ===== */
-__int64 __fastcall sub_94033214(_QWORD *a1, int a2, __int64 a3, __int64 a4)
+/* ===== tipc_handle_alloc @ 0x94033214 size 260 ===== */
+__int64 __fastcall tipc_handle_alloc(_QWORD *a1, int a2, __int64 a3, __int64 a4)
 {
   __int64 v4; // x4
   unsigned __int64 v5; // x4
@@ -12866,14 +12866,14 @@ LABEL_4:
     v10[45] = a3;
     *((_DWORD *)v10 + 88) = a2;
     if ( a4 != 0 )
-      sub_9404CF0C(&a1[v9 + 46], a4);
+      strcpy(&a1[v9 + 46], a4);
     return v6 + 1000;
   }
   return 0;
 }
 
-/* ===== sub_94033318 @ 0x94033318 size 1532 ===== */
-__int64 __fastcall sub_94033318(__int64 a1)
+/* ===== handle_rx_msg @ 0x94033318 size 1532 ===== */
+__int64 __fastcall handle_rx_msg(__int64 a1)
 {
   __int64 v1; // x30
   __int64 v3; // x28
@@ -12929,7 +12929,7 @@ __int64 __fastcall sub_94033318(__int64 a1)
   _QWORD v54[32]; // [xsp+100h] [xbp+100h] BYREF
 
   v3 = v1;
-  sub_9404CDC4(&v50, 0, 72);
+  memset(&v50, 0, 72);
   v51[0] = 1;
   v52 = &v46;
   v53 = (int **)&v48;
@@ -12938,8 +12938,8 @@ __int64 __fastcall sub_94033318(__int64 a1)
 LABEL_2:
     if ( *(_BYTE *)(a1 + 70217) == 0 )
     {
-      sub_94024EFC(a1 + 280, 0xFFFFFFFFLL);
-      v4 = sub_94031CC0(a1 + 208, (__int64)&v50);
+      event_wait_timeout(a1 + 280, 0xFFFFFFFFLL);
+      v4 = vqueue_get_buf(a1 + 208, (__int64)&v50);
       if ( v4 != -15 )
         continue;
     }
@@ -12951,11 +12951,11 @@ LABEL_2:
     goto LABEL_11;
   if ( v51[1] != 0 )
   {
-    v6 = sub_94031F00((__int64)v51, 0x38u);
+    v6 = vqueue_map_iovs((__int64)v51, 0x38u);
     if ( v6 != 0 )
     {
       LODWORD(v5) = v6;
-      sub_9404CB4C("%s:%d: failed to map iovs %d\n", "handle_rx_msg", 574, v6);
+      printf("%s:%d: failed to map iovs %d\n", "handle_rx_msg", 574, v6);
       goto LABEL_11;
     }
     v7 = (unsigned __int64)v53[1];
@@ -12979,7 +12979,7 @@ LABEL_2:
       v54[3] = 0;
       v49[1] = v11;
       v54[1] = v49;
-      sub_940251F8(a1 + 70144, 0xFFFFFFFFLL);
+      mutex_acquire_timeout(a1 + 70144, 0xFFFFFFFFLL);
       v14 = a1 + 70144;
       if ( (unsigned int)(v37 - 1000) <= 0xFF
         && ((*(_QWORD *)(a1 + 8 * ((unsigned __int64)(unsigned int)(v37 - 1000) >> 6) + 69984) >> ((unsigned __int8)v37
@@ -12992,17 +12992,17 @@ LABEL_2:
           v16 = *(_QWORD *)(v15 + 360);
           if ( v16 != 0 )
           {
-            LODWORD(v5) = sub_94030F50(v16, (__int64)v54);
+            LODWORD(v5) = sys_msg_send(v16, (__int64)v54);
             v14 = a1 + 70144;
           }
         }
       }
-      sub_9402530C(v14);
+      mutex_release(v14);
       goto LABEL_10;
     }
     if ( v8 == (int *)-16LL )
     {
-      LODWORD(v24) = sub_9404B508(
+      LODWORD(v24) = panic(
                        v3,
                        "DEBUG ASSERT FAILED at (%s:%d): %s\n",
                        "lk/trusty/lib/trusty/tipc_dev.c",
@@ -13025,7 +13025,7 @@ LABEL_49:
         {
           v5 = a1 + 70144;
           v40 = v8[6];
-          sub_940251F8(a1 + 70144, 0xFFFFFFFFLL);
+          mutex_acquire_timeout(a1 + 70144, 0xFFFFFFFFLL);
           if ( (unsigned int)(v40 - 1000) <= 0xFF
             && ((*(_QWORD *)(a1 + 8 * ((unsigned __int64)(unsigned int)(v40 - 1000) >> 6) + 69984) >> ((unsigned __int8)v40 + 24))
               & 1) != 0
@@ -13053,14 +13053,14 @@ LABEL_49:
             v38 = v20;
             v41 = v23;
             v44 = *(_QWORD **)(v23 + 8);
-            sub_9402DE38(a1 + 70064, v44);
+            hlist_remove_handle(a1 + 70064, v44);
             v44[12] = 0;
-            sub_9402DADC((__int64)v44);
+            handle_decref((__int64)v44);
             v23 = v41;
             v20 = v38;
             if ( *(_BYTE *)(v41 + 16) != 0 )
             {
-              sub_9402BE9C((const char *)(v41 + 16), a1);
+              tam_unload_request((const char *)(v41 + 16), a1);
               v20 = v38;
               v23 = v41;
             }
@@ -13071,7 +13071,7 @@ LABEL_49:
 LABEL_43:
             v25 = v5;
             LODWORD(v5) = 0;
-            sub_9402530C(v25);
+            mutex_release(v25);
             goto LABEL_10;
           }
 LABEL_51:
@@ -13092,12 +13092,12 @@ LABEL_51:
     if ( v18 != 256 )
       goto LABEL_49;
     v47 = 0;
-    sub_9404D01C(v54, v8 + 6, 256);
-    v26 = sub_940300B4(*(_QWORD *)(a1 + 40), (__int64)v54, 0x100u, 0, &v47);
+    strncpy(v54, v8 + 6, 256);
+    v26 = ipc_chan_open(*(_QWORD *)(a1 + 40), (__int64)v54, 0x100u, 0, &v47);
     v27 = v45;
     if ( v26 == -2 )
     {
-      sub_9402BDA8((const char *)v54, a1, v45);
+      tam_load_request((const char *)v54, a1, v45);
       v28 = v47;
       v29 = 0;
       v35 = -2;
@@ -13116,19 +13116,19 @@ LABEL_51:
 LABEL_48:
           *(_QWORD *)(v28 + 96) = v29;
           LODWORD(v5) = 0;
-          sub_9402DD0C((_QWORD *)(a1 + 70064), v28);
-          sub_94024FDC(a1 + 70016, 0);
+          hlist_add_handle((_QWORD *)(a1 + 70064), v28);
+          event_signal(a1 + 70016, 0);
           goto LABEL_10;
         }
       }
       else
       {
         v42 = a1 + 70144;
-        sub_940251F8(a1 + 70144, 0xFFFFFFFFLL);
-        v30 = sub_94033214((_QWORD *)a1, v45, v47, 0);
+        mutex_acquire_timeout(a1 + 70144, 0xFFFFFFFFLL);
+        v30 = tipc_handle_alloc((_QWORD *)a1, v45, v47, 0);
         if ( v30 != 0 )
         {
-          sub_9402530C(v42);
+          mutex_release(v42);
           v28 = v47;
           v27 = v45;
           if ( v47 != 0 )
@@ -13142,9 +13142,9 @@ LABEL_48:
         }
         else
         {
-          sub_9402DADC(v47);
+          handle_decref(v47);
           v47 = 0;
-          sub_9402530C(v42);
+          mutex_release(v42);
           v28 = v47;
           v29 = 0;
           v27 = v45;
@@ -13154,33 +13154,33 @@ LABEL_48:
       }
       v36 = v30;
       LODWORD(v5) = 0;
-      v35 = sub_940331B4(a1, v36, v27, -41, 0, 0);
+      v35 = tipc_send_cmd(a1, v36, v27, -41, 0, 0);
       if ( v35 == 0 )
         goto LABEL_10;
     }
     LODWORD(v5) = v35;
-    sub_9404CB4C("%s:%d: failed (%d) to send response\n", "handle_conn_req", 406);
+    printf("%s:%d: failed (%d) to send response\n", "handle_conn_req", 406);
     goto LABEL_10;
   }
   LODWORD(v5) = -8;
 LABEL_11:
   while ( 1 )
   {
-    v12 = sub_940321E0(a1 + 208, (unsigned __int16 *)&v50, v5);
+    v12 = vqueue_add_buf(a1 + 208, (unsigned __int16 *)&v50, v5);
     if ( v12 == -15 )
       return 0;
     if ( v12 == 0 )
       goto LABEL_2;
-    sub_9404B508(v3, "Unable (%d) to return buffer to vqueue\n", v12);
+    panic(v3, "Unable (%d) to return buffer to vqueue\n", v12);
 LABEL_14:
     LODWORD(v5) = -8;
 LABEL_10:
-    sub_94032094((__int64)v51);
+    vqueue_unmap_iovs((__int64)v51);
   }
 }
 
-/* ===== sub_94033914 @ 0x94033914 size 540 ===== */
-__int64 __fastcall sub_94033914(__int64 a1)
+/* ===== tipc_dev_stop @ 0x94033914 size 540 ===== */
+__int64 __fastcall tipc_dev_stop(__int64 a1)
 {
   __int64 v1; // x30
   __int64 v3; // x26
@@ -13206,14 +13206,14 @@ __int64 __fastcall sub_94033914(__int64 a1)
     v17 = a1 + 208;
     *(_BYTE *)(a1 + 70217) = 1;
     ((void (*)(void))loc_94031C08)();
-    v5 = sub_94026D1C(*(_QWORD *)(a1 + 70200), nullptr, 0x3E8u);
+    v5 = thread_join(*(_QWORD *)(a1 + 70200), nullptr, 0x3E8u);
     if ( v5 != 0 )
       goto LABEL_17;
     *(_BYTE *)(a1 + 70216) = 1;
     *(_QWORD *)(a1 + 70200) = 0;
     *(_BYTE *)(a1 + 70217) = 0;
     v6 = a1 + 69984;
-    sub_940251F8(a1 + 70144, 0xFFFFFFFFLL);
+    mutex_acquire_timeout(a1 + 70144, 0xFFFFFFFFLL);
     v7 = a1 + 352;
     v8 = 0;
     do
@@ -13225,10 +13225,10 @@ __int64 __fastcall sub_94033914(__int64 a1)
           v9 = *(_QWORD **)(v7 + 8);
           if ( v9 != nullptr )
           {
-            sub_9402DE38(a1 + 70064, v9);
+            hlist_remove_handle(a1 + 70064, v9);
             v10 = *(_QWORD *)(v7 + 8);
             *(_QWORD *)(v10 + 96) = 0;
-            sub_9402DADC(v10);
+            handle_decref(v10);
             v11 = 0xF0F0F0F0F0F0F0F1LL * ((v7 - (a1 + 352)) >> 4);
             if ( (unsigned int)v11 <= 0xFF )
               break;
@@ -13252,10 +13252,10 @@ __int64 __fastcall sub_94033914(__int64 a1)
     }
     while ( v7 != v6 );
 LABEL_13:
-    sub_9402530C(a1 + 70144);
-    sub_94024FDC(a1 + 70016, 0);
+    mutex_release(a1 + 70144);
+    event_signal(a1 + 70016, 0);
     ((void (__fastcall *)(__int64))loc_94031C08)(a1 + 64);
-    v15 = sub_94026D1C(*(_QWORD *)(a1 + 70208), nullptr, 0x3E8u);
+    v15 = thread_join(*(_QWORD *)(a1 + 70208), nullptr, 0x3E8u);
     if ( v15 == 0 )
     {
       *(_QWORD *)(a1 + 70208) = 0;
@@ -13268,16 +13268,16 @@ LABEL_13:
   }
   else
   {
-    sub_9404B508(v1, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/tipc_dev.c", 922, "vd");
+    panic(v1, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/tipc_dev.c", 922, "vd");
   }
-  sub_9404B508(v3, "unable to shutdown tx thread: %d\n", v15);
+  panic(v3, "unable to shutdown tx thread: %d\n", v15);
 LABEL_17:
-  v16 = sub_9404B508(v3, "unable to shutdown rx thread: %d\n", v5);
-  return sub_94033B30(v16);
+  v16 = panic(v3, "unable to shutdown rx thread: %d\n", v5);
+  return handle_tx_msg(v16);
 }
 
-/* ===== sub_94033B30 @ 0x94033B30 size 936 ===== */
-__int64 __fastcall sub_94033B30(__int64 a1)
+/* ===== handle_tx_msg @ 0x94033B30 size 936 ===== */
+__int64 __fastcall handle_tx_msg(__int64 a1)
 {
   __int64 v1; // x25
   __int64 v2; // x19
@@ -13314,7 +13314,7 @@ __int64 __fastcall sub_94033B30(__int64 a1)
   v22 = a1 + 70016;
   while ( 1 )
   {
-    sub_94024EFC(v22, 0xFFFFFFFFLL);
+    event_wait_timeout(v22, 0xFFFFFFFFLL);
     v4 = ((__int64 (__fastcall *)(__int64, _DWORD **, int *, __int64))loc_9402DED0)(v1 + 432, &v26, &v25, 0xFFFFFFFFLL);
     if ( v4 != -2 )
       break;
@@ -13326,9 +13326,9 @@ LABEL_11:
   {
     if ( v26 == nullptr )
     {
-      sub_9404B508(v21, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/tipc_dev.c", 817, "chan");
+      panic(v21, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/tipc_dev.c", 817, "chan");
 LABEL_26:
-      sub_9404B508(
+      panic(
         v21,
         "DEBUG ASSERT FAILED at (%s:%d): %s\n",
         "lk/trusty/lib/trusty/tipc_dev.c",
@@ -13337,22 +13337,22 @@ LABEL_26:
 LABEL_27:
       v7 = v2;
 LABEL_28:
-      sub_9402530C(v7);
+      mutex_release(v7);
       goto LABEL_10;
     }
-    if ( !sub_9402F2D4((__int64)v26) )
+    if ( !ipc_is_channel((__int64)v26) )
       goto LABEL_26;
     if ( (v25 & 1) != 0 )
     {
       v6 = (__int64)v26;
-      sub_940251F8(v1 + 512, 0xFFFFFFFFLL);
+      mutex_acquire_timeout(v1 + 512, 0xFFFFFFFFLL);
       v2 = *(_QWORD *)(v6 + 96);
       v7 = v1 + 512;
       if ( v2 == 0 )
         goto LABEL_28;
       v23 = *(_DWORD *)v2;
-      sub_9402530C(v7);
-      sub_940331B4(a1, -252645135 * ((v2 - (a1 + 352)) >> 4) + 1000, v23, 0, 4096, 1);
+      mutex_release(v7);
+      tipc_send_cmd(a1, -252645135 * ((v2 - (a1 + 352)) >> 4) + 1000, v23, 0, 4096, 1);
     }
     else
     {
@@ -13361,24 +13361,24 @@ LABEL_28:
         v2 = (__int64)v26;
         v29 = 0;
         v28 = v26;
-        sub_940251F8(v1 + 512, 0xFFFFFFFFLL);
+        mutex_acquire_timeout(v1 + 512, 0xFFFFFFFFLL);
         v8 = *(int **)(v2 + 96);
         v7 = v1 + 512;
         if ( v8 != nullptr )
         {
           v9 = *v8;
-          sub_9402530C(v7);
+          mutex_release(v7);
           while ( 1 )
           {
-            v10 = sub_940311BC(v2, &v29);
+            v10 = ipc_msg_get_next(v2, &v29);
             if ( v10 == -4 )
               goto LABEL_10;
             if ( v10 != 0 )
             {
-              sub_9404B508(v21, "%s: failed (%d) to get message\n", "handle_tx_msg", v10);
+              panic(v21, "%s: failed (%d) to get message\n", "handle_tx_msg", v10);
               goto LABEL_33;
             }
-            v11 = sub_94032DE4(
+            v11 = tipc_send_msg(
                     a1,
                     0,
                     v9,
@@ -13386,8 +13386,8 @@ LABEL_28:
                     (__int64)&v28,
                     v29);
             if ( v11 != 0 )
-              sub_9404CB4C("%s:%d: tipc_send_data failed (%d)\n", "handle_tx_msg", 724, v11);
-            sub_940312C8(v2, HIDWORD(v29));
+              printf("%s:%d: tipc_send_data failed (%d)\n", "handle_tx_msg", 724, v11);
+            ipc_msg_free(v2, HIDWORD(v29));
           }
         }
         goto LABEL_28;
@@ -13396,15 +13396,15 @@ LABEL_28:
       {
         v2 = v1 + 512;
         v12 = v26;
-        sub_940251F8(v1 + 512, 0xFFFFFFFFLL);
+        mutex_acquire_timeout(v1 + 512, 0xFFFFFFFFLL);
         v13 = (int *)v12[12];
         if ( v13 != nullptr )
         {
           v24 = *v13;
           v14 = 0xF0F0F0F0F0F0F0F1LL * (((__int64)v13 - a1 - 352) >> 4);
-          sub_9402DE38(v1 + 432, v12);
+          hlist_remove_handle(v1 + 432, v12);
           v12[12] = 0;
-          sub_9402DADC((__int64)v12);
+          handle_decref((__int64)v12);
           if ( (unsigned int)v14 <= 0xFF )
           {
             v15 = (unsigned int *)(a1 + (((__int64)(int)v14 >> 3) & 0x1FFFFFFFFFFFFFFCLL) + 69984);
@@ -13416,17 +13416,17 @@ LABEL_28:
             *(_DWORD *)(v17 + 352) = 0;
             *(_BYTE *)(v17 + 368) = 0;
           }
-          sub_9402530C(v1 + 512);
+          mutex_release(v1 + 512);
           v27[0] = 5;
           v27[1] = 4;
           v27[2] = v24;
           v28 = v27;
           v29 = 12;
-          sub_94032DE4(
+          tipc_send_msg(
             a1,
             v14 + 1000,
             53,
-            (__int64 (__fastcall *)(__int64, __int64, __int64))sub_94032C70,
+            (__int64 (__fastcall *)(__int64, __int64, __int64))tipc_copy_to_buf,
             (__int64)&v28,
             0xCu);
           goto LABEL_10;
@@ -13441,12 +13441,12 @@ LABEL_10:
       goto LABEL_11;
   }
 LABEL_33:
-  v18 = sub_9404B508(v21, "%s: couldn't wait for handle events (%d)\n", "handle_tx", v4);
-  return sub_94033ED8(v18, v19, v20);
+  v18 = panic(v21, "%s: couldn't wait for handle events (%d)\n", "handle_tx", v4);
+  return tipc_handle_save_ctx(v18, v19, v20);
 }
 
-/* ===== sub_94033ED8 @ 0x94033ED8 size 416 ===== */
-__int64 __fastcall sub_94033ED8(__int64 a1, _QWORD *a2, int a3)
+/* ===== tipc_handle_save_ctx @ 0x94033ED8 size 416 ===== */
+__int64 __fastcall tipc_handle_save_ctx(__int64 a1, _QWORD *a2, int a3)
 {
   __int64 v6; // x2
   _QWORD *v7; // x3
@@ -13458,9 +13458,9 @@ __int64 __fastcall sub_94033ED8(__int64 a1, _QWORD *a2, int a3)
   _BYTE v13[256]; // [xsp+60h] [xbp+60h] BYREF
 
   v12 = 0;
-  sub_9404CDC4(v13, 0, 256);
-  sub_9404CF0C(v13, a1);
-  if ( (unsigned int)sub_940300B4(a2[5], (__int64)v13, 0x100u, 0, &v12) != 0 )
+  memset(v13, 0, 256);
+  strcpy(v13, a1);
+  if ( (unsigned int)ipc_chan_open(a2[5], (__int64)v13, 0x100u, 0, &v12) != 0 )
   {
     v6 = v12;
     v7 = nullptr;
@@ -13470,19 +13470,19 @@ __int64 __fastcall sub_94033ED8(__int64 a1, _QWORD *a2, int a3)
     {
 LABEL_3:
       *(_QWORD *)(v6 + 96) = v7;
-      sub_9402DD0C(v8 + 54, v6);
-      sub_94024FDC((__int64)(v8 + 48), 0);
+      hlist_add_handle(v8 + 54, v6);
+      event_signal((__int64)(v8 + 48), 0);
       return 0;
     }
   }
   else
   {
     v8 = a2 + 8704;
-    sub_940251F8((__int64)(a2 + 8768), 0xFFFFFFFFLL);
-    v9 = sub_94033214(a2, a3, v12, a1);
+    mutex_acquire_timeout((__int64)(a2 + 8768), 0xFFFFFFFFLL);
+    v9 = tipc_handle_alloc(a2, a3, v12, a1);
     if ( v9 != 0 )
     {
-      sub_9402530C((__int64)(a2 + 8768));
+      mutex_release((__int64)(a2 + 8768));
       v6 = v12;
       if ( v12 != 0 )
       {
@@ -13497,27 +13497,27 @@ LABEL_3:
     }
     else
     {
-      sub_9402DADC(v12);
+      handle_decref(v12);
       v12 = 0;
-      sub_9402530C((__int64)(a2 + 8768));
+      mutex_release((__int64)(a2 + 8768));
       v6 = v12;
       v7 = nullptr;
       if ( v12 != 0 )
         goto LABEL_3;
     }
   }
-  v11 = sub_940331B4((__int64)a2, v9, a3, -41, 0, 0);
+  v11 = tipc_send_cmd((__int64)a2, v9, a3, -41, 0, 0);
   result = 0;
   if ( v11 != 0 )
   {
-    sub_9404CB4C("%s:%d: failed (%d) to send response\n", "tipc_handle_save_ctx", 350, v11);
+    printf("%s:%d: failed (%d) to send response\n", "tipc_handle_save_ctx", 350, v11);
     return v11;
   }
   return result;
 }
 
-/* ===== sub_94034078 @ 0x94034078 size 336 ===== */
-__int64 __fastcall sub_94034078(__int64 a1, __int64 a2, __int64 a3, _QWORD *a4)
+/* ===== tipc_dev_create @ 0x94034078 size 336 ===== */
+__int64 __fastcall tipc_dev_create(__int64 a1, __int64 a2, __int64 a3, _QWORD *a4)
 {
   __int64 v4; // x30
   __int64 v9; // x0
@@ -13527,32 +13527,32 @@ __int64 __fastcall sub_94034078(__int64 a1, __int64 a2, __int64 a3, _QWORD *a4)
 
   if ( a3 == 0 )
   {
-    sub_9404B508(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/tipc_dev.c", 1238, "uuid");
+    panic(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/tipc_dev.c", 1238, "uuid");
   }
   else if ( a1 != 0 )
   {
     if ( a2 == 0 )
     {
 LABEL_13:
-      sub_9404B508(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/tipc_dev.c", 1240, "size");
+      panic(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/tipc_dev.c", 1240, "size");
       return 4294967291LL;
     }
-    v9 = sub_9404CBDC(1, 70224);
+    v9 = calloc(1, 70224);
     v10 = (_QWORD *)v9;
     if ( v9 == 0 )
       return 4294967291LL;
     v11 = v9 + 69632;
-    sub_940251C4(v9 + 70144);
+    mutex_init(v9 + 70144);
     v10[5] = a3;
     v10[6] = a1;
     v10[4] = qword_9405AD88;
     v10[7] = a2;
-    sub_9402DC9C((_QWORD *)(v11 + 432));
-    sub_94024DFC(v11 + 384, 0, 1);
-    v12 = sub_94032520((__int64)v10);
+    hlist_init((_QWORD *)(v11 + 432));
+    event_init(v11 + 384, 0, 1);
+    v12 = virtio_register_device((__int64)v10);
     if ( v12 != 0 )
     {
-      sub_9404CC20(v10);
+      free(v10);
       return v12;
     }
     else
@@ -13562,23 +13562,23 @@ LABEL_13:
       return 0;
     }
   }
-  sub_9404B508(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/tipc_dev.c", 1239, "descr");
+  panic(v4, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "lk/trusty/lib/trusty/tipc_dev.c", 1239, "descr");
   goto LABEL_13;
 }
 
-/* ===== sub_940341C8 @ 0x940341C8 size 80 ===== */
-__int64 sub_940341C8()
+/* ===== tipc_init @ 0x940341C8 size 80 ===== */
+__int64 tipc_init()
 {
   __int64 result; // x0
 
-  result = sub_94034078((__int64)qword_94051880, 108, -536668192, nullptr);
+  result = tipc_dev_create((__int64)qword_94051880, 108, -536668192, nullptr);
   if ( (_DWORD)result != 0 )
-    return sub_9404CB4C("%s:%d: WARNING: failed (%d) to register tipc device\n", "tipc_init", 51, result);
+    return printf("%s:%d: WARNING: failed (%d) to register tipc device\n", "tipc_init", 51, result);
   return result;
 }
 
-/* ===== sub_94034218 @ 0x94034218 size 20 ===== */
-bool __fastcall sub_94034218(__int64 a1)
+/* ===== is_tipc_uuid @ 0x94034218 size 20 ===== */
+bool __fastcall is_tipc_uuid(__int64 a1)
 {
   return a1 == -536668192;
 }
@@ -13595,8 +13595,8 @@ void nullsub_6()
   ;
 }
 
-/* ===== sub_94034234 @ 0x94034234 size 212 ===== */
-__int64 __fastcall sub_94034234(int a1)
+/* ===== clk_get_info @ 0x94034234 size 212 ===== */
+__int64 __fastcall clk_get_info(int a1)
 {
   __int64 v1; // x1
   int v2; // t1
@@ -13650,18 +13650,18 @@ LABEL_8:
   return result;
 }
 
-/* ===== sub_94034308 @ 0x94034308 size 160 ===== */
-__int64 __fastcall sub_94034308(int a1)
+/* ===== clk_enable @ 0x94034308 size 160 ===== */
+__int64 __fastcall clk_enable(int a1)
 {
   __int64 v2; // x19
   int v3; // w0
   __int64 v4; // x1
   unsigned int v6; // [xsp+2Ch] [xbp+2Ch] BYREF
 
-  v2 = sub_94034234(a1);
+  v2 = clk_get_info(a1);
   if ( v2 != 0 )
   {
-    sub_94040978(&qword_94067928, &v6, 3221225472LL);
+    sprd_spin_lock_irqsave(&qword_94067928, &v6, 3221225472LL);
     v3 = *(_DWORD *)(v2 + 24);
     if ( v3 == 0 )
     {
@@ -13670,28 +13670,28 @@ __int64 __fastcall sub_94034308(int a1)
     }
     v4 = v6;
     *(_DWORD *)(v2 + 24) = v3 + 1;
-    sub_940409B8(&qword_94067928, v4, 3221225472LL);
+    sprd_spin_unlock_irqrestore(&qword_94067928, v4, 3221225472LL);
     return 0;
   }
   else
   {
-    sub_940407DC(2, "clk_get_info type:%d failed\n", a1);
+    sprd_log(2, "clk_get_info type:%d failed\n", a1);
     return 1;
   }
 }
 
-/* ===== sub_940343A8 @ 0x940343A8 size 212 ===== */
-__int64 __fastcall sub_940343A8(int a1)
+/* ===== clk_disable @ 0x940343A8 size 212 ===== */
+__int64 __fastcall clk_disable(int a1)
 {
   __int64 v2; // x19
   int v3; // w0
   unsigned int v4; // w20
   unsigned int v6; // [xsp+3Ch] [xbp+3Ch] BYREF
 
-  v2 = sub_94034234(a1);
+  v2 = clk_get_info(a1);
   if ( v2 != 0 )
   {
-    sub_94040978(&qword_94067928, &v6, 3221225472LL);
+    sprd_spin_lock_irqsave(&qword_94067928, &v6, 3221225472LL);
     v3 = *(_DWORD *)(v2 + 24);
     if ( v3 != 0 )
     {
@@ -13703,45 +13703,45 @@ __int64 __fastcall sub_940343A8(int a1)
     else
     {
       v4 = 1;
-      sub_940407DC(4, "%s clk:%s enable_count=0!\n", "clk_enable_restore", *(const char **)(v2 + 32));
+      sprd_log(4, "%s clk:%s enable_count=0!\n", "clk_enable_restore", *(const char **)(v2 + 32));
     }
-    sub_940409B8(&qword_94067928, v6, 3221225472LL);
+    sprd_spin_unlock_irqrestore(&qword_94067928, v6, 3221225472LL);
     return v4;
   }
   else
   {
-    sub_940407DC(2, "clk_get_info type:%d failed\n", a1);
+    sprd_log(2, "clk_get_info type:%d failed\n", a1);
     return 1;
   }
 }
 
-/* ===== sub_9403447C @ 0x9403447C size 216 ===== */
-__int64 sub_9403447C()
+/* ===== sprd_glb_clk_init @ 0x9403447C size 216 ===== */
+__int64 sprd_glb_clk_init()
 {
-  if ( (unsigned int)sub_940408CC("ap_apb", 1898971136, 0x10000, 2, -536472992) != 0
-    || (unsigned int)sub_940408CC("ap_ahb", 551550976, 0x10000, 2, -536473000) != 0
-    || (unsigned int)sub_940408CC("aon_apb", 1076756480, 0x10000, 2, -536473008) != 0
-    || (unsigned int)sub_940408CC("sec_aon_apb", 839188480, 0x10000, 2, -536472984) != 0 )
+  if ( (unsigned int)sprd_iomap("ap_apb", 1898971136, 0x10000, 2, -536472992) != 0
+    || (unsigned int)sprd_iomap("ap_ahb", 551550976, 0x10000, 2, -536473000) != 0
+    || (unsigned int)sprd_iomap("aon_apb", 1076756480, 0x10000, 2, -536473008) != 0
+    || (unsigned int)sprd_iomap("sec_aon_apb", 839188480, 0x10000, 2, -536472984) != 0 )
   {
-    return sub_940407DC(2, "%s: failed %d\n");
+    return sprd_log(2, "%s: failed %d\n");
   }
   else
   {
-    return sub_940407DC(2, "sprd glb clk is ok!\n");
+    return sprd_log(2, "sprd glb clk is ok!\n");
   }
 }
 
-/* ===== sub_94034554 @ 0x94034554 size 20 ===== */
-__int64 sub_94034554()
+/* ===== sprd_crypto_init_entry @ 0x94034554 size 20 ===== */
+__int64 sprd_crypto_init_entry()
 {
   __int64 v0; // x0
 
-  v0 = sub_94037604();
-  return sub_9403535C(v0);
+  v0 = sprd_crypto_init();
+  return install_crypto_handler(v0);
 }
 
-/* ===== sub_94034568 @ 0x94034568 size 3504 ===== */
-__int64 __fastcall sub_94034568(int a1, unsigned int a2)
+/* ===== sprd_crypto_ioctl @ 0x94034568 size 3504 ===== */
+__int64 __fastcall sprd_crypto_ioctl(int a1, unsigned int a2)
 {
   unsigned int v3; // w19
   __int64 v5; // x22
@@ -13804,147 +13804,147 @@ __int64 __fastcall sub_94034568(int a1, unsigned int a2)
   switch ( a1 )
   {
     case 2:
-      sub_9404D244(&v36, a2, 32);
-      v9 = sub_9404CBC4(HIDWORD(v38));
-      v10 = sub_9404CBC4(164);
-      v11 = sub_9404CBC4(1024);
+      copy_from_user(&v36, a2, 32);
+      v9 = malloc(HIDWORD(v38));
+      v10 = malloc(164);
+      v11 = malloc(1024);
       if ( v9 != 0 && v10 != 0 )
       {
-        sub_9404D244(v9, (unsigned int)v38, HIDWORD(v38));
-        sub_9404D244(&v40, HIDWORD(v36), 84);
-        v27 = sub_94038FE8(v45, &v40, HIDWORD(v37), &v47);
-        v28 = sub_94038DF0(v45, &v47, v9, BYTE4(v38), v10) | v27;
-        v3 = v28 | sub_94039298(v10, v11, &v39);
+        copy_from_user(v9, (unsigned int)v38, HIDWORD(v38));
+        copy_from_user(&v40, HIDWORD(v36), 84);
+        v27 = sprd_ecc_verify_init(v45, &v40, HIDWORD(v37), &v47);
+        v28 = sprd_ecc_sign(v45, &v47, v9, BYTE4(v38), v10) | v27;
+        v3 = v28 | sprd_ecc_sign_result(v10, v11, &v39);
         if ( v3 != 0 )
         {
           if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-            sub_9404B2FC("SPRD_ENGINE_ECC_SIGN failed !errno (%X)\n", v3);
+            log_printf("SPRD_ENGINE_ECC_SIGN failed !errno (%X)\n", v3);
         }
         else
         {
-          sub_9404D224(HIDWORD(v39), v11, (unsigned int)v39);
-          sub_9404D224(a2, &v36, 32);
+          copy_to_user(HIDWORD(v39), v11, (unsigned int)v39);
+          copy_to_user(a2, &v36, 32);
         }
       }
       else
       {
         if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-          sub_9404B2FC("Cann't malloc when operate SPRD_ENGINE_ECC_SIGN !\n");
+          log_printf("Cann't malloc when operate SPRD_ENGINE_ECC_SIGN !\n");
         v3 = -5;
         if ( v9 == 0 )
           goto LABEL_18;
       }
-      sub_9404CC20(v9);
+      free(v9);
 LABEL_18:
       if ( v10 != 0 )
-        sub_9404CC20(v10);
+        free(v10);
       if ( v11 != 0 )
-        sub_9404CC20(v11);
+        free(v11);
       return v3;
     case 3:
-      sub_9404D244(&v36, a2, 32);
-      v12 = sub_9404CBC4((unsigned int)v39);
-      v13 = sub_9404CBC4(164);
-      v14 = sub_9404CBC4(164);
+      copy_from_user(&v36, a2, 32);
+      v12 = malloc((unsigned int)v39);
+      v13 = malloc(164);
+      v14 = malloc(164);
       if ( v12 != 0 && v13 != 0 && v14 != 0 )
       {
-        sub_9404D244(v12, (unsigned int)v38, HIDWORD(v38));
-        sub_9404D244(v14, HIDWORD(v39), (unsigned int)v39);
-        sub_9404D244(&v40, (unsigned int)v36, 164);
-        v15 = sub_940390B8(v46, &v40, (unsigned int)(2 * v37), &v47);
-        v16 = sub_940391A8(v46, v14, HIDWORD(v38), v13) | v15;
-        v3 = v16 | sub_94038ED8(v46, &v47, v12, (unsigned __int8)v39, v13);
+        copy_from_user(v12, (unsigned int)v38, HIDWORD(v38));
+        copy_from_user(v14, HIDWORD(v39), (unsigned int)v39);
+        copy_from_user(&v40, (unsigned int)v36, 164);
+        v15 = sprd_ecc_verify_prepare(v46, &v40, (unsigned int)(2 * v37), &v47);
+        v16 = sprd_ecc_verify_prepare2(v46, v14, HIDWORD(v38), v13) | v15;
+        v3 = v16 | sprd_ecc_verify(v46, &v47, v12, (unsigned __int8)v39, v13);
         if ( v3 != 0 )
         {
           if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-            sub_9404B2FC("SPRD_ENGINE_ECC_VERIFY failed !errno (%X)\n", v3);
+            log_printf("SPRD_ENGINE_ECC_VERIFY failed !errno (%X)\n", v3);
         }
         else
         {
-          sub_9404D224(a2, &v36, 32);
+          copy_to_user(a2, &v36, 32);
         }
 LABEL_27:
-        sub_9404CC20(v13);
+        free(v13);
         goto LABEL_28;
       }
       if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-        sub_9404B2FC("Cann't malloc when operate SPRD_ENGINE_ECC_SIGN !\n");
+        log_printf("Cann't malloc when operate SPRD_ENGINE_ECC_SIGN !\n");
       v3 = -5;
       if ( v13 != 0 )
         goto LABEL_27;
 LABEL_28:
       if ( v14 != 0 )
-        sub_9404CC20(v14);
+        free(v14);
       if ( v12 != 0 )
-        sub_9404CC20(v12);
+        free(v12);
       return v3;
     case 32:
-      sub_9404D244(&v47, a2, 8);
-      v24 = sub_9404CBC4(v47);
+      copy_from_user(&v47, a2, 8);
+      v24 = malloc(v47);
       if ( v24 != 0 )
       {
         v3 = 0;
-        sub_9403B7D4(v47, v24);
-        sub_9404D224(v48, v24, v47);
-        sub_9404D224(a2, &v47, 8);
-        sub_9404CC20(v24);
+        sprd_rsa_prime_gen(v47, v24);
+        copy_to_user(v48, v24, v47);
+        copy_to_user(a2, &v47, 8);
+        free(v24);
       }
       else
       {
         v3 = -5;
         if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-          sub_9404B2FC("Cann't malloc when operate SPRD_ENGINE_RSA_GEN_PRIME !\n");
+          log_printf("Cann't malloc when operate SPRD_ENGINE_RSA_GEN_PRIME !\n");
       }
       return v3;
     case 33:
-      sub_9404D244(&v47, a2, 68);
-      v19 = sub_9404CBC4(v54);
-      v20 = sub_9404CBC4((int)v55);
-      v21 = sub_9404CBC4((int)v55);
+      copy_from_user(&v47, a2, 68);
+      v19 = malloc(v54);
+      v20 = malloc((int)v55);
+      v21 = malloc((int)v55);
       if ( v20 != 0 && v19 != 0 && v21 != 0 )
       {
-        sub_9404D244(v19, v53[1], v54);
-        v3 = sub_9403B4E0(v19, v54, v55, v21, v20);
+        copy_from_user(v19, v53[1], v54);
+        v3 = sprd_rsa_key_gen(v19, v54, v55, v21, v20);
         if ( v3 != 0 )
         {
           if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-            sub_9404B2FC("sprd_rsa_key_gen failed !errno (%X)\n", v3);
+            log_printf("sprd_rsa_key_gen failed !errno (%X)\n", v3);
         }
         else
         {
-          sub_9404D224(v56, v21, (int)v55);
-          sub_9404D224(v57, v20, (int)v55);
-          sub_9404D224(a2, &v47, 68);
+          copy_to_user(v56, v21, (int)v55);
+          copy_to_user(v57, v20, (int)v55);
+          copy_to_user(a2, &v47, 68);
         }
 LABEL_49:
-        sub_9404CC20(v19);
+        free(v19);
         goto LABEL_50;
       }
       if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-        sub_9404B2FC("Cann't malloc when operate SPRD_ENGINE_RSA_GEN !\n");
+        log_printf("Cann't malloc when operate SPRD_ENGINE_RSA_GEN !\n");
       v3 = -5;
       if ( v19 != 0 )
         goto LABEL_49;
 LABEL_50:
       if ( v20 != 0 )
-        sub_9404CC20(v20);
+        free(v20);
       if ( v21 == 0 )
         return v3;
       v8 = v21;
       goto LABEL_11;
     case 34:
-      sub_9404D244(&v47, a2, 68);
-      sub_9404D244(v35, v48, 16);
+      copy_from_user(&v47, a2, 68);
+      copy_from_user(v35, v48, 16);
       v38 = v35[1];
-      v37 = sub_9404CBC4(HIDWORD(v35[1]));
-      v36 = sub_9404CBC4((unsigned int)v38);
-      v22 = sub_9404CBC4(v50);
-      v23 = sub_9404CBC4(v50);
+      v37 = malloc(HIDWORD(v35[1]));
+      v36 = malloc((unsigned int)v38);
+      v22 = malloc(v50);
+      v23 = malloc(v50);
       if ( v23 != 0 && v22 != 0 && v37 != 0 && v36 != 0 )
       {
-        sub_9404D244(v37, HIDWORD(v35[0]), HIDWORD(v38));
-        sub_9404D244(v36, LODWORD(v35[0]), (unsigned int)v38);
-        sub_9404D244(v22, v49, v50);
+        copy_from_user(v37, HIDWORD(v35[0]), HIDWORD(v38));
+        copy_from_user(v36, LODWORD(v35[0]), (unsigned int)v38);
+        copy_from_user(v22, v49, v50);
         LODWORD(v40) = v58;
         switch ( v58 )
         {
@@ -13957,7 +13957,7 @@ LABEL_50:
           case 11:
             LODWORD(v41) = v59;
             LODWORD(v43) = v60;
-            sub_9404D244(v42, HIDWORD(v59), v60);
+            copy_from_user(v42, HIDWORD(v59), v60);
             break;
           default:
             break;
@@ -13966,42 +13966,42 @@ LABEL_50:
         v32[1] = v41;
         v33 = v42;
         v34 = v43;
-        v3 = sub_9403B158(&v36, v22, v50, v23, &v52, v32);
+        v3 = sprd_rsa_public_encrypt(&v36, v22, v50, v23, &v52, v32);
         if ( v3 != 0 )
         {
           if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-            sub_9404B2FC("sprd_rsa_public_encrypt failed !errno (%X)\n", v3);
+            log_printf("sprd_rsa_public_encrypt failed !errno (%X)\n", v3);
         }
         else
         {
-          sub_9404D224(v51, v23, v52);
-          sub_9404D224(a2, &v47, 68);
+          copy_to_user(v51, v23, v52);
+          copy_to_user(a2, &v47, 68);
         }
         goto LABEL_110;
       }
       if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-        sub_9404B2FC("Cann't malloc when operate SPRD_ENGINE_RSA_ENCRYPT !\n");
+        log_printf("Cann't malloc when operate SPRD_ENGINE_RSA_ENCRYPT !\n");
       goto LABEL_109;
     case 35:
-      sub_9404D244(&v47, a2, 68);
-      sub_9404D244(v35, v47, 24);
+      copy_from_user(&v47, a2, 68);
+      copy_from_user(v35, v47, 24);
       v43 = *(_QWORD *)((char *)&v35[1] + 4);
       v44 = HIDWORD(v35[2]);
-      v41 = sub_9404CBC4(LODWORD(v35[2]));
-      v40 = sub_9404CBC4((unsigned int)v43);
-      v42 = sub_9404CBC4(v44);
-      v17 = sub_9404CBC4(v52);
-      v18 = sub_9404CBC4(v52);
+      v41 = malloc(LODWORD(v35[2]));
+      v40 = malloc((unsigned int)v43);
+      v42 = malloc(v44);
+      v17 = malloc(v52);
+      v18 = malloc(v52);
       if ( v18 == 0 || v17 == 0 || v41 == 0 || v42 == 0 || v40 == 0 )
       {
         if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-          sub_9404B2FC("Cann't malloc when operate SPRD_ENGINE_RSA_DECRYPT !\n");
+          log_printf("Cann't malloc when operate SPRD_ENGINE_RSA_DECRYPT !\n");
         goto LABEL_95;
       }
-      sub_9404D244(v41, HIDWORD(v35[0]), HIDWORD(v43));
-      sub_9404D244(v40, LODWORD(v35[0]), (unsigned int)v43);
-      sub_9404D244(v42, LODWORD(v35[1]), v44);
-      sub_9404D244(v17, v51, v52);
+      copy_from_user(v41, HIDWORD(v35[0]), HIDWORD(v43));
+      copy_from_user(v40, LODWORD(v35[0]), (unsigned int)v43);
+      copy_from_user(v42, LODWORD(v35[1]), v44);
+      copy_from_user(v17, v51, v52);
       LODWORD(v36) = v58;
       switch ( v58 )
       {
@@ -14014,7 +14014,7 @@ LABEL_50:
         case 11:
           LODWORD(v37) = v59;
           LODWORD(v39) = v60;
-          sub_9404D244(v38, HIDWORD(v59), v60);
+          copy_from_user(v38, HIDWORD(v59), v60);
           break;
         default:
           break;
@@ -14023,7 +14023,7 @@ LABEL_50:
       v32[1] = v37;
       v33 = v38;
       v34 = v39;
-      v3 = sub_9403B31C(&v40, v17, v52, v18, &v50, v32);
+      v3 = sprd_rsa_private_decrypt(&v40, v17, v52, v18, &v50, v32);
       if ( v3 == 0 )
       {
         v29 = v50;
@@ -14032,24 +14032,24 @@ LABEL_50:
         goto LABEL_145;
       }
       if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-        sub_9404B2FC("sprd_rsa_private_decrypt failed !errno (%X)\n", v3);
+        log_printf("sprd_rsa_private_decrypt failed !errno (%X)\n", v3);
       goto LABEL_96;
     case 36:
-      sub_9404D244(&v47, a2, 68);
-      sub_9404D244(v35, v47, 24);
+      copy_from_user(&v47, a2, 68);
+      copy_from_user(v35, v47, 24);
       v43 = *(_QWORD *)((char *)&v35[1] + 4);
       v44 = HIDWORD(v35[2]);
-      v41 = sub_9404CBC4(LODWORD(v35[2]));
-      v40 = sub_9404CBC4((unsigned int)v43);
-      v42 = sub_9404CBC4(v44);
-      v17 = sub_9404CBC4(v50);
-      v18 = sub_9404CBC4(4096);
+      v41 = malloc(LODWORD(v35[2]));
+      v40 = malloc((unsigned int)v43);
+      v42 = malloc(v44);
+      v17 = malloc(v50);
+      v18 = malloc(4096);
       if ( v18 != 0 && v17 != 0 && v41 != 0 && v42 != 0 && v40 != 0 )
       {
-        sub_9404D244(v41, HIDWORD(v35[0]), HIDWORD(v43));
-        sub_9404D244(v40, LODWORD(v35[0]), (unsigned int)v43);
-        sub_9404D244(v42, LODWORD(v35[1]), v44);
-        sub_9404D244(v17, v49, v50);
+        copy_from_user(v41, HIDWORD(v35[0]), HIDWORD(v43));
+        copy_from_user(v40, LODWORD(v35[0]), (unsigned int)v43);
+        copy_from_user(v42, LODWORD(v35[1]), v44);
+        copy_from_user(v17, v49, v50);
         LODWORD(v36) = v58;
         switch ( v58 )
         {
@@ -14062,7 +14062,7 @@ LABEL_50:
           case 11:
             LODWORD(v37) = v59;
             LODWORD(v39) = v60;
-            sub_9404D244(v38, HIDWORD(v59), v60);
+            copy_from_user(v38, HIDWORD(v59), v60);
             break;
           default:
             break;
@@ -14071,11 +14071,11 @@ LABEL_50:
         v32[1] = v37;
         v33 = v38;
         v34 = v39;
-        v3 = sub_9403B9E4(&v40, v17, v50, v18, &v52, v32);
+        v3 = sprd_rsa_sign(&v40, v17, v50, v18, &v52, v32);
         if ( v3 != 0 )
         {
           if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-            sub_9404B2FC("sprd_rsa_sign failed !errno (%X)\n", v3);
+            log_printf("sprd_rsa_sign failed !errno (%X)\n", v3);
         }
         else
         {
@@ -14083,44 +14083,44 @@ LABEL_50:
           v30 = v18;
           v31 = v51;
 LABEL_145:
-          sub_9404D224(v31, v30, v29);
-          sub_9404D224(a2, &v47, 68);
+          copy_to_user(v31, v30, v29);
+          copy_to_user(a2, &v47, 68);
         }
 LABEL_96:
-        sub_9404CC20(v17);
+        free(v17);
         goto LABEL_97;
       }
       if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-        sub_9404B2FC("Cann't malloc when operate SPRD_ENGINE_RSA_SIGN !\n");
+        log_printf("Cann't malloc when operate SPRD_ENGINE_RSA_SIGN !\n");
 LABEL_95:
       v3 = -5;
       if ( v17 != 0 )
         goto LABEL_96;
 LABEL_97:
       if ( v18 != 0 )
-        sub_9404CC20(v18);
+        free(v18);
       if ( v41 != 0 )
-        sub_9404CC20(v41);
+        free(v41);
       if ( v40 != 0 )
-        sub_9404CC20(v40);
+        free(v40);
       v8 = v42;
       if ( v42 != 0 )
         goto LABEL_11;
       return v3;
     case 37:
-      sub_9404D244(&v47, a2, 68);
-      sub_9404D244(v35, v48, 16);
+      copy_from_user(&v47, a2, 68);
+      copy_from_user(v35, v48, 16);
       v38 = v35[1];
-      v37 = sub_9404CBC4(HIDWORD(v35[1]));
-      v36 = sub_9404CBC4((unsigned int)v38);
-      v22 = sub_9404CBC4(v50);
-      v23 = sub_9404CBC4(v52);
+      v37 = malloc(HIDWORD(v35[1]));
+      v36 = malloc((unsigned int)v38);
+      v22 = malloc(v50);
+      v23 = malloc(v52);
       if ( v23 != 0 && v22 != 0 && v37 != 0 && v36 != 0 )
       {
-        sub_9404D244(v37, HIDWORD(v35[0]), HIDWORD(v38));
-        sub_9404D244(v36, LODWORD(v35[0]), (unsigned int)v38);
-        sub_9404D244(v23, v51, v52);
-        sub_9404D244(v22, v49, v50);
+        copy_from_user(v37, HIDWORD(v35[0]), HIDWORD(v38));
+        copy_from_user(v36, LODWORD(v35[0]), (unsigned int)v38);
+        copy_from_user(v23, v51, v52);
+        copy_from_user(v22, v49, v50);
         LODWORD(v40) = v58;
         switch ( v58 )
         {
@@ -14133,7 +14133,7 @@ LABEL_97:
           case 11:
             LODWORD(v41) = v59;
             LODWORD(v43) = v60;
-            sub_9404D244(v42, HIDWORD(v59), v60);
+            copy_from_user(v42, HIDWORD(v59), v60);
             break;
           default:
             break;
@@ -14142,44 +14142,44 @@ LABEL_97:
         v32[1] = v41;
         v33 = v42;
         v34 = v43;
-        v3 = sub_9403BC1C(&v36, v22, v50, v23, v52, v32, v53);
+        v3 = sprd_rsa_verify(&v36, v22, v50, v23, v52, v32, v53);
         if ( v3 != 0 )
         {
           if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-            sub_9404B2FC("sprd_rsa_verify failed !errno (%X)\n", v3);
+            log_printf("sprd_rsa_verify failed !errno (%X)\n", v3);
         }
         else
         {
-          sub_9404D224(a2, &v47, 68);
+          copy_to_user(a2, &v47, 68);
         }
 LABEL_110:
-        sub_9404CC20(v22);
+        free(v22);
         goto LABEL_111;
       }
       if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-        sub_9404B2FC("Cann't malloc when operate SPRD_ENGINE_RSA_VERIFY !\n");
+        log_printf("Cann't malloc when operate SPRD_ENGINE_RSA_VERIFY !\n");
 LABEL_109:
       v3 = -5;
       if ( v22 != 0 )
         goto LABEL_110;
 LABEL_111:
       if ( v23 != 0 )
-        sub_9404CC20(v23);
+        free(v23);
       if ( v37 != 0 )
-        sub_9404CC20(v37);
+        free(v37);
       v8 = v36;
       if ( v36 != 0 )
         goto LABEL_11;
       return v3;
     case 49:
-      sub_9404D244(&v47, a2, 8);
-      v25 = sub_9404CBC4(v47);
+      copy_from_user(&v47, a2, 8);
+      v25 = malloc(v47);
       v26 = v25;
       if ( v25 != 0 )
       {
-        v3 = sub_9403BFB0(v25, v47);
-        sub_9404D224(v48, v26, v47);
-        sub_9404D224(a2, &v47, 8);
+        v3 = sprd_rng_gen(v25, v47);
+        copy_to_user(v48, v26, v47);
+        copy_to_user(a2, &v47, 8);
 LABEL_81:
         v8 = v26;
         goto LABEL_11;
@@ -14187,63 +14187,63 @@ LABEL_81:
       v3 = -5;
       if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) != 0 )
         goto LABEL_81;
-      sub_9404B2FC("Cann't malloc when operate SPRD_ENGINE_RNG_GEN !\n");
+      log_printf("Cann't malloc when operate SPRD_ENGINE_RNG_GEN !\n");
       v8 = 0;
 LABEL_11:
-      sub_9404CC20(v8);
+      free(v8);
       return v3;
     case 65:
-      sub_9404D244(&v47, a2, 16);
-      v5 = sub_9404CBC4(v48);
-      v6 = sub_9404CBC4(v47);
+      copy_from_user(&v47, a2, 16);
+      v5 = malloc(v48);
+      v6 = malloc(v47);
       v7 = v6;
       if ( v5 != 0 && v6 != 0 )
       {
-        sub_9404D244(v6, v49, v47);
-        v3 = sub_94037BF4(v7, v47, v5, v48);
-        sub_9404D224(v50, v5, v48);
-        sub_9404D224(a2, &v47, 16);
+        copy_from_user(v6, v49, v47);
+        v3 = sprd_huk_derive(v7, v47, v5, v48);
+        copy_to_user(v50, v5, v48);
+        copy_to_user(a2, &v47, 16);
       }
       else
       {
         v3 = -5;
         if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-          sub_9404B2FC("Cann't malloc when operate SPRD_ENGINE_HUK_DERIVE !\n");
+          log_printf("Cann't malloc when operate SPRD_ENGINE_HUK_DERIVE !\n");
       }
-      sub_9404CC20(v5);
+      free(v5);
       v8 = v7;
       goto LABEL_11;
     default:
       v3 = -24;
       if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-        sub_9404B2FC("Don't support this cmd %d  \n", a1);
+        log_printf("Don't support this cmd %d  \n", a1);
       return v3;
   }
 }
 
-/* ===== sub_94035318 @ 0x94035318 size 68 ===== */
-__int64 __fastcall sub_94035318(__int64 a1, int a2, unsigned int a3)
+/* ===== sys_crypto_ioctl @ 0x94035318 size 68 ===== */
+__int64 __fastcall sys_crypto_ioctl(__int64 a1, int a2, unsigned int a3)
 {
   if ( a3 != 0 )
-    return sub_94034568(a2, a3);
+    return sprd_crypto_ioctl(a2, a3);
   if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-    sub_9404B2FC("IOCTL params is wrong !\n");
+    log_printf("IOCTL params is wrong !\n");
   return 4294967288LL;
 }
 
-/* ===== sub_9403535C @ 0x9403535C size 76 ===== */
-__int64 sub_9403535C()
+/* ===== install_crypto_handler @ 0x9403535C size 76 ===== */
+__int64 install_crypto_handler()
 {
   __int64 result; // x0
 
-  result = sub_9402D420(3u, (__int64)qword_9405B108);
+  result = trusty_install_handler(3u, (__int64)qword_9405B108);
   if ( (_DWORD)result != 0 && MEMORY[0xFFFFFFFFE003CB98] > 1 )
-    return sub_9404B2FC("can not install std in handler: %d\n", result);
+    return log_printf("can not install std in handler: %d\n", result);
   return result;
 }
 
-/* ===== sub_940353A8 @ 0x940353A8 size 20 ===== */
-__int64 __fastcall sub_940353A8(__int64 *a1)
+/* ===== sprd_queue_find_tail @ 0x940353A8 size 20 ===== */
+__int64 __fastcall sprd_queue_find_tail(__int64 *a1)
 {
   __int64 result; // x0
 
@@ -14252,8 +14252,8 @@ __int64 __fastcall sub_940353A8(__int64 *a1)
   return result;
 }
 
-/* ===== sub_940353BC @ 0x940353BC size 192 ===== */
-__int64 __fastcall sub_940353BC(__int64 *a1, _QWORD *a2)
+/* ===== sprd_queue_add_item_top @ 0x940353BC size 192 ===== */
+__int64 __fastcall sprd_queue_add_item_top(__int64 *a1, _QWORD *a2)
 {
   int v3; // w0
   _QWORD *v4; // x0
@@ -14261,12 +14261,12 @@ __int64 __fastcall sub_940353BC(__int64 *a1, _QWORD *a2)
   const void *v7; // x0
   int v9; // [xsp+28h] [xbp+28h]
 
-  v3 = sub_9404096C(a1[3]);
+  v3 = sprd_mutex_lock(a1[3]);
   if ( v3 != 0 )
   {
     v9 = v3;
-    v7 = (const void *)sub_94040A98();
-    sub_940407DC(3, "%p: %s: %s: failed to get mutex err = %d\n", v7, "SPRD_CE", "sprd_queue_add_item_top", v9);
+    v7 = (const void *)get_current_thread();
+    sprd_log(3, "%p: %s: %s: failed to get mutex err = %d\n", v7, "SPRD_CE", "sprd_queue_add_item_top", v9);
     return 0xFFFFFFFFLL;
   }
   else
@@ -14282,53 +14282,53 @@ __int64 __fastcall sub_940353BC(__int64 *a1, _QWORD *a2)
       a1[1] = (__int64)a2;
     if ( a1[2] == 0 )
       a1[2] = (__int64)a2;
-    sub_940353A8(a1);
-    sub_94040974(a1[3]);
+    sprd_queue_find_tail(a1);
+    sprd_mutex_unlock(a1[3]);
     return 0;
   }
 }
 
-/* ===== sub_9403547C @ 0x9403547C size 8 ===== */
-__int64 __fastcall sub_9403547C(__int64 a1)
+/* ===== sprd_queue_peek @ 0x9403547C size 8 ===== */
+__int64 __fastcall sprd_queue_peek(__int64 a1)
 {
   return *(_QWORD *)(a1 + 16);
 }
 
-/* ===== sub_94035484 @ 0x94035484 size 92 ===== */
-__int64 __fastcall sub_94035484(__int64 a1)
+/* ===== sprd_queue_pop @ 0x94035484 size 92 ===== */
+__int64 __fastcall sprd_queue_pop(__int64 a1)
 {
   _QWORD *v3; // x0
 
-  if ( (unsigned int)sub_9404096C(*(_QWORD *)(a1 + 24)) != 0 )
+  if ( (unsigned int)sprd_mutex_lock(*(_QWORD *)(a1 + 24)) != 0 )
     return 0xFFFFFFFFLL;
   v3 = *(_QWORD **)(a1 + 16);
   if ( v3 != nullptr )
     *(_QWORD *)(a1 + 16) = *v3;
-  sub_94040974(*(_QWORD *)(a1 + 24));
+  sprd_mutex_unlock(*(_QWORD *)(a1 + 24));
   return 0;
 }
 
-/* ===== sub_940354E0 @ 0x940354E0 size 180 ===== */
-__int64 *__fastcall sub_940354E0(_QWORD *a1)
+/* ===== sprd_queue_delete_item_bottom @ 0x940354E0 size 180 ===== */
+__int64 *__fastcall sprd_queue_delete_item_bottom(_QWORD *a1)
 {
   __int64 *v2; // x20
   __int64 v3; // x0
   const void *v5; // x0
 
-  if ( (unsigned int)sub_9404096C(a1[3]) != 0 )
+  if ( (unsigned int)sprd_mutex_lock(a1[3]) != 0 )
     return nullptr;
   v2 = (__int64 *)a1[1];
   if ( v2 == nullptr || v2 == (__int64 *)a1[2] )
   {
-    v5 = (const void *)sub_94040A98();
+    v5 = (const void *)get_current_thread();
     v2 = nullptr;
-    sub_940407DC(
+    sprd_log(
       3,
       "%p: %s: %s: queue is empty or tail is equal to current\n",
       v5,
       "SPRD_CE",
       "sprd_queue_delete_item_bottom");
-    sub_94040974(a1[3]);
+    sprd_mutex_unlock(a1[3]);
   }
   else
   {
@@ -14344,20 +14344,20 @@ __int64 *__fastcall sub_940354E0(_QWORD *a1)
       a1[1] = 0;
       a1[2] = 0;
     }
-    sub_94040974(a1[3]);
+    sprd_mutex_unlock(a1[3]);
   }
   return v2;
 }
 
-/* ===== sub_94035594 @ 0x94035594 size 56 ===== */
-__int64 __fastcall sub_94035594(_QWORD *a1)
+/* ===== sprd_queue_init @ 0x94035594 size 56 ===== */
+__int64 __fastcall sprd_queue_init(_QWORD *a1)
 {
   __int64 v2; // x0
 
   *a1 = 0;
   a1[1] = 0;
   a1[2] = 0;
-  v2 = sub_9404093C();
+  v2 = sprd_mutex_create();
   a1[3] = v2;
   if ( v2 != 0 )
     return 0;
@@ -14365,25 +14365,25 @@ __int64 __fastcall sub_94035594(_QWORD *a1)
     return 0xFFFFFFFFLL;
 }
 
-/* ===== sub_940355CC @ 0x940355CC size 64 ===== */
-void __noreturn sub_940355CC()
+/* ===== sprd_ce_int_thread_pka @ 0x940355CC size 64 ===== */
+void __noreturn sprd_ce_int_thread_pka()
 {
   while ( 1 )
-    sub_94040A74(0);
+    sprd_semaphore_wait(0);
 }
 
-/* ===== sub_9403560C @ 0x9403560C size 64 ===== */
-void __noreturn sub_9403560C()
+/* ===== sprd_ce_int_thread @ 0x9403560C size 64 ===== */
+void __noreturn sprd_ce_int_thread()
 {
   int v0; // [xsp+3Ch] [xbp+3Ch]
 
   v0 = 1;
   while ( 1 )
-    sub_94040A74(0);
+    sprd_semaphore_wait(0);
 }
 
-/* ===== sub_9403564C @ 0x9403564C size 44 ===== */
-_BYTE *__fastcall sub_9403564C(_BYTE *result)
+/* ===== ce_cmd_header_init @ 0x9403564C size 44 ===== */
+_BYTE *__fastcall ce_cmd_header_init(_BYTE *result)
 {
   result[3] = 119;
   result[2] = 48;
@@ -14392,8 +14392,8 @@ _BYTE *__fastcall sub_9403564C(_BYTE *result)
   return result;
 }
 
-/* ===== sub_94035678 @ 0x94035678 size 60 ===== */
-__int64 __fastcall sub_94035678(unsigned __int16 a1, unsigned int a2, __int64 a3)
+/* ===== ce_write_cmd @ 0x94035678 size 60 ===== */
+__int64 __fastcall ce_write_cmd(unsigned __int16 a1, unsigned int a2, __int64 a3)
 {
   __int64 result; // x0
   __int64 v4; // x3
@@ -14405,8 +14405,8 @@ __int64 __fastcall sub_94035678(unsigned __int16 a1, unsigned int a2, __int64 a3
   return result;
 }
 
-/* ===== sub_940356B4 @ 0x940356B4 size 60 ===== */
-__int64 __fastcall sub_940356B4(unsigned __int16 a1, unsigned int a2, __int64 a3)
+/* ===== ce_write_cmd_pka @ 0x940356B4 size 60 ===== */
+__int64 __fastcall ce_write_cmd_pka(unsigned __int16 a1, unsigned int a2, __int64 a3)
 {
   __int64 result; // x0
   __int64 v4; // x3
@@ -14418,8 +14418,8 @@ __int64 __fastcall sub_940356B4(unsigned __int16 a1, unsigned int a2, __int64 a3
   return result;
 }
 
-/* ===== sub_940356F0 @ 0x940356F0 size 76 ===== */
-__int64 __fastcall sub_940356F0(_DWORD *a1)
+/* ===== ce_write_desc @ 0x940356F0 size 76 ===== */
+__int64 __fastcall ce_write_desc(_DWORD *a1)
 {
   __int64 result; // x0
 
@@ -14432,8 +14432,8 @@ __int64 __fastcall sub_940356F0(_DWORD *a1)
   return result;
 }
 
-/* ===== sub_9403573C @ 0x9403573C size 44 ===== */
-__int64 __fastcall sub_9403573C(_DWORD *a1, int a2)
+/* ===== ce_write_desc_pka @ 0x9403573C size 44 ===== */
+__int64 __fastcall ce_write_desc_pka(_DWORD *a1, int a2)
 {
   __int64 result; // x0
 
@@ -14443,8 +14443,8 @@ __int64 __fastcall sub_9403573C(_DWORD *a1, int a2)
   return result;
 }
 
-/* ===== sub_94035768 @ 0x94035768 size 132 ===== */
-__int64 __fastcall sub_94035768(_DWORD *a1)
+/* ===== ce_get_algo_type @ 0x94035768 size 132 ===== */
+__int64 __fastcall ce_get_algo_type(_DWORD *a1)
 {
   unsigned int v1; // w1
   __int64 result; // x0
@@ -14477,8 +14477,8 @@ __int64 __fastcall sub_94035768(_DWORD *a1)
   return result;
 }
 
-/* ===== sub_940357EC @ 0x940357EC size 360 ===== */
-__int64 __fastcall sub_940357EC(int *a1)
+/* ===== ce_cfg_ecc_sign @ 0x940357EC size 360 ===== */
+__int64 __fastcall ce_cfg_ecc_sign(int *a1)
 {
   unsigned __int64 v2; // x2
   __int64 v3; // x0
@@ -14505,22 +14505,22 @@ __int64 __fastcall sub_940357EC(int *a1)
   int v25; // [xsp+58h] [xbp+58h]
   char v26; // [xsp+5Ch] [xbp+5Ch]
 
-  sub_94040888(&v17, 0, 16);
-  v2 = ((unsigned __int64)sub_940408C8(*((_QWORD *)a1 + 37)) >> 32) & 0xF;
+  memset(&v17, 0, 16);
+  v2 = ((unsigned __int64)virt_to_phys(*((_QWORD *)a1 + 37)) >> 32) & 0xF;
   v3 = *((_QWORD *)a1 + 37);
   HIBYTE(v17) = HIBYTE(v17) & 0xF0 | v2 & 0xF;
-  v19 = sub_940408C8(v3);
+  v19 = virt_to_phys(v3);
   v4 = *((_QWORD *)a1 + 39);
   v17 = v17 & 0xFF000000 | a1[76] & 0xFFFFFF;
-  v5 = ((unsigned __int64)sub_940408C8(v4) >> 32) & 0xF;
+  v5 = ((unsigned __int64)virt_to_phys(v4) >> 32) & 0xF;
   v6 = *((_QWORD *)a1 + 39);
   HIBYTE(v18) = HIBYTE(v18) & 0xF0 | v5 & 0xF;
-  v20 = sub_940408C8(v6);
+  v20 = virt_to_phys(v6);
   v18 = v18 & 0xFF000000 | a1[80] & 0xFFFFFF;
-  sub_94035678(0x48u, 4u, (__int64)&v17);
-  sub_94040888(&v21, 0, 24);
+  ce_write_cmd(0x48u, 4u, (__int64)&v17);
+  memset(&v21, 0, 24);
   v21 = *a1;
-  sub_9403564C(v23);
+  ce_cmd_header_init(v23);
   v7 = a1[2];
   v8 = v7 != 0;
   v9 = v23[0] & 0xEF | (16 * (v7 & 1));
@@ -14528,19 +14528,19 @@ __int64 __fastcall sub_940357EC(int *a1)
   v11 = v22 & 0xFE0F | (16 * (*a1 & 0x1F));
   v23[0] = v9 & 0xF9 | (4 * v8) | (2 * (a1[1] == 0));
   v22 = v11 | 1;
-  v12 = ((unsigned __int64)sub_940408C8(v10) >> 32) & 0xF;
+  v12 = ((unsigned __int64)virt_to_phys(v10) >> 32) & 0xF;
   v13 = *((_QWORD *)a1 + 19);
   v26 = v26 & 0xF0 | v12 & 0xF;
-  v14 = ((unsigned __int64)sub_940408C8(v13) >> 32) & 0xF;
+  v14 = ((unsigned __int64)virt_to_phys(v13) >> 32) & 0xF;
   v15 = *((_QWORD *)a1 + 19);
   v26 = v26 & 0xF | (16 * (v14 & 0xF));
-  v24 = sub_940408C8(v15);
-  v25 = sub_940408C8(*((_QWORD *)a1 + 19));
-  return sub_940356F0(&v21);
+  v24 = virt_to_phys(v15);
+  v25 = virt_to_phys(*((_QWORD *)a1 + 19));
+  return ce_write_desc(&v21);
 }
 
-/* ===== sub_94035954 @ 0x94035954 size 200 ===== */
-__int64 __fastcall sub_94035954(int *a1)
+/* ===== ce_cfg_ecc_verify @ 0x94035954 size 200 ===== */
+__int64 __fastcall ce_cfg_ecc_verify(int *a1)
 {
   __int64 v2; // x20
   __int64 v3; // x0
@@ -14553,23 +14553,23 @@ __int64 __fastcall sub_94035954(int *a1)
   char v11; // [xsp+42h] [xbp+42h]
 
   v2 = *((_QWORD *)a1 + 2) + 516LL;
-  sub_94039378();
-  sub_94040888(&v6, 0, 24);
+  sprd_ecc_hw_config();
+  memset(&v6, 0, 24);
   v6 = *a1;
-  sub_9403564C(&v9);
+  ce_cmd_header_init(&v9);
   v11 = v11 & 0xF | 0x80;
   v10 |= 1u;
   v7 |= 1u;
   v9 |= 0x16u;
   v8 = v8 & 0xF0 | 8;
-  v3 = sub_940408C8(v2);
+  v3 = virt_to_phys(v2);
   v8 = v8 & 0xF | (16 * (BYTE4(v3) & 0xF));
-  v4 = sub_940408C8(v2);
-  return sub_9403573C(&v6, v4);
+  v4 = virt_to_phys(v2);
+  return ce_write_desc_pka(&v6, v4);
 }
 
-/* ===== sub_94035A1C @ 0x94035A1C size 556 ===== */
-__int64 __fastcall sub_94035A1C(int *a1)
+/* ===== ce_cfg_rsa_encrypt @ 0x94035A1C size 556 ===== */
+__int64 __fastcall ce_cfg_rsa_encrypt(int *a1)
 {
   _DWORD *v2; // x22
   __int64 v3; // x0
@@ -14604,41 +14604,41 @@ __int64 __fastcall sub_94035A1C(int *a1)
   char v33; // [xsp+62h] [xbp+62h]
 
   v2 = *((_DWORD **)a1 + 5);
-  v3 = sub_940408C8(*((_QWORD *)a1 + 2));
-  *v2 = sub_94037708(0, 0, 1, v3 & 0x1FFFF);
+  v3 = virt_to_phys(*((_QWORD *)a1 + 2));
+  *v2 = ce_desc_alg(0, 0, 1, v3 & 0x1FFFF);
   v4 = *((_QWORD *)a1 + 5);
-  v5 = sub_940408C8(*((_QWORD *)a1 + 37));
-  *(_DWORD *)(v4 + 4) = sub_94037708(0, 1, 1, v5 & 0x1FFFF);
+  v5 = virt_to_phys(*((_QWORD *)a1 + 37));
+  *(_DWORD *)(v4 + 4) = ce_desc_alg(0, 1, 1, v5 & 0x1FFFF);
   v6 = *((_QWORD *)a1 + 5);
-  v7 = sub_940408C8(*((_QWORD *)a1 + 3));
-  *(_DWORD *)(v6 + 8) = sub_94037708(0, 2, 1, v7 & 0x1FFFF);
+  v7 = virt_to_phys(*((_QWORD *)a1 + 3));
+  *(_DWORD *)(v6 + 8) = ce_desc_alg(0, 2, 1, v7 & 0x1FFFF);
   v8 = *((_QWORD *)a1 + 5);
-  *(_DWORD *)(v8 + 12) = sub_940377F0(0, 3, 1, 2);
+  *(_DWORD *)(v8 + 12) = ce_desc_cipher2(0, 3, 1, 2);
   v9 = *((_QWORD *)a1 + 5);
-  v10 = sub_940408C8(*((_QWORD *)a1 + 39));
-  *(_DWORD *)(v9 + 16) = sub_94037730(0, 3, 1, v10 & 0x1FFFF);
+  v10 = virt_to_phys(*((_QWORD *)a1 + 39));
+  *(_DWORD *)(v9 + 16) = ce_desc_alg2(0, 3, 1, v10 & 0x1FFFF);
   v11 = *((_QWORD *)a1 + 5);
-  *(_DWORD *)(v11 + 20) = sub_94037700();
+  *(_DWORD *)(v11 + 20) = ce_desc_nop();
   v23 = a1[8];
-  sub_940356B4(0xD0u, 1u, (__int64)&v23);
-  sub_94040888(v24, 0, 20);
-  v12 = ((unsigned __int64)sub_940408C8(*((_QWORD *)a1 + 37)) >> 17) & 0x7FFFF;
+  ce_write_cmd_pka(0xD0u, 1u, (__int64)&v23);
+  memset(v24, 0, 20);
+  v12 = ((unsigned __int64)virt_to_phys(*((_QWORD *)a1 + 37)) >> 17) & 0x7FFFF;
   v13 = *((_QWORD *)a1 + 39);
   v26 = v12;
-  v14 = ((unsigned __int64)sub_940408C8(v13) >> 17) & 0x7FFFF;
+  v14 = ((unsigned __int64)virt_to_phys(v13) >> 17) & 0x7FFFF;
   v15 = *((_QWORD *)a1 + 5);
   v25 = v14;
-  v16 = ((unsigned __int64)sub_940408C8(v15) >> 32) & 0xF;
+  v16 = ((unsigned __int64)virt_to_phys(v15) >> 32) & 0xF;
   v17 = *((_QWORD *)a1 + 5);
   HIBYTE(v24[0]) = HIBYTE(v24[0]) & 0xF0 | v16 & 0xF;
-  v24[2] = sub_940408C8(v17);
+  v24[2] = virt_to_phys(v17);
   v24[0] = v24[0] & 0xFF000000 | 0x80;
-  sub_940356B4(0x610u, 1u, (__int64)&v26);
-  sub_940356B4(0x60Cu, 1u, (__int64)&v25);
-  sub_940408B8(*((_QWORD *)a1 + 5), v24[0] & 0xFFFFFF);
-  sub_94040888(&v27, 0, 24);
+  ce_write_cmd_pka(0x610u, 1u, (__int64)&v26);
+  ce_write_cmd_pka(0x60Cu, 1u, (__int64)&v25);
+  dcache_clean2(*((_QWORD *)a1 + 5), v24[0] & 0xFFFFFF);
+  memset(&v27, 0, 24);
   v27 = *a1;
-  sub_9403564C(&v31);
+  ce_cmd_header_init(&v31);
   v18 = *((_QWORD *)a1 + 5);
   v31 |= 0x16u;
   v33 = v33 & 0x3F | 0x80;
@@ -14646,15 +14646,15 @@ __int64 __fastcall sub_94035A1C(int *a1)
   v28 |= 3u;
   v29 = -1;
   v30 = v30 & 0xF0 | 3;
-  v19 = ((unsigned __int64)sub_940408C8(v18) >> 32) & 0xF;
+  v19 = ((unsigned __int64)virt_to_phys(v18) >> 32) & 0xF;
   v20 = *((_QWORD *)a1 + 5);
   v30 = v30 & 0xF | (16 * (v19 & 0xF));
-  v21 = sub_940408C8(v20);
-  return sub_9403573C(&v27, v21);
+  v21 = virt_to_phys(v20);
+  return ce_write_desc_pka(&v27, v21);
 }
 
-/* ===== sub_94035C48 @ 0x94035C48 size 436 ===== */
-__int64 __fastcall sub_94035C48(int *a1)
+/* ===== ce_cfg_rsa_decrypt @ 0x94035C48 size 436 ===== */
+__int64 __fastcall ce_cfg_rsa_decrypt(int *a1)
 {
   _DWORD *v2; // x22
   __int64 v3; // x22
@@ -14681,47 +14681,47 @@ __int64 __fastcall sub_94035C48(int *a1)
   char v25; // [xsp+62h] [xbp+62h]
 
   v2 = *((_DWORD **)a1 + 4);
-  *v2 = sub_94037770(0, 1);
+  *v2 = ce_desc_hash_init(0, 1);
   v3 = *((_QWORD *)a1 + 4);
-  *(_DWORD *)(v3 + 4) = sub_94037758(18, 0);
+  *(_DWORD *)(v3 + 4) = ce_desc_cipher(18, 0);
   v4 = *((_QWORD *)a1 + 4);
-  v5 = sub_940408C8(*((_QWORD *)a1 + 39));
-  *(_DWORD *)(v4 + 8) = sub_94037730(0, 1, 1, v5 & 0x1FFFF);
+  v5 = virt_to_phys(*((_QWORD *)a1 + 39));
+  *(_DWORD *)(v4 + 8) = ce_desc_alg2(0, 1, 1, v5 & 0x1FFFF);
   v6 = *((_QWORD *)a1 + 4);
-  *(_DWORD *)(v6 + 12) = sub_94037700();
+  *(_DWORD *)(v6 + 12) = ce_desc_nop();
   v16 = a1[6];
-  sub_940356B4(0xD0u, 1u, (__int64)&v16);
-  sub_94040888(v17, 0, 20);
+  ce_write_cmd_pka(0xD0u, 1u, (__int64)&v16);
+  memset(v17, 0, 20);
   v19 = 0;
-  v7 = ((unsigned __int64)sub_940408C8(*((_QWORD *)a1 + 39)) >> 17) & 0x7FFFF;
+  v7 = ((unsigned __int64)virt_to_phys(*((_QWORD *)a1 + 39)) >> 17) & 0x7FFFF;
   v8 = *((_QWORD *)a1 + 4);
   v18 = v7;
-  v9 = ((unsigned __int64)sub_940408C8(v8) >> 32) & 0xF;
+  v9 = ((unsigned __int64)virt_to_phys(v8) >> 32) & 0xF;
   v10 = *((_QWORD *)a1 + 4);
   HIBYTE(v17[0]) = HIBYTE(v17[0]) & 0xF0 | v9 & 0xF;
-  v17[2] = sub_940408C8(v10);
+  v17[2] = virt_to_phys(v10);
   v17[0] = v17[0] & 0xFF000000 | 0x30;
-  sub_940356B4(0x610u, 1u, (__int64)&v19);
-  sub_940356B4(0x60Cu, 1u, (__int64)&v18);
-  sub_940408B8(*((_QWORD *)a1 + 4), v17[0] & 0xFFFFFF);
-  sub_94040888(&v20, 0, 24);
+  ce_write_cmd_pka(0x610u, 1u, (__int64)&v19);
+  ce_write_cmd_pka(0x60Cu, 1u, (__int64)&v18);
+  dcache_clean2(*((_QWORD *)a1 + 4), v17[0] & 0xFFFFFF);
+  memset(&v20, 0, 24);
   v20 = *a1;
-  sub_9403564C(v24);
+  ce_cmd_header_init(v24);
   v11 = *((_QWORD *)a1 + 4);
   v24[0] |= 0x16u;
   v25 = v25 & 0x3F | 0x80;
   v21 |= 3u;
   v22 = -1;
   v23 = v23 & 0xF0 | 3;
-  v12 = ((unsigned __int64)sub_940408C8(v11) >> 32) & 0xF;
+  v12 = ((unsigned __int64)virt_to_phys(v11) >> 32) & 0xF;
   v13 = *((_QWORD *)a1 + 4);
   v23 = v23 & 0xF | (16 * (v12 & 0xF));
-  v14 = sub_940408C8(v13);
-  return sub_9403573C(&v20, v14);
+  v14 = virt_to_phys(v13);
+  return ce_write_desc_pka(&v20, v14);
 }
 
-/* ===== sub_94035DFC @ 0x94035DFC size 700 ===== */
-__int64 __fastcall sub_94035DFC(int *a1)
+/* ===== ce_cfg_rsa_sign @ 0x94035DFC size 700 ===== */
+__int64 __fastcall ce_cfg_rsa_sign(int *a1)
 {
   _DWORD *v2; // x22
   __int64 v3; // x22
@@ -14761,68 +14761,68 @@ __int64 __fastcall sub_94035DFC(int *a1)
   char v38; // [xsp+62h] [xbp+62h]
 
   v2 = *((_DWORD **)a1 + 5);
-  *v2 = sub_94037770(0, 1);
+  *v2 = ce_desc_hash_init(0, 1);
   v3 = *((_QWORD *)a1 + 5);
-  *(_DWORD *)(v3 + 4) = sub_94037758(18, 0);
+  *(_DWORD *)(v3 + 4) = ce_desc_cipher(18, 0);
   v4 = *((_QWORD *)a1 + 5);
-  *(_DWORD *)(v4 + 8) = sub_94037770(0, 9);
+  *(_DWORD *)(v4 + 8) = ce_desc_hash_init(0, 9);
   v5 = *((_QWORD *)a1 + 5);
-  v6 = sub_94037758(18, 8);
+  v6 = ce_desc_cipher(18, 8);
   v7 = *((_DWORD **)a1 + 37);
   *(_DWORD *)(v5 + 12) = v6;
   v8 = *((_QWORD *)a1 + 5);
-  *(_DWORD *)(v8 + 16) = sub_9403778C(0, *v7 & 0x1FFFF);
+  *(_DWORD *)(v8 + 16) = ce_desc_hash_data(0, *v7 & 0x1FFFF);
   v9 = *((_QWORD *)a1 + 5);
-  *(_DWORD *)(v9 + 20) = sub_940377A0(0, 3, 5, 6);
+  *(_DWORD *)(v9 + 20) = ce_desc_hash_final(0, 3, 5, 6);
   v10 = *((_QWORD *)a1 + 5);
-  *(_DWORD *)(v10 + 24) = sub_940377C4(0, 4, 1, 9);
+  *(_DWORD *)(v10 + 24) = ce_desc_hash_final2(0, 4, 1, 9);
   v11 = *((_QWORD *)a1 + 5);
-  v12 = sub_940408C8(*((_QWORD *)a1 + 39));
-  *(_DWORD *)(v11 + 28) = sub_94037730(0, 3, 1, v12 & 0x1FFFF);
+  v12 = virt_to_phys(*((_QWORD *)a1 + 39));
+  *(_DWORD *)(v11 + 28) = ce_desc_alg2(0, 3, 1, v12 & 0x1FFFF);
   v13 = *((_QWORD *)a1 + 5);
-  v14 = sub_940408C8(*((_QWORD *)a1 + 39));
-  *(_DWORD *)(v13 + 32) = sub_94037730(0, 4, 1, (v14 & 0x1FFFF) + ((unsigned int)a1[80] >> 2));
+  v14 = virt_to_phys(*((_QWORD *)a1 + 39));
+  *(_DWORD *)(v13 + 32) = ce_desc_alg2(0, 4, 1, (v14 & 0x1FFFF) + ((unsigned int)a1[80] >> 2));
   v15 = *((_QWORD *)a1 + 5);
-  v16 = sub_940408C8(*((_QWORD *)a1 + 39));
-  *(_DWORD *)(v15 + 36) = sub_94037730(0, 5, 1, (v16 & 0x1FFFF) + ((unsigned int)a1[80] >> 1));
+  v16 = virt_to_phys(*((_QWORD *)a1 + 39));
+  *(_DWORD *)(v15 + 36) = ce_desc_alg2(0, 5, 1, (v16 & 0x1FFFF) + ((unsigned int)a1[80] >> 1));
   v17 = *((_QWORD *)a1 + 5);
-  v18 = sub_940408C8(*((_QWORD *)a1 + 39));
-  *(_DWORD *)(v17 + 40) = sub_94037730(0, 6, 1, (v18 & 0x1FFFF) + ((unsigned int)(3 * a1[80]) >> 2));
+  v18 = virt_to_phys(*((_QWORD *)a1 + 39));
+  *(_DWORD *)(v17 + 40) = ce_desc_alg2(0, 6, 1, (v18 & 0x1FFFF) + ((unsigned int)(3 * a1[80]) >> 2));
   v19 = *((_QWORD *)a1 + 5);
-  *(_DWORD *)(v19 + 44) = sub_94037700();
+  *(_DWORD *)(v19 + 44) = ce_desc_nop();
   v29 = (unsigned int)a1[8] >> 1;
-  sub_940356B4(0xD0u, 1u, (__int64)&v29);
-  sub_94040888(v30, 0, 20);
+  ce_write_cmd_pka(0xD0u, 1u, (__int64)&v29);
+  memset(v30, 0, 20);
   v32 = 0;
-  v20 = ((unsigned __int64)sub_940408C8(*((_QWORD *)a1 + 39)) >> 17) & 0x7FFFF;
+  v20 = ((unsigned __int64)virt_to_phys(*((_QWORD *)a1 + 39)) >> 17) & 0x7FFFF;
   v21 = *((_QWORD *)a1 + 5);
   v31 = v20;
-  v22 = ((unsigned __int64)sub_940408C8(v21) >> 32) & 0xF;
+  v22 = ((unsigned __int64)virt_to_phys(v21) >> 32) & 0xF;
   v23 = *((_QWORD *)a1 + 5);
   HIBYTE(v30[0]) = HIBYTE(v30[0]) & 0xF0 | v22 & 0xF;
-  v30[2] = sub_940408C8(v23);
+  v30[2] = virt_to_phys(v23);
   v30[0] = v30[0] & 0xFF000000 | 0x30;
-  sub_940356B4(0x610u, 1u, (__int64)&v32);
-  sub_940356B4(0x60Cu, 1u, (__int64)&v31);
-  sub_940408B8(*((_QWORD *)a1 + 5), v30[0] & 0xFFFFFF);
-  sub_94040888(&v33, 0, 24);
+  ce_write_cmd_pka(0x610u, 1u, (__int64)&v32);
+  ce_write_cmd_pka(0x60Cu, 1u, (__int64)&v31);
+  dcache_clean2(*((_QWORD *)a1 + 5), v30[0] & 0xFFFFFF);
+  memset(&v33, 0, 24);
   v33 = *a1;
-  sub_9403564C(v37);
+  ce_cmd_header_init(v37);
   v24 = *((_QWORD *)a1 + 5);
   v37[0] |= 0x16u;
   v38 = v38 & 0x3F | 0x80;
   v34 |= 3u;
   v35 = -1;
   v36 = v36 & 0xF0 | 3;
-  v25 = ((unsigned __int64)sub_940408C8(v24) >> 32) & 0xF;
+  v25 = ((unsigned __int64)virt_to_phys(v24) >> 32) & 0xF;
   v26 = *((_QWORD *)a1 + 5);
   v36 = v36 & 0xF | (16 * (v25 & 0xF));
-  v27 = sub_940408C8(v26);
-  return sub_9403573C(&v33, v27);
+  v27 = virt_to_phys(v26);
+  return ce_write_desc_pka(&v33, v27);
 }
 
-/* ===== sub_940360B8 @ 0x940360B8 size 1208 ===== */
-__int64 __fastcall sub_940360B8(int *a1)
+/* ===== ce_cfg_hash @ 0x940360B8 size 1208 ===== */
+__int64 __fastcall ce_cfg_hash(int *a1)
 {
   unsigned int v2; // w1
   int *v3; // x3
@@ -14903,7 +14903,7 @@ __int64 __fastcall sub_940360B8(int *a1)
                   | (*((unsigned __int8 *)v3 + v6) << 16)
                   | (*((unsigned __int8 *)v3 + v7) << 8);
         }
-        sub_94035678(0xA0u, v2 >> 2, (__int64)v55);
+        ce_write_cmd(0xA0u, v2 >> 2, (__int64)v55);
       }
 LABEL_6:
       v10 = a1[15];
@@ -14922,24 +14922,24 @@ LABEL_6:
                  | (*((unsigned __int8 *)v25 + v28) << 16)
                  | (*((unsigned __int8 *)v25 + v29) << 8);
       }
-      sub_94035678(0x80u, v10 >> 2, (__int64)v55);
+      ce_write_cmd(0x80u, v10 >> 2, (__int64)v55);
       if ( a1[1] == 0 )
         goto LABEL_20;
       goto LABEL_8;
     case 7:
     case 8:
-      sub_94040888(&v37, 0, 4);
+      memset(&v37, 0, 4);
       v32 = v38 & 0xC01F | (32 * (a1[15] & 0x1FF));
       v37 = v37 & 0xF801 | 0xC0;
       v38 = v32;
-      sub_94035678(0x340u, 1u, (__int64)&v37);
+      ce_write_cmd(0x340u, 1u, (__int64)&v37);
       goto LABEL_7;
     default:
 LABEL_7:
       if ( a1[1] == 0 )
       {
 LABEL_20:
-        sub_94040888(v42, 0, 16);
+        memset(v42, 0, 16);
         switch ( *a1 )
         {
           case 1:
@@ -14957,37 +14957,37 @@ LABEL_20:
             v42[2] = v36;
             v42[3] = v35 | (v34 << 8);
             v42[0] = v33;
-            sub_94035678(0x70u, 4u, (__int64)v42);
+            ce_write_cmd(0x70u, 4u, (__int64)v42);
             break;
           default:
-            sub_94035678(0x70u, 4u, (__int64)v42);
+            ce_write_cmd(0x70u, 4u, (__int64)v42);
             break;
         }
       }
 LABEL_8:
-      sub_94040888(&v43, 0, 16);
-      v11 = ((unsigned __int64)sub_940408C8(*((_QWORD *)a1 + 37)) >> 32) & 0xF;
+      memset(&v43, 0, 16);
+      v11 = ((unsigned __int64)virt_to_phys(*((_QWORD *)a1 + 37)) >> 32) & 0xF;
       v12 = *((_QWORD *)a1 + 37);
       HIBYTE(v43) = HIBYTE(v43) & 0xF0 | v11 & 0xF;
-      v45 = sub_940408C8(v12);
+      v45 = virt_to_phys(v12);
       v13 = *((_QWORD *)a1 + 39);
       v43 = v43 & 0xFF000000 | a1[76] & 0xFFFFFF;
-      v14 = ((unsigned __int64)sub_940408C8(v13) >> 32) & 0xF;
+      v14 = ((unsigned __int64)virt_to_phys(v13) >> 32) & 0xF;
       v15 = *((_QWORD *)a1 + 39);
       HIBYTE(v44) = HIBYTE(v44) & 0xF0 | v14 & 0xF;
-      v46 = sub_940408C8(v15);
+      v46 = virt_to_phys(v15);
       v44 = v44 & 0xFF000000 | a1[80] & 0xFFFFFF;
-      sub_94035678(0x48u, 4u, (__int64)&v43);
-      sub_94040888(&v39, 0, 8);
-      v16 = ((unsigned __int64)sub_940408C8(*((_QWORD *)a1 + 41)) >> 32) & 0xF;
+      ce_write_cmd(0x48u, 4u, (__int64)&v43);
+      memset(&v39, 0, 8);
+      v16 = ((unsigned __int64)virt_to_phys(*((_QWORD *)a1 + 41)) >> 32) & 0xF;
       v17 = *((_QWORD *)a1 + 41);
       v40 = v40 & 0xF0 | v16 & 0xF;
-      v41 = sub_940408C8(v17);
+      v41 = virt_to_phys(v17);
       v39 = a1[84];
-      sub_94035678(0x68u, 2u, (__int64)&v39);
-      sub_94040888(&v47, 0, 24);
+      ce_write_cmd(0x68u, 2u, (__int64)&v39);
+      memset(&v47, 0, 24);
       v47 = *a1;
-      sub_9403564C(&v50);
+      ce_cmd_header_init(&v50);
       if ( (unsigned int)(v47 - 7) > 1 )
         v51 &= ~1u;
       else
@@ -15032,20 +15032,20 @@ LABEL_8:
       }
       v19 = *((_QWORD *)a1 + 18);
       v48 = v48 & 0xEF | (16 * (a1[4] & 1)) | 1;
-      v20 = ((unsigned __int64)sub_940408C8(v19) >> 32) & 0xF;
+      v20 = ((unsigned __int64)virt_to_phys(v19) >> 32) & 0xF;
       v21 = *((_QWORD *)a1 + 18);
       v54 = v54 & 0xF0 | v20 & 0xF;
-      v22 = ((unsigned __int64)sub_940408C8(v21) >> 32) & 0xF;
+      v22 = ((unsigned __int64)virt_to_phys(v21) >> 32) & 0xF;
       v23 = *((_QWORD *)a1 + 18);
       v54 = v54 & 0xF | (16 * (v22 & 0xF));
-      v52 = sub_940408C8(v23);
-      v53 = sub_940408C8(*((_QWORD *)a1 + 18));
-      return sub_940356F0(&v47);
+      v52 = virt_to_phys(v23);
+      v53 = virt_to_phys(*((_QWORD *)a1 + 18));
+      return ce_write_desc(&v47);
   }
 }
 
-/* ===== sub_94036570 @ 0x94036570 size 416 ===== */
-__int64 __fastcall sub_94036570(int *a1)
+/* ===== ce_cfg_rng @ 0x94036570 size 416 ===== */
+__int64 __fastcall ce_cfg_rng(int *a1)
 {
   _DWORD *v2; // x22
   __int64 v3; // x22
@@ -15071,52 +15071,52 @@ __int64 __fastcall sub_94036570(int *a1)
   char v24; // [xsp+62h] [xbp+62h]
 
   v2 = *((_DWORD **)a1 + 2);
-  *v2 = sub_94037818(0, 0);
+  *v2 = ce_desc_rng(0, 0);
   v3 = *((_QWORD *)a1 + 2);
-  v4 = sub_940408C8(*((_QWORD *)a1 + 39));
-  *(_DWORD *)(v3 + 4) = sub_94037730(0, 0, 1, v4 & 0x1FFFF);
+  v4 = virt_to_phys(*((_QWORD *)a1 + 39));
+  *(_DWORD *)(v3 + 4) = ce_desc_alg2(0, 0, 1, v4 & 0x1FFFF);
   v5 = *((_QWORD *)a1 + 2);
-  *(_DWORD *)(v5 + 8) = sub_94037700();
+  *(_DWORD *)(v5 + 8) = ce_desc_nop();
   v15 = a1[80];
-  sub_940356B4(0xD0u, 1u, (__int64)&v15);
-  sub_94040888(v16, 0, 20);
+  ce_write_cmd_pka(0xD0u, 1u, (__int64)&v15);
+  memset(v16, 0, 20);
   v18 = 0;
-  v6 = ((unsigned __int64)sub_940408C8(*((_QWORD *)a1 + 39)) >> 17) & 0x7FFFF;
+  v6 = ((unsigned __int64)virt_to_phys(*((_QWORD *)a1 + 39)) >> 17) & 0x7FFFF;
   v7 = *((_QWORD *)a1 + 2);
   v17 = v6;
-  v8 = ((unsigned __int64)sub_940408C8(v7) >> 32) & 0xF;
+  v8 = ((unsigned __int64)virt_to_phys(v7) >> 32) & 0xF;
   v9 = *((_QWORD *)a1 + 2);
   HIBYTE(v16[0]) = HIBYTE(v16[0]) & 0xF0 | v8 & 0xF;
-  v16[2] = sub_940408C8(v9);
+  v16[2] = virt_to_phys(v9);
   v16[0] = v16[0] & 0xFF000000 | 0xC;
-  sub_940356B4(0x610u, 1u, (__int64)&v18);
-  sub_940356B4(0x60Cu, 1u, (__int64)&v17);
-  sub_940408B8(*((_QWORD *)a1 + 2), v16[0] & 0xFFFFFF);
-  sub_94040888(&v19, 0, 24);
+  ce_write_cmd_pka(0x610u, 1u, (__int64)&v18);
+  ce_write_cmd_pka(0x60Cu, 1u, (__int64)&v17);
+  dcache_clean2(*((_QWORD *)a1 + 2), v16[0] & 0xFFFFFF);
+  memset(&v19, 0, 24);
   v19 = *a1;
-  sub_9403564C(v23);
+  ce_cmd_header_init(v23);
   v10 = *((_QWORD *)a1 + 2);
   v23[0] |= 0x16u;
   v24 = v24 & 0x3F | 0x80;
   v20 |= 3u;
   v21 = -1;
   v22 = v22 & 0xF0 | 3;
-  v11 = ((unsigned __int64)sub_940408C8(v10) >> 32) & 0xF;
+  v11 = ((unsigned __int64)virt_to_phys(v10) >> 32) & 0xF;
   v12 = *((_QWORD *)a1 + 2);
   v22 = v22 & 0xF | (16 * (v11 & 0xF));
-  v13 = sub_940408C8(v12);
-  return sub_9403573C(&v19, v13);
+  v13 = virt_to_phys(v12);
+  return ce_write_desc_pka(&v19, v13);
 }
 
-/* ===== sub_94036710 @ 0x94036710 size 272 ===== */
-__int64 __fastcall sub_94036710(int *a1)
+/* ===== sprd_crypto_process @ 0x94036710 size 272 ===== */
+__int64 __fastcall sprd_crypto_process(int *a1)
 {
   unsigned int v2; // w1
 
   v2 = *a1 & 0xFFFF0000;
   if ( v2 == 84017152 )
   {
-    sub_94035DFC(a1);
+    ce_cfg_rsa_sign(a1);
     a1[1] = 1;
     return 1;
   }
@@ -15125,15 +15125,15 @@ __int64 __fastcall sub_94036710(int *a1)
     switch ( v2 )
     {
       case 0x2000000u:
-        sub_940357EC(a1);
+        ce_cfg_ecc_sign(a1);
         a1[1] = 1;
         return 1;
       case 0x5010000u:
-        sub_94035A1C(a1);
+        ce_cfg_rsa_encrypt(a1);
         a1[1] = 1;
         return 1;
       case 0u:
-        sub_940360B8(a1);
+        ce_cfg_hash(a1);
         a1[1] = 1;
         return 1;
       default:
@@ -15144,7 +15144,7 @@ LABEL_7:
   }
   else if ( v2 == 84148224 )
   {
-    sub_94036570(a1);
+    ce_cfg_rng(a1);
     a1[1] = 1;
     return 1;
   }
@@ -15153,41 +15153,41 @@ LABEL_7:
     if ( v2 != 84213760 )
     {
       if ( v2 == 84082688 )
-        sub_94035954(a1);
+        ce_cfg_ecc_verify(a1);
       goto LABEL_7;
     }
-    sub_94035C48(a1);
+    ce_cfg_rsa_decrypt(a1);
     a1[1] = 1;
     return 1;
   }
 }
 
-/* ===== sub_94036820 @ 0x94036820 size 24 ===== */
-__int64 sub_94036820()
+/* ===== ce_get_pka_status @ 0x94036820 size 24 ===== */
+__int64 ce_get_pka_status()
 {
   return (unsigned int)(109 - MEMORY[0x504]);
 }
 
-/* ===== sub_94036838 @ 0x94036838 size 16 ===== */
-__int64 sub_94036838()
+/* ===== ce_get_pka_result @ 0x94036838 size 16 ===== */
+__int64 ce_get_pka_result()
 {
   return MEMORY[0x514];
 }
 
-/* ===== sub_94036848 @ 0x94036848 size 24 ===== */
-__int64 sub_94036848()
+/* ===== ce_get_ce_status @ 0x94036848 size 24 ===== */
+__int64 ce_get_ce_status()
 {
   return (unsigned int)(109 - MEMORY[0x604]);
 }
 
-/* ===== sub_94036860 @ 0x94036860 size 16 ===== */
-__int64 sub_94036860()
+/* ===== ce_get_ce_result @ 0x94036860 size 16 ===== */
+__int64 ce_get_ce_result()
 {
   return MEMORY[0x614];
 }
 
-/* ===== sub_94036870 @ 0x94036870 size 232 ===== */
-__int64 sub_94036870()
+/* ===== sprd_ce_int_notify @ 0x94036870 size 232 ===== */
+__int64 sprd_ce_int_notify()
 {
   int v0; // w19
   int v1; // w21
@@ -15199,14 +15199,14 @@ __int64 sub_94036870()
     ;
   v0 = MEMORY[0x20];
   MEMORY[0x24] = MEMORY[0x20];
-  v1 = sub_94036838();
-  v2 = sub_94036860();
+  v1 = ce_get_pka_result();
+  v2 = ce_get_ce_result();
   MEMORY[0x15C] = 16;
   if ( (v0 & 1) != 0 && v1 != 0 )
   {
     do
     {
-      sub_94040A7C(0, 0);
+      sprd_semaphore_post(0, 0);
       --v1;
     }
     while ( v1 != 0 );
@@ -15215,7 +15215,7 @@ __int64 sub_94036870()
   {
     do
     {
-      sub_94040A7C(0, 0);
+      sprd_semaphore_post(0, 0);
       --v2;
     }
     while ( v2 != 0 );
@@ -15224,52 +15224,52 @@ __int64 sub_94036870()
   {
     while ( 1 )
     {
-      v3 = (const void *)sub_94040A98();
-      sub_940407DC(3, "%p: %s: %s: int status = 0x%x\n", v3, "SPRD_CE", "sprd_ce_int_notify", v0);
+      v3 = (const void *)get_current_thread();
+      sprd_log(3, "%p: %s: %s: int status = 0x%x\n", v3, "SPRD_CE", "sprd_ce_int_notify", v0);
     }
   }
   return 1;
 }
 
-/* ===== sub_94036958 @ 0x94036958 size 12 ===== */
+/* ===== sprd_ce_set_pka_cb @ 0x94036958 size 12 ===== */
 // write access to const memory has been detected, the output may be wrong!
-void *__fastcall sub_94036958(void *result)
+void *__fastcall sprd_ce_set_pka_cb(void *result)
 {
   off_94067960 = result;
   return result;
 }
 
-/* ===== sub_94036964 @ 0x94036964 size 12 ===== */
+/* ===== sprd_ce_set_ce_cb @ 0x94036964 size 12 ===== */
 // write access to const memory has been detected, the output may be wrong!
-void *__fastcall sub_94036964(void *result)
+void *__fastcall sprd_ce_set_ce_cb(void *result)
 {
   off_94067938 = result;
   return result;
 }
 
-/* ===== sub_94036970 @ 0x94036970 size 84 ===== */
-__int64 sub_94036970()
+/* ===== sprd_ce_prepare @ 0x94036970 size 84 ===== */
+__int64 sprd_ce_prepare()
 {
   if ( MEMORY[0x58] != 3 )
     MEMORY[0x58] = 3;
-  sub_94034308(22);
-  sub_94036838();
-  sub_94036860();
+  clk_enable(22);
+  ce_get_pka_result();
+  ce_get_ce_result();
   MEMORY[0x24] = -1;
   MEMORY[0x1C] = 31761;
   return 0;
 }
 
-/* ===== sub_940369C4 @ 0x940369C4 size 20 ===== */
-__int64 sub_940369C4()
+/* ===== sprd_ce_finish @ 0x940369C4 size 20 ===== */
+__int64 sprd_ce_finish()
 {
   MEMORY[0x1C] = 0;
-  return sub_940343A8(22);
+  return clk_disable(22);
 }
 
-/* ===== sub_940369D8 @ 0x940369D8 size 456 ===== */
+/* ===== sprd_ce_init @ 0x940369D8 size 456 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 sub_940369D8()
+__int64 sprd_ce_init()
 {
   int v0; // w0
   int v1; // w0
@@ -15280,63 +15280,63 @@ __int64 sub_940369D8()
   int v7; // [xsp+28h] [xbp+28h]
   int v8; // [xsp+28h] [xbp+28h]
 
-  v0 = sub_940408CC("sprd_ce", 568328192, 0x100000, 2, &off_94067958);
+  v0 = sprd_iomap("sprd_ce", 568328192, 0x100000, 2, &off_94067958);
   if ( v0 != 0 )
   {
     v8 = v0;
-    v4 = (const void *)sub_94040A98();
-    sub_940407DC(3, "%p: %s: %s: sprd_pal_mem_map failed[0x%x]\n", v4, "SPRD_CE", "sprd_ce_init", v8);
+    v4 = (const void *)get_current_thread();
+    sprd_log(3, "%p: %s: %s: sprd_pal_mem_map failed[0x%x]\n", v4, "SPRD_CE", "sprd_ce_init", v8);
   }
-  v1 = sub_940408CC("sprd_clk", 558891008, 0x10000, 2, &off_94067970);
+  v1 = sprd_iomap("sprd_clk", 558891008, 0x10000, 2, &off_94067970);
   if ( v1 != 0 )
   {
     v7 = v1;
-    v2 = (const void *)sub_94040A98();
-    sub_940407DC(3, "%p: %s: %s: sprd_pal_mem_map ap clk phys failed[0x%x]\n", v2, "SPRD_CE", "sprd_ce_init", v7);
+    v2 = (const void *)get_current_thread();
+    sprd_log(3, "%p: %s: %s: sprd_pal_mem_map ap clk phys failed[0x%x]\n", v2, "SPRD_CE", "sprd_ce_init", v7);
   }
   dword_94067968 = 85;
-  qword_94067940 = sub_940409F8(0);
-  v6 = (const void *)sub_94040A98();
-  sub_940407DC(3, "%p: %s: %s: sem init FAILED!\n", v6, "SPRD_CE", "sprd_ce_irq_init");
-  qword_94067950 = sub_940409F8(0);
-  v5 = (const void *)sub_94040A98();
-  sub_940407DC(3, "%p: %s: %s: sem pka init FAILED!\n", v5, "SPRD_CE", "sprd_ce_irq_init");
-  qword_94067930 = sub_94040A8C("sprd_ce_int_thread", sub_9403560C, 0, 28, 4096);
-  sub_94040A94(nullptr);
-  qword_94067948 = sub_94040A8C("sprd_ce_int_thread_pka", sub_940355CC, 0, 28, 4096);
-  sub_94040A94(nullptr);
-  sub_9404078C(0, sub_94036870, 0);
-  return sub_94040788(0);
+  qword_94067940 = sprd_semaphore_create(0);
+  v6 = (const void *)get_current_thread();
+  sprd_log(3, "%p: %s: %s: sem init FAILED!\n", v6, "SPRD_CE", "sprd_ce_irq_init");
+  qword_94067950 = sprd_semaphore_create(0);
+  v5 = (const void *)get_current_thread();
+  sprd_log(3, "%p: %s: %s: sem pka init FAILED!\n", v5, "SPRD_CE", "sprd_ce_irq_init");
+  qword_94067930 = sprd_thread_create("sprd_ce_int_thread", sprd_ce_int_thread, 0, 28, 4096);
+  sprd_thread_resume(nullptr);
+  qword_94067948 = sprd_thread_create("sprd_ce_int_thread_pka", sprd_ce_int_thread_pka, 0, 28, 4096);
+  sprd_thread_resume(nullptr);
+  irq_register(0, sprd_ce_int_notify, 0);
+  return irq_enable(0);
 }
 
-/* ===== sub_94036BA0 @ 0x94036BA0 size 136 ===== */
-__int64 sub_94036BA0()
+/* ===== sprd_ce_run_pka_queue @ 0x94036BA0 size 136 ===== */
+__int64 sprd_ce_run_pka_queue()
 {
   unsigned int v0; // w21
   __int64 v1; // x0
   __int64 v2; // x19
 
-  if ( (unsigned int)sub_9404096C(0) == 0 )
+  if ( (unsigned int)sprd_mutex_lock(0) == 0 )
   {
     while ( 1 )
     {
-      v1 = sub_9403547C(-536472936);
+      v1 = sprd_queue_peek(-536472936);
       v2 = v1;
       if ( v1 == 0 )
         break;
-      v0 = sub_94035768(*(_DWORD **)(v1 + 16));
-      if ( v0 > (unsigned int)sub_94036848() )
+      v0 = ce_get_algo_type(*(_DWORD **)(v1 + 16));
+      if ( v0 > (unsigned int)ce_get_ce_status() )
         break;
-      sub_94035484(-536472936);
-      sub_94036710(*(int **)(v2 + 16));
+      sprd_queue_pop(-536472936);
+      sprd_crypto_process(*(int **)(v2 + 16));
     }
-    sub_94040974(0);
+    sprd_mutex_unlock(0);
   }
   return 0;
 }
 
-/* ===== sub_94036C28 @ 0x94036C28 size 112 ===== */
-__int64 __fastcall sub_94036C28(int *a1)
+/* ===== sprd_ce_flush_pka @ 0x94036C28 size 112 ===== */
+__int64 __fastcall sprd_ce_flush_pka(int *a1)
 {
   int i; // w20
   __int64 *v2; // x0
@@ -15347,7 +15347,7 @@ __int64 __fastcall sub_94036C28(int *a1)
 
   for ( i = *a1; i != 0; --i )
   {
-    v2 = sub_940354E0((_QWORD *)0xFFFFFFFFE0061298LL);
+    v2 = sprd_queue_delete_item_bottom((_QWORD *)0xFFFFFFFFE0061298LL);
     v3 = v2;
     v4 = 0;
     if ( v2 != nullptr )
@@ -15357,43 +15357,43 @@ __int64 __fastcall sub_94036C28(int *a1)
       {
         v6 = *(_QWORD *)(v5 + 344);
         if ( v6 != 0 )
-          sub_94040A7C(v6, 0);
+          sprd_semaphore_post(v6, 0);
       }
-      sub_940408AC(v3, v4);
+      free(v3, v4);
     }
   }
-  sub_94036BA0();
+  sprd_ce_run_pka_queue();
   return 0;
 }
 
-/* ===== sub_94036C98 @ 0x94036C98 size 136 ===== */
-__int64 sub_94036C98()
+/* ===== sprd_ce_run_ce_queue @ 0x94036C98 size 136 ===== */
+__int64 sprd_ce_run_ce_queue()
 {
   unsigned int v0; // w21
   __int64 v1; // x0
   __int64 v2; // x19
 
-  if ( (unsigned int)sub_9404096C(0) == 0 )
+  if ( (unsigned int)sprd_mutex_lock(0) == 0 )
   {
     while ( 1 )
     {
-      v1 = sub_9403547C(-536472976);
+      v1 = sprd_queue_peek(-536472976);
       v2 = v1;
       if ( v1 == 0 )
         break;
-      v0 = sub_94035768(*(_DWORD **)(v1 + 16));
-      if ( v0 > (unsigned int)sub_94036820() )
+      v0 = ce_get_algo_type(*(_DWORD **)(v1 + 16));
+      if ( v0 > (unsigned int)ce_get_pka_status() )
         break;
-      sub_94035484(-536472976);
-      sub_94036710(*(int **)(v2 + 16));
+      sprd_queue_pop(-536472976);
+      sprd_crypto_process(*(int **)(v2 + 16));
     }
-    sub_94040974(0);
+    sprd_mutex_unlock(0);
   }
   return 0;
 }
 
-/* ===== sub_94036D20 @ 0x94036D20 size 112 ===== */
-__int64 __fastcall sub_94036D20(int *a1)
+/* ===== sprd_ce_flush_ce @ 0x94036D20 size 112 ===== */
+__int64 __fastcall sprd_ce_flush_ce(int *a1)
 {
   int i; // w20
   __int64 *v2; // x0
@@ -15404,7 +15404,7 @@ __int64 __fastcall sub_94036D20(int *a1)
 
   for ( i = *a1; i != 0; --i )
   {
-    v2 = sub_940354E0((_QWORD *)0xFFFFFFFFE0061270LL);
+    v2 = sprd_queue_delete_item_bottom((_QWORD *)0xFFFFFFFFE0061270LL);
     v3 = v2;
     v4 = 0;
     if ( v2 != nullptr )
@@ -15414,17 +15414,17 @@ __int64 __fastcall sub_94036D20(int *a1)
       {
         v6 = *(_QWORD *)(v5 + 344);
         if ( v6 != 0 )
-          sub_94040A7C(v6, 0);
+          sprd_semaphore_post(v6, 0);
       }
-      sub_940408AC(v3, v4);
+      free(v3, v4);
     }
   }
-  sub_94036C98();
+  sprd_ce_run_ce_queue();
   return 0;
 }
 
-/* ===== sub_94036D90 @ 0x94036D90 size 552 ===== */
-__int64 __fastcall sub_94036D90(int *a1)
+/* ===== sprd_crypto_work @ 0x94036D90 size 552 ===== */
+__int64 __fastcall sprd_crypto_work(int *a1)
 {
   unsigned int v2; // w0
   __int64 v3; // x2
@@ -15448,9 +15448,9 @@ __int64 __fastcall sub_94036D90(int *a1)
         if ( v2 == 84213760 || v2 == 84082688 )
           goto LABEL_18;
 LABEL_14:
-        v8 = (const void *)sub_94040A98();
+        v8 = (const void *)get_current_thread();
         v5 = -65535;
-        sub_940407DC(3, "%p: %s: %s: bad algo!\n", v8, "SPRD_CE", "sprd_crypto_process");
+        sprd_log(3, "%p: %s: %s: bad algo!\n", v8, "SPRD_CE", "sprd_crypto_process");
         goto LABEL_15;
       }
       v5 = -65529;
@@ -15465,7 +15465,7 @@ LABEL_14:
         {
           if ( *((_QWORD *)a1 + 2) == 0 || *((_QWORD *)a1 + 3) == 0 || a1[8] == 0 )
           {
-            v3 = sub_94040A98();
+            v3 = get_current_thread();
             v4 = "%p: %s: %s: Bad RSA key!\n";
             goto LABEL_9;
           }
@@ -15484,65 +15484,65 @@ LABEL_15:
     if ( v6 == 0 )
       return v5;
 LABEL_16:
-    sub_94040A7C(v6, 0);
+    sprd_semaphore_post(v6, 0);
     return v5;
   }
   v12 = a1[8];
   if ( (v12 & 0xFFFFFEFF) != 128 && v12 != 32 && ((v12 - 256) & 0xFFFFFEFF) != 0 )
   {
-    v3 = sub_94040A98();
+    v3 = get_current_thread();
     v4 = "%p: %s: %s: Bad RSA key len!\n";
 LABEL_9:
     v5 = -65529;
-    sub_940407DC(3, v4, v3, "SPRD_CE", "sprd_crypto_process");
+    sprd_log(3, v4, v3, "SPRD_CE", "sprd_crypto_process");
     v6 = *((_QWORD *)a1 + 43);
     if ( v6 == 0 )
       return v5;
     goto LABEL_16;
   }
 LABEL_18:
-  v9 = sub_94040894(24);
+  v9 = malloc(24);
   v10 = (_QWORD *)v9;
   if ( v9 != 0 )
   {
-    sub_94040888(v9, 0, 24);
+    memset(v9, 0, 24);
     v11 = *a1;
     v10[2] = a1;
     if ( (v11 & 0xFF000000) == 0x5000000 )
     {
-      sub_940353BC((__int64 *)0xFFFFFFFFE0061298LL, v10);
-      sub_94036BA0();
+      sprd_queue_add_item_top((__int64 *)0xFFFFFFFFE0061298LL, v10);
+      sprd_ce_run_pka_queue();
     }
     else
     {
-      sub_940353BC((__int64 *)0xFFFFFFFFE0061270LL, v10);
-      sub_94036C98();
+      sprd_queue_add_item_top((__int64 *)0xFFFFFFFFE0061270LL, v10);
+      sprd_ce_run_ce_queue();
     }
     return 0;
   }
   else
   {
-    v13 = (const void *)sub_94040A98();
-    sub_940407DC(3, "%p: %s: %s: out of memory !!\n", v13, "SPRD_CE", "sprd_crypto_process");
+    v13 = (const void *)get_current_thread();
+    sprd_log(3, "%p: %s: %s: out of memory !!\n", v13, "SPRD_CE", "sprd_crypto_process");
     return 4294901770LL;
   }
 }
 
-/* ===== sub_94036FB8 @ 0x94036FB8 size 20 ===== */
-unsigned __int64 __fastcall sub_94036FB8(__int64 a1, __int64 a2, unsigned int a3)
+/* ===== align_up @ 0x94036FB8 size 20 ===== */
+unsigned __int64 __fastcall align_up(__int64 a1, __int64 a2, unsigned int a3)
 {
   return (a1 - 1 + a3) & ~(unsigned __int64)(a3 - 1);
 }
 
-/* ===== sub_94036FCC @ 0x94036FCC size 32 ===== */
-__int64 __fastcall sub_94036FCC(int a1, int a2, int a3)
+/* ===== align_overhead @ 0x94036FCC size 32 ===== */
+__int64 __fastcall align_overhead(int a1, int a2, int a3)
 {
   return ((a2 + a1) & -a3) - ((a3 - 1 + a1) & (unsigned int)-a3);
 }
 
-/* ===== sub_94036FEC @ 0x94036FEC size 432 ===== */
+/* ===== sprd_crypto_malloc_buf @ 0x94036FEC size 432 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_94036FEC(__int64 a1, unsigned int a2, _QWORD *a3, int *a4)
+__int64 __fastcall sprd_crypto_malloc_buf(__int64 a1, unsigned int a2, _QWORD *a3, int *a4)
 {
   __int64 result; // x0
   const void *v9; // x0
@@ -15557,90 +15557,90 @@ __int64 __fastcall sub_94036FEC(__int64 a1, unsigned int a2, _QWORD *a3, int *a4
     }
     else
     {
-      while ( (unsigned int)sub_9404096C(0) != 0 )
+      while ( (unsigned int)sprd_mutex_lock(0) != 0 )
         ;
-      qword_94067998 = sub_94036FB8(0, 0, a2);
-      v10 = sub_94036FCC(0, 0, a2);
+      qword_94067998 = align_up(0, 0, a2);
+      v10 = align_overhead(0, 0, a2);
       *a3 = 0;
       *(_QWORD *)&algn_940679A4[4] = a1;
       *a4 = v10;
       dword_940679A0 = v10;
-      return sub_94040974(0);
+      return sprd_mutex_unlock(0);
     }
   }
   else
   {
-    v9 = (const void *)sub_94040A98();
-    return sub_940407DC(3, "%p: %s: %s: buf = NULL or len = NULL\n", v9, "SPRD_CE", "sprd_crypto_malloc_buf");
+    v9 = (const void *)get_current_thread();
+    return sprd_log(3, "%p: %s: %s: buf = NULL or len = NULL\n", v9, "SPRD_CE", "sprd_crypto_malloc_buf");
   }
   return result;
 }
 
-/* ===== sub_9403719C @ 0x9403719C size 420 ===== */
+/* ===== sprd_crypto_free_buf @ 0x9403719C size 420 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_9403719C(__int64 result)
+__int64 __fastcall sprd_crypto_free_buf(__int64 result)
 {
   __int64 v1; // x0
   const void *v2; // x0
 
   if ( result != 0 )
   {
-    while ( (unsigned int)sub_9404096C(0) != 0 )
+    while ( (unsigned int)sprd_mutex_lock(0) != 0 )
       ;
-    v1 = sub_94040974(0);
-    v2 = (const void *)sub_94040A98(v1);
-    return sub_940407DC(3, "%p: %s: %s: an addr is not in buf list !\n", v2, "SPRD_CE", "sprd_crypto_free_buf");
+    v1 = sprd_mutex_unlock(0);
+    v2 = (const void *)get_current_thread(v1);
+    return sprd_log(3, "%p: %s: %s: an addr is not in buf list !\n", v2, "SPRD_CE", "sprd_crypto_free_buf");
   }
   return result;
 }
 
-/* ===== sub_94037340 @ 0x94037340 size 56 ===== */
-__int64 sub_94037340()
+/* ===== sprd_crypto_unlock @ 0x94037340 size 56 ===== */
+__int64 sprd_crypto_unlock()
 {
   __int64 result; // x0
 
-  result = sub_9404096C(0);
+  result = sprd_mutex_lock(0);
   if ( (_DWORD)result == 0 )
-    return sub_94040974(0);
+    return sprd_mutex_unlock(0);
   return result;
 }
 
-/* ===== sub_94037378 @ 0x94037378 size 160 ===== */
+/* ===== sprd_crypto_lock_init @ 0x94037378 size 160 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_94037378(_DWORD *a1)
+__int64 __fastcall sprd_crypto_lock_init(_DWORD *a1)
 {
   int v2; // w1
   bool v3; // cf
 
-  sub_9404096C(0);
-  sub_94036970();
+  sprd_mutex_lock(0);
+  sprd_ce_prepare();
   v2 = *a1 - 7;
   v3 = *a1 != 7;
   dword_94067AC8 = 1;
   if ( v2 == 1 || !v3 )
-    sub_9403CC8C();
-  sub_94040974(0);
+    sprd_sec_hw_init();
+  sprd_mutex_unlock(0);
   return 0;
 }
 
-/* ===== sub_94037418 @ 0x94037418 size 152 ===== */
+/* ===== sprd_crypto_lock_deinit @ 0x94037418 size 152 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_94037418(int *a1)
+__int64 __fastcall sprd_crypto_lock_deinit(int *a1)
 {
   int v2; // w1
 
-  sub_9404096C(0);
+  sprd_mutex_lock(0);
   v2 = *a1;
   dword_94067AC8 = -1;
   if ( (unsigned int)(v2 - 7) <= 1 )
-    sub_9403CC90();
-  sub_94037340();
-  sub_94040974(0);
+    sprd_sec_hw_deinit();
+  sprd_crypto_unlock();
+  sprd_mutex_unlock(0);
   return 0;
 }
 
-/* ===== sub_940374B0 @ 0x940374B0 size 68 ===== */
-__int64 __fastcall sub_940374B0(unsigned __int64 a1)
+/* ===== log2_floor @ 0x940374B0 size 68 ===== */
+__int64 __fastcall log2_floor(unsigned __int64 a1)
 {
   unsigned int v1; // w2
   unsigned __int64 v2; // x0
@@ -15660,21 +15660,21 @@ __int64 __fastcall sub_940374B0(unsigned __int64 a1)
   return v1;
 }
 
-/* ===== sub_940374F4 @ 0x940374F4 size 272 ===== */
+/* ===== crypto_buf_pool_init @ 0x940374F4 size 272 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 sub_940374F4()
+__int64 crypto_buf_pool_init()
 {
   unsigned int v0; // w0
 
-  v0 = sub_940374B0(0x40u);
-  if ( (unsigned int)sub_94040904("crypto buffer", 0x80000, &qword_94067AE0, v0, 0, 0) == 0 )
-    qword_94067980 = sub_9404093C();
+  v0 = log2_floor(0x40u);
+  if ( (unsigned int)sprd_dma_alloc("crypto buffer", 0x80000, &qword_94067AE0, v0, 0, 0) == 0 )
+    qword_94067980 = sprd_mutex_create();
   return 4294901760LL;
 }
 
-/* ===== sub_94037604 @ 0x94037604 size 252 ===== */
+/* ===== sprd_crypto_init @ 0x94037604 size 252 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 sub_94037604()
+__int64 sprd_crypto_init()
 {
   __int64 v0; // x0
   __int64 v1; // x0
@@ -15684,82 +15684,82 @@ __int64 sub_94037604()
   const void *v5; // x0
   const void *v6; // x0
 
-  sub_940374F4();
-  sub_940369D8();
-  sub_94036958((void *)0xFFFFFFFFE0016D20LL);
-  v0 = sub_94035594((_QWORD *)0xFFFFFFFFE0061270LL);
-  qword_94067AD0 = sub_9404093C(v0);
-  v5 = (const void *)sub_94040A98(0);
-  sub_940407DC(3, "%p: %s: %s: mutex init s_crypto_mutex FAILED!\n", v5, "SPRD_CE", "sprd_crypto_init");
-  sub_94036964((void *)0xFFFFFFFFE0016C28LL);
-  v1 = sub_94035594((_QWORD *)0xFFFFFFFFE0061298LL);
-  v2 = sub_9404093C(v1);
+  crypto_buf_pool_init();
+  sprd_ce_init();
+  sprd_ce_set_pka_cb((void *)0xFFFFFFFFE0016D20LL);
+  v0 = sprd_queue_init((_QWORD *)0xFFFFFFFFE0061270LL);
+  qword_94067AD0 = sprd_mutex_create(v0);
+  v5 = (const void *)get_current_thread(0);
+  sprd_log(3, "%p: %s: %s: mutex init s_crypto_mutex FAILED!\n", v5, "SPRD_CE", "sprd_crypto_init");
+  sprd_ce_set_ce_cb((void *)0xFFFFFFFFE0016C28LL);
+  v1 = sprd_queue_init((_QWORD *)0xFFFFFFFFE0061298LL);
+  v2 = sprd_mutex_create(v1);
   qword_94067AD8 = v2;
   if ( v2 == 0 )
   {
-    v6 = (const void *)sub_94040A98(0);
-    v2 = sub_940407DC(3, "%p: %s: %s: mutex init s_crypto_mutex_pka FAILED!\n", v6, "SPRD_CE", "sprd_crypto_init");
+    v6 = (const void *)get_current_thread(0);
+    v2 = sprd_log(3, "%p: %s: %s: mutex init s_crypto_mutex_pka FAILED!\n", v6, "SPRD_CE", "sprd_crypto_init");
   }
-  result = sub_9404093C(v2);
+  result = sprd_mutex_create(v2);
   qword_94067978 = result;
   if ( result == 0 )
   {
-    v4 = (const void *)sub_94040A98(0);
-    return sub_940407DC(3, "%p: %s: %s: mutex init s_crypto_count_mutex FAILED!\n", v4, "SPRD_CE", "sprd_crypto_init");
+    v4 = (const void *)get_current_thread(0);
+    return sprd_log(3, "%p: %s: %s: mutex init s_crypto_count_mutex FAILED!\n", v4, "SPRD_CE", "sprd_crypto_init");
   }
   return result;
 }
 
-/* ===== sub_94037700 @ 0x94037700 size 8 ===== */
-__int64 sub_94037700()
+/* ===== ce_desc_nop @ 0x94037700 size 8 ===== */
+__int64 ce_desc_nop()
 {
   return 0xFFFFFFFFLL;
 }
 
-/* ===== sub_94037708 @ 0x94037708 size 40 ===== */
-__int64 __fastcall sub_94037708(char a1, char a2, char a3, int a4)
+/* ===== ce_desc_alg @ 0x94037708 size 40 ===== */
+__int64 __fastcall ce_desc_alg(char a1, char a2, char a3, int a4)
 {
   return a4 & 0x1FFFF | 0xB0000000 | ((a2 & 0x1F) << 18) | ((a1 & 0xF) << 23) | ((a3 & 1) << 17);
 }
 
-/* ===== sub_94037730 @ 0x94037730 size 40 ===== */
-__int64 __fastcall sub_94037730(char a1, char a2, char a3, int a4)
+/* ===== ce_desc_alg2 @ 0x94037730 size 40 ===== */
+__int64 __fastcall ce_desc_alg2(char a1, char a2, char a3, int a4)
 {
   return a4 & 0x1FFFF | 0xB8000000 | ((a2 & 0x1F) << 18) | ((a1 & 0xF) << 23) | ((a3 & 1) << 17);
 }
 
-/* ===== sub_94037758 @ 0x94037758 size 24 ===== */
-__int64 __fastcall sub_94037758(char a1, int a2)
+/* ===== ce_desc_cipher @ 0x94037758 size 24 ===== */
+__int64 __fastcall ce_desc_cipher(char a1, int a2)
 {
   return a2 & 0x3FFFF | 0x28000000 | ((unsigned __int8)(a1 & 0x1F) << 18);
 }
 
-/* ===== sub_94037770 @ 0x94037770 size 28 ===== */
-__int64 __fastcall sub_94037770(char a1, char a2)
+/* ===== ce_desc_hash_init @ 0x94037770 size 28 ===== */
+__int64 __fastcall ce_desc_hash_init(char a1, char a2)
 {
   return ((a2 & 0x1F) << 18) | 0xF0020805 | ((a1 & 0xF) << 23);
 }
 
-/* ===== sub_9403778C @ 0x9403778C size 20 ===== */
-__int64 __fastcall sub_9403778C(char a1, int a2)
+/* ===== ce_desc_hash_data @ 0x9403778C size 20 ===== */
+__int64 __fastcall ce_desc_hash_data(char a1, int a2)
 {
   return ((a2 & 0x1FFFF) << 6) | 0xF8000000 | ((a1 & 0xF) << 23);
 }
 
-/* ===== sub_940377A0 @ 0x940377A0 size 36 ===== */
-__int64 __fastcall sub_940377A0(char a1, char a2, char a3, char a4)
+/* ===== ce_desc_hash_final @ 0x940377A0 size 36 ===== */
+__int64 __fastcall ce_desc_hash_final(char a1, char a2, char a3, char a4)
 {
   return ((a4 & 0x1F) << 6) | 0xF8000001 | ((a3 & 0x1F) << 12) | ((a2 & 0x1F) << 18) | ((a1 & 0xF) << 23);
 }
 
-/* ===== sub_940377C4 @ 0x940377C4 size 44 ===== */
-__int64 __fastcall sub_940377C4(char a1, char a2, char a3, char a4)
+/* ===== ce_desc_hash_final2 @ 0x940377C4 size 44 ===== */
+__int64 __fastcall ce_desc_hash_final2(char a1, char a2, char a3, char a4)
 {
   return ((a4 & 0x1F) << 6) | 0xF8000002 | ((a3 & 0x1F) << 12) | ((a2 & 0x1F) << 18) | ((a1 & 0xF) << 23);
 }
 
-/* ===== sub_940377F0 @ 0x940377F0 size 40 ===== */
-__int64 __fastcall sub_940377F0(char a1, char a2, char a3, char a4)
+/* ===== ce_desc_cipher2 @ 0x940377F0 size 40 ===== */
+__int64 __fastcall ce_desc_cipher2(char a1, char a2, char a3, char a4)
 {
   return ((a4 & 0x1F) << 6)
        | 0x58000000
@@ -15768,14 +15768,14 @@ __int64 __fastcall sub_940377F0(char a1, char a2, char a3, char a4)
        | ((unsigned __int8)(a1 & 0xF) << 23);
 }
 
-/* ===== sub_94037818 @ 0x94037818 size 20 ===== */
-__int64 __fastcall sub_94037818(char a1, char a2)
+/* ===== ce_desc_rng @ 0x94037818 size 20 ===== */
+__int64 __fastcall ce_desc_rng(char a1, char a2)
 {
   return ((a2 & 0x1F) << 18) | 0x8000000 | ((unsigned __int8)(a1 & 0xF) << 23);
 }
 
-/* ===== sub_9403782C @ 0x9403782C size 36 ===== */
-__int64 __fastcall sub_9403782C(__int64 result, unsigned int a2)
+/* ===== ce_clear_desc_flags @ 0x9403782C size 36 ===== */
+__int64 __fastcall ce_clear_desc_flags(__int64 result, unsigned int a2)
 {
   __int64 i; // x2
 
@@ -15784,8 +15784,8 @@ __int64 __fastcall sub_9403782C(__int64 result, unsigned int a2)
   return result;
 }
 
-/* ===== sub_94037850 @ 0x94037850 size 240 ===== */
-__int64 __fastcall sub_94037850(__int64 a1, unsigned int a2, __int64 a3)
+/* ===== sha256_csum_wd @ 0x94037850 size 240 ===== */
+__int64 __fastcall sha256_csum_wd(__int64 a1, unsigned int a2, __int64 a3)
 {
   __int64 v6; // x0
   __int64 v7; // x0
@@ -15798,38 +15798,38 @@ __int64 __fastcall sub_94037850(__int64 a1, unsigned int a2, __int64 a3)
   __int64 v14; // [xsp+38h] [xbp+38h]
   _BYTE v15[352]; // [xsp+40h] [xbp+40h] BYREF
 
-  v6 = sub_940382C4(33554436, v15);
+  v6 = sprd_hash_init(33554436, v15);
   if ( (_DWORD)v6 != 0 )
   {
     v13 = (unsigned int)v6;
-    v10 = sub_94040A98(v6);
-    return sub_940407DC(3, "%p: %s: %s: sprd_hash_init return [0x%x]\n", v10, "SPRD_CE", "sha256_csum_wd", v13);
+    v10 = get_current_thread(v6);
+    return sprd_log(3, "%p: %s: %s: sprd_hash_init return [0x%x]\n", v10, "SPRD_CE", "sha256_csum_wd", v13);
   }
   else
   {
-    v7 = sub_9403870C(v15, a1, a2);
+    v7 = sprd_hash_update(v15, a1, a2);
     if ( (_DWORD)v7 != 0 )
     {
       v12 = (unsigned int)v7;
-      v9 = sub_94040A98(v7);
-      return sub_940407DC(3, "%p: %s: %s: sprd_hash_process return [0x%x]\n", v9, "SPRD_CE", "sha256_csum_wd", v12);
+      v9 = get_current_thread(v7);
+      return sprd_log(3, "%p: %s: %s: sprd_hash_process return [0x%x]\n", v9, "SPRD_CE", "sha256_csum_wd", v12);
     }
     else
     {
-      result = sub_9403871C(v15, a3);
+      result = sprd_hash_final(v15, a3);
       if ( (_DWORD)result != 0 )
       {
         v14 = (unsigned int)result;
-        v11 = sub_94040A98(result);
-        return sub_940407DC(3, "%p: %s: %s: sprd_hash_final return [0x%x]\n", v11, "SPRD_CE", "sha256_csum_wd", v14);
+        v11 = get_current_thread(result);
+        return sprd_log(3, "%p: %s: %s: sprd_hash_final return [0x%x]\n", v11, "SPRD_CE", "sha256_csum_wd", v14);
       }
     }
   }
   return result;
 }
 
-/* ===== sub_94037940 @ 0x94037940 size 220 ===== */
-__int64 __fastcall sub_94037940(__int64 a1, __int64 a2, int a3, __int64 a4, __int64 a5)
+/* ===== RSA_PubDec @ 0x94037940 size 220 ===== */
+__int64 __fastcall RSA_PubDec(__int64 a1, __int64 a2, int a3, __int64 a4, __int64 a5)
 {
   __int64 v5; // x0
   __int64 result; // x0
@@ -15849,12 +15849,12 @@ __int64 __fastcall sub_94037940(__int64 a1, __int64 a2, int a3, __int64 a4, __in
   v12[1] = a1;
   v13 = a3 >> 3;
   v14 = 4;
-  v5 = sub_9403BC1C(v12, a5, 0, a4, (unsigned int)(a3 >> 3), v10, &v11);
+  v5 = sprd_rsa_verify(v12, a5, 0, a4, (unsigned int)(a3 >> 3), v10, &v11);
   if ( (_DWORD)v5 != 0 )
   {
     v9 = v5;
-    v7 = (const void *)sub_94040A98(v5);
-    sub_940407DC(3, "%p: %s: %s: sprd_rsa_verify fail(%08x)\n", v7, "SPRD_CE", "RSA_PubDec", v9);
+    v7 = (const void *)get_current_thread(v5);
+    sprd_log(3, "%p: %s: %s: sprd_rsa_verify fail(%08x)\n", v7, "SPRD_CE", "RSA_PubDec", v9);
     return 0xFFFFFFFFLL;
   }
   else
@@ -15862,16 +15862,16 @@ __int64 __fastcall sub_94037940(__int64 a1, __int64 a2, int a3, __int64 a4, __in
     result = (unsigned int)v11;
     if ( v11 <= 0 )
     {
-      v8 = (const void *)sub_94040A98((unsigned int)v11);
-      sub_940407DC(3, "%p: %s: %s: sprd_rsa_verify result(%08x)\n", v8, "SPRD_CE", "RSA_PubDec", v11);
+      v8 = (const void *)get_current_thread((unsigned int)v11);
+      sprd_log(3, "%p: %s: %s: sprd_rsa_verify result(%08x)\n", v8, "SPRD_CE", "RSA_PubDec", v11);
       return 0xFFFFFFFFLL;
     }
   }
   return result;
 }
 
-/* ===== sub_94037A1C @ 0x94037A1C size 472 ===== */
-__int64 __fastcall sub_94037A1C(__int64 a1)
+/* ===== sprd_socid_get @ 0x94037A1C size 472 ===== */
+__int64 __fastcall sprd_socid_get(__int64 a1)
 {
   __int64 v2; // x0
   __int64 v3; // x2
@@ -15900,76 +15900,76 @@ __int64 __fastcall sub_94037A1C(__int64 a1)
   memset(v20, 0, sizeof(v20));
   v21[0] = 0;
   v21[1] = 0;
-  sub_9403CC40(v18);
-  sub_9403782C((__int64)v18, 8u);
-  sub_94040880(v20, v18, 32);
+  efuse_read_ns_blocks(v18);
+  ce_clear_desc_flags((__int64)v18, 8u);
+  memcpy(v20, v18, 32);
   v19[0] = 1;
   strcpy(&v19[1], "I");
   v19[35] = 0x80;
-  v2 = sub_9403886C(8, 0, 32, v22);
+  v2 = sprd_cmac_init(8, 0, 32, v22);
   if ( (_DWORD)v2 != 0 )
   {
     v13 = (unsigned int)v2;
-    v3 = sub_94040A98(v2);
-    sub_940407DC(3, "%p: %s: %s: aes cmac init FAILED [%d]\n", v3, "SPRD_CE", "sprd_socid_get", v13);
+    v3 = get_current_thread(v2);
+    sprd_log(3, "%p: %s: %s: aes cmac init FAILED [%d]\n", v3, "SPRD_CE", "sprd_socid_get", v13);
     return 0xFFFFFFFFLL;
   }
-  v5 = sub_94038B24(v22, v19, 36);
+  v5 = sprd_cmac_update(v22, v19, 36);
   if ( (_DWORD)v5 != 0 )
   {
     v14 = (unsigned int)v5;
-    v6 = sub_94040A98(v5);
-    sub_940407DC(3, "%p: %s: %s: aes cmac update FAILED [%d]\n", v6, "SPRD_CE", "sprd_socid_get", v14);
+    v6 = get_current_thread(v5);
+    sprd_log(3, "%p: %s: %s: aes cmac update FAILED [%d]\n", v6, "SPRD_CE", "sprd_socid_get", v14);
     return 0xFFFFFFFFLL;
   }
-  v7 = sub_94038CB4(v22, v21);
+  v7 = sprd_cmac_final(v22, v21);
   if ( (_DWORD)v7 != 0 )
   {
     v16 = (unsigned int)v7;
-    v10 = sub_94040A98(v7);
-    sub_940407DC(3, "%p: %s: %s: aes cmac final FAILED [%d]\n", v10, "SPRD_CE", "sprd_socid_get", v16);
+    v10 = get_current_thread(v7);
+    sprd_log(3, "%p: %s: %s: aes cmac final FAILED [%d]\n", v10, "SPRD_CE", "sprd_socid_get", v16);
     return 0xFFFFFFFFLL;
   }
-  v8 = sub_940382C4(33554436, v23);
+  v8 = sprd_hash_init(33554436, v23);
   if ( (_DWORD)v8 != 0 )
   {
     v15 = (unsigned int)v8;
-    v9 = sub_94040A98(v8);
-    sub_940407DC(3, "%p: %s: %s: sha256 init FAILED [%d]\n", v9, "SPRD_CE", "sprd_socid_get", v15);
+    v9 = get_current_thread(v8);
+    sprd_log(3, "%p: %s: %s: sha256 init FAILED [%d]\n", v9, "SPRD_CE", "sprd_socid_get", v15);
     return 0xFFFFFFFFLL;
   }
-  result = sub_9403870C(v23, v20, 48);
+  result = sprd_hash_update(v23, v20, 48);
   v11 = (unsigned int)result;
-  if ( (_DWORD)result != 0 || (v11 = (unsigned int)sub_9403871C(v23, a1), result = 0, (_DWORD)v11 != 0) )
+  if ( (_DWORD)result != 0 || (v11 = (unsigned int)sprd_hash_final(v23, a1), result = 0, (_DWORD)v11 != 0) )
   {
     v17 = v11;
-    v12 = sub_94040A98(result);
-    sub_940407DC(3, "%p: %s: %s: sha256 update FAILED [%d]\n", v12, "SPRD_CE", "sprd_socid_get", v17);
+    v12 = get_current_thread(result);
+    sprd_log(3, "%p: %s: %s: sha256 update FAILED [%d]\n", v12, "SPRD_CE", "sprd_socid_get", v17);
     return 0xFFFFFFFFLL;
   }
   return result;
 }
 
-/* ===== sub_94037BF4 @ 0x94037BF4 size 352 ===== */
-__int64 __fastcall sub_94037BF4(__int64 a1, unsigned int a2, __int64 a3, unsigned int a4)
+/* ===== sprd_huk_derive @ 0x94037BF4 size 352 ===== */
+__int64 __fastcall sprd_huk_derive(__int64 a1, unsigned int a2, __int64 a3, unsigned int a4)
 {
   char v9[48]; // [xsp+40h] [xbp+40h] BYREF
   _BYTE v10[352]; // [xsp+70h] [xbp+70h] BYREF
 
   strcpy(v9, "@ABCDEFGHIJKLMNO");
   memset(&v9[17], 0, 31);
-  if ( (unsigned int)sub_94037D54(7, 0, v10, 0, 0, 16, v9, 16) != 0
-    || (unsigned int)sub_94038198(v10, a1, &v9[16], a2) != 0
-    || (unsigned int)sub_940381DC(v10, 0, 0, 0, 0, 0) != 0 )
+  if ( (unsigned int)sprd_aes_init(7, 0, v10, 0, 0, 16, v9, 16) != 0
+    || (unsigned int)sprd_aes_process(v10, a1, &v9[16], a2) != 0
+    || (unsigned int)sprd_aes_final(v10, 0, 0, 0, 0, 0) != 0 )
   {
     return 4294901775LL;
   }
-  sub_94040880(a3, &v9[16], a4);
+  memcpy(a3, &v9[16], a4);
   return 0;
 }
 
-/* ===== sub_94037D54 @ 0x94037D54 size 524 ===== */
-__int64 __fastcall sub_94037D54(
+/* ===== sprd_aes_init @ 0x94037D54 size 524 ===== */
+__int64 __fastcall sprd_aes_init(
         int a1,
         int a2,
         __int64 a3,
@@ -15993,60 +15993,60 @@ __int64 __fastcall sub_94037D54(
   v9 = (unsigned int)(a1 - 7);
   if ( (unsigned int)v9 > 1 && (a4 == 0 || (_DWORD)(v9 = a6 & 0xFFFFFFF7) != 16 && a6 != 32) )
   {
-    v24 = sub_94040A98(v9);
-    sub_940407DC(3, "%p: %s: %s: Bad AES key1!\n", v24, "SPRD_CE", "sprd_aes_init");
+    v24 = get_current_thread(v9);
+    sprd_log(3, "%p: %s: %s: Bad AES key1!\n", v24, "SPRD_CE", "sprd_aes_init");
     return (unsigned int)-65529;
   }
   if ( a1 == 3 && a5 == 0 )
   {
-    v25 = sub_94040A98(v9);
-    sub_940407DC(3, "%p: %s: %s: Bad AES key2!\n", v25, "SPRD_CE", "sprd_aes_init");
+    v25 = get_current_thread(v9);
+    sprd_log(3, "%p: %s: %s: Bad AES key2!\n", v25, "SPRD_CE", "sprd_aes_init");
     return (unsigned int)-65529;
   }
   if ( (a1 & 0xFFFFFFFB) != 0 && a1 != 8 && (a7 == 0 || a8 != 16) )
   {
-    v26 = sub_94040A98(v9);
-    sub_940407DC(3, "%p: %s: %s: Bad AES iv!\n", v26, "SPRD_CE", "sprd_aes_init");
+    v26 = get_current_thread(v9);
+    sprd_log(3, "%p: %s: %s: Bad AES iv!\n", v26, "SPRD_CE", "sprd_aes_init");
     return (unsigned int)-65529;
   }
-  sub_94040888(a3, 0, 352);
-  v17 = sub_9404089C(128, 64);
+  memset(a3, 0, 352);
+  v17 = memalign(128, 64);
   *(_QWORD *)(a3 + 144) = v17;
   if ( v17 == 0 )
     return (unsigned int)-65526;
-  sub_940408B0(v17, 128);
+  dcache_clean(v17, 128);
   *(_DWORD *)a3 = a1;
   *(_DWORD *)(a3 + 16) = a2;
   if ( a4 != 0 )
-    sub_94040880(a3 + 28, a4, a6);
+    memcpy(a3 + 28, a4, a6);
   *(_DWORD *)(a3 + 60) = a6;
   if ( a5 != 0 )
   {
-    sub_94040880(a3 + 64, a5, a6);
+    memcpy(a3 + 64, a5, a6);
     *(_DWORD *)(a3 + 96) = a6;
   }
   if ( a7 != 0 )
   {
-    sub_94040880(a3 + 100, a7, a8);
+    memcpy(a3 + 100, a7, a8);
     *(_DWORD *)(a3 + 116) = a8;
   }
-  v18 = sub_94037378((_DWORD *)a3);
+  v18 = sprd_crypto_lock_init((_DWORD *)a3);
   v19 = 0;
   if ( (_DWORD)v18 == 0 )
     return v19;
-  v21 = (const void *)sub_94040A98(v18);
-  sub_940407DC(3, "%p: %s: %s: FAILED!\n", v21, "SPRD_CE", "sprd_aes_init");
+  v21 = (const void *)get_current_thread(v18);
+  sprd_log(3, "%p: %s: %s: FAILED!\n", v21, "SPRD_CE", "sprd_aes_init");
   v23 = *(_QWORD *)(a3 + 144);
   if ( v23 != 0 )
   {
-    sub_940408AC(v23, v22);
+    free(v23, v22);
     *(_QWORD *)(a3 + 144) = 0;
   }
   return 4294901760LL;
 }
 
-/* ===== sub_94037F60 @ 0x94037F60 size 568 ===== */
-__int64 __fastcall sub_94037F60(__int64 a1, __int64 a2, int a3, __int64 a4)
+/* ===== sprd_aes_process_internal @ 0x94037F60 size 568 ===== */
+__int64 __fastcall sprd_aes_process_internal(__int64 a1, __int64 a2, int a3, __int64 a4)
 {
   int v8; // w25
   __int64 v9; // x24
@@ -16071,10 +16071,10 @@ __int64 __fastcall sub_94037F60(__int64 a1, __int64 a2, int a3, __int64 a4)
 
   v27 = nullptr;
   v8 = *(_DWORD *)(a1 + 8);
-  v9 = sub_940409F8(0);
+  v9 = sprd_semaphore_create(0);
   if ( v9 == 0 )
     return 4294901770LL;
-  v10 = sub_94036FEC(a1, 0x40u, &v27, (int *)&v26);
+  v10 = sprd_crypto_malloc_buf(a1, 0x40u, &v27, (int *)&v26);
   v11 = v27;
   if ( v27 != nullptr && (v10 = v26, v26 > 0x3F) )
   {
@@ -16082,11 +16082,11 @@ __int64 __fastcall sub_94037F60(__int64 a1, __int64 a2, int a3, __int64 a4)
     if ( v12 == 0 )
     {
 LABEL_13:
-      sub_94040A34(v9);
+      sprd_semaphore_destroy(v9);
       result = (__int64)v27;
       if ( v27 != nullptr )
       {
-        sub_9403719C((__int64)v27);
+        sprd_crypto_free_buf((__int64)v27);
         return 0;
       }
       return result;
@@ -16098,13 +16098,13 @@ LABEL_13:
       if ( v12 == 1 )
       {
         v16 = a3 + a2 - v13;
-        sub_94040880(v15, v13, v16);
+        memcpy(v15, v13, v16);
         v17 = (unsigned __int8)v8;
       }
       else
       {
         v16 = v26;
-        sub_94040880(v15, v13, v26);
+        memcpy(v15, v13, v26);
         v17 = 0;
       }
       v18 = v27;
@@ -16115,18 +16115,18 @@ LABEL_13:
       *(_DWORD *)(a1 + 304) = v16;
       *(_DWORD *)(a1 + 320) = v16;
       *(_QWORD *)(a1 + 344) = v9;
-      sub_940408B0(v18, v19);
-      v20 = sub_94036D90((int *)a1);
+      dcache_clean(v18, v19);
+      v20 = sprd_crypto_work((int *)a1);
       if ( v20 != 0 )
         break;
-      sub_94040A74(v9);
+      sprd_semaphore_wait(v9);
       if ( a4 != 0 )
       {
-        sub_940408C0(v27, v26);
+        dcache_invalidate(v27, v26);
         v14 = a4;
         a4 += v16;
         v13 += v16;
-        sub_94040880(v14, v27, v16);
+        memcpy(v14, v27, v16);
         if ( --v12 == 0 )
           goto LABEL_13;
       }
@@ -16139,39 +16139,39 @@ LABEL_13:
       }
       v11 = v27;
     }
-    v25 = (const void *)sub_94040A98(v9);
-    sub_940407DC(3, "%p: %s: %s: sprd_crypto_process return 0x%x\n", v25, "SPRD_CE", "sprd_aes_process_internal", v20);
+    v25 = (const void *)get_current_thread(v9);
+    sprd_log(3, "%p: %s: %s: sprd_crypto_process return 0x%x\n", v25, "SPRD_CE", "sprd_aes_process_internal", v20);
   }
   else
   {
-    v22 = (const void *)sub_94040A98(v10);
+    v22 = (const void *)get_current_thread(v10);
     v20 = -65526;
-    sub_940407DC(3, "%p: %s: %s: buf = %p, buf_len is %d!\n", v22, "SPRD_CE", "sprd_aes_process_internal", v27, v26);
+    sprd_log(3, "%p: %s: %s: buf = %p, buf_len is %d!\n", v22, "SPRD_CE", "sprd_aes_process_internal", v27, v26);
   }
   if ( v27 != nullptr )
-    sub_9403719C((__int64)v27);
-  sub_94040A34(v9);
+    sprd_crypto_free_buf((__int64)v27);
+  sprd_semaphore_destroy(v9);
   v24 = *(_QWORD *)(a1 + 144);
   if ( v24 != 0 )
   {
-    sub_940408AC(v24, v23);
+    free(v24, v23);
     *(_QWORD *)(a1 + 144) = 0;
   }
-  sub_94037418((int *)a1);
+  sprd_crypto_lock_deinit((int *)a1);
   return v20;
 }
 
-/* ===== sub_94038198 @ 0x94038198 size 68 ===== */
-__int64 __fastcall sub_94038198(__int64 a1, __int64 a2, __int64 a3, int a4)
+/* ===== sprd_aes_process @ 0x94038198 size 68 ===== */
+__int64 __fastcall sprd_aes_process(__int64 a1, __int64 a2, __int64 a3, int a4)
 {
   if ( a2 == 0 || a3 == 0 || a4 == 0 || (a4 & 0xF) != 0 )
     return 4294901767LL;
   *(_DWORD *)(a1 + 8) = 0;
-  return sub_94037F60(a1, a2, a4, a3);
+  return sprd_aes_process_internal(a1, a2, a4, a3);
 }
 
-/* ===== sub_940381DC @ 0x940381DC size 232 ===== */
-__int64 __fastcall sub_940381DC(__int64 a1, __int64 a2, unsigned int a3, __int64 a4, unsigned int *a5, unsigned int a6)
+/* ===== sprd_aes_final @ 0x940381DC size 232 ===== */
+__int64 __fastcall sprd_aes_final(__int64 a1, __int64 a2, unsigned int a3, __int64 a4, unsigned int *a5, unsigned int a6)
 {
   unsigned int v9; // w22
   __int64 v10; // x0
@@ -16183,12 +16183,12 @@ __int64 __fastcall sub_940381DC(__int64 a1, __int64 a2, unsigned int a3, __int64
   if ( a2 == 0 || a3 == 0 )
     goto LABEL_9;
   *(_DWORD *)(a1 + 8) = 1;
-  v12 = sub_94037F60(a1, a2, a3, a4);
+  v12 = sprd_aes_process_internal(a1, a2, a3, a4);
   v9 = v12;
   if ( (_DWORD)v12 != 0 )
   {
-    v13 = (const void *)sub_94040A98(v12);
-    sub_940407DC(3, "%p: %s: %s: sprd_aes_process_internal FAILED[0x%x]\n", v13, "SPRD_CE", "sprd_aes_final", v9);
+    v13 = (const void *)get_current_thread(v12);
+    sprd_log(3, "%p: %s: %s: sprd_aes_process_internal FAILED[0x%x]\n", v13, "SPRD_CE", "sprd_aes_final", v9);
     goto LABEL_10;
   }
   if ( a5 != nullptr )
@@ -16200,34 +16200,34 @@ LABEL_10:
   v10 = *(_QWORD *)(a1 + 144);
   if ( v10 != 0 )
   {
-    sub_940408AC(v10, a2);
+    free(v10, a2);
     *(_QWORD *)(a1 + 144) = 0;
   }
-  sub_94037418((int *)a1);
+  sprd_crypto_lock_deinit((int *)a1);
   return v9;
 }
 
-/* ===== sub_940382C4 @ 0x940382C4 size 156 ===== */
-__int64 __fastcall sub_940382C4(int a1, __int64 a2)
+/* ===== sprd_hash_init @ 0x940382C4 size 156 ===== */
+__int64 __fastcall sprd_hash_init(int a1, __int64 a2)
 {
   __int64 v4; // x0
   __int64 v5; // x0
   unsigned int v6; // w1
   const void *v8; // x0
 
-  sub_94040888(a2, 0, 352);
-  v4 = sub_9404089C(128, 64);
+  memset(a2, 0, 352);
+  v4 = memalign(128, 64);
   *(_QWORD *)(a2 + 152) = v4;
   if ( v4 != 0 )
   {
-    sub_940408B0(v4, 128);
+    dcache_clean(v4, 128);
     *(_DWORD *)a2 = a1;
-    v5 = sub_94037378((_DWORD *)a2);
+    v5 = sprd_crypto_lock_init((_DWORD *)a2);
     v6 = 0;
     if ( (_DWORD)v5 != 0 )
     {
-      v8 = (const void *)sub_94040A98(v5);
-      sub_940407DC(3, "%p: %s: %s: FAILED!\n", v8, "SPRD_CE", "sprd_hash_init");
+      v8 = (const void *)get_current_thread(v5);
+      sprd_log(3, "%p: %s: %s: FAILED!\n", v8, "SPRD_CE", "sprd_hash_init");
       return (unsigned int)-65536;
     }
   }
@@ -16238,8 +16238,8 @@ __int64 __fastcall sub_940382C4(int a1, __int64 a2)
   return v6;
 }
 
-/* ===== sub_94038360 @ 0x94038360 size 940 ===== */
-__int64 __fastcall sub_94038360(__int64 a1, __int64 a2, unsigned int a3, __int64 a4, unsigned int a5)
+/* ===== sprd_hash_process @ 0x94038360 size 940 ===== */
+__int64 __fastcall sprd_hash_process(__int64 a1, __int64 a2, unsigned int a3, __int64 a4, unsigned int a5)
 {
   __int64 v6; // x26
   int v10; // w23
@@ -16276,10 +16276,10 @@ __int64 __fastcall sub_94038360(__int64 a1, __int64 a2, unsigned int a3, __int64
   v6 = a3;
   v40 = nullptr;
   v10 = *(_DWORD *)(a1 + 8);
-  v11 = sub_940409F8(0);
+  v11 = sprd_semaphore_create(0);
   if ( v11 == 0 )
     return 4294901770LL;
-  sub_94036FEC(a1, 0x80u, &v40, (int *)&v39);
+  sprd_crypto_malloc_buf(a1, 0x80u, &v40, (int *)&v39);
   v12 = (__int64)v40;
   if ( v40 != nullptr )
   {
@@ -16290,7 +16290,7 @@ __int64 __fastcall sub_94038360(__int64 a1, __int64 a2, unsigned int a3, __int64
       v19 = *(unsigned int *)(a1 + 16);
       if ( (_BYTE)v10 != 0 )
       {
-        sub_94040880(v12, a1 + 20, v19);
+        memcpy(v12, a1 + 20, v19);
         *(_DWORD *)(a1 + 320) = a5;
         v30 = *(_DWORD *)(a1 + 16);
         v31 = v39;
@@ -16298,27 +16298,27 @@ __int64 __fastcall sub_94038360(__int64 a1, __int64 a2, unsigned int a3, __int64
         *(_QWORD *)(a1 + 296) = v40;
         *(_DWORD *)(a1 + 304) = v30;
         *(_QWORD *)(a1 + 312) = v32;
-        sub_940408B0(v32, v31);
-        v28 = sub_94036D90((int *)a1);
+        dcache_clean(v32, v31);
+        v28 = sprd_crypto_work((int *)a1);
         v15 = v28;
         if ( (_DWORD)v28 != 0 )
         {
 LABEL_27:
-          v29 = sub_94040A98(v28);
-          sub_940407DC(3, "%p: %s: %s: sprd_crypt_process return 0x%x\n", v29, "SPRD_CE", "sprd_hash_process", v15);
+          v29 = get_current_thread(v28);
+          sprd_log(3, "%p: %s: %s: sprd_crypt_process return 0x%x\n", v29, "SPRD_CE", "sprd_hash_process", v15);
           goto LABEL_5;
         }
-        sub_94040A74(v11);
-        sub_94040A34(v11);
+        sprd_semaphore_wait(v11);
+        sprd_semaphore_destroy(v11);
         if ( (unsigned __int8)v10 == 1 )
         {
-          sub_940408C0(v40, v39);
-          sub_94040880(a4, v40, a5);
+          dcache_invalidate(v40, v39);
+          memcpy(a4, v40, a5);
         }
 LABEL_31:
         if ( v40 != nullptr )
         {
-          sub_9403719C((__int64)v40);
+          sprd_crypto_free_buf((__int64)v40);
           return 0;
         }
         return 0;
@@ -16327,14 +16327,14 @@ LABEL_31:
       if ( (_DWORD)v6 + (_DWORD)v19 == 0 )
       {
 LABEL_12:
-        sub_9403719C(v12);
+        sprd_crypto_free_buf(v12);
 LABEL_13:
-        sub_94040A34(v11);
+        sprd_semaphore_destroy(v11);
         return 0;
       }
       if ( (unsigned int)(v20 - 1) <= 0x7E )
       {
-        sub_94040880(a1 + (unsigned int)v19 + 20, a2, (unsigned int)v6);
+        memcpy(a1 + (unsigned int)v19 + 20, a2, (unsigned int)v6);
         *(_DWORD *)(a1 + 16) = v20;
         v12 = (__int64)v40;
         if ( v40 == nullptr )
@@ -16345,8 +16345,8 @@ LABEL_13:
       if ( (_DWORD)v19 != 0 )
       {
         v20 -= 128;
-        sub_94040880(v12, a1 + 20, v19);
-        sub_94040880(&v40[*(unsigned int *)(a1 + 16)], a2, (unsigned int)(128 - *(_DWORD *)(a1 + 16)));
+        memcpy(v12, a1 + 20, v19);
+        memcpy(&v40[*(unsigned int *)(a1 + 16)], a2, (unsigned int)(128 - *(_DWORD *)(a1 + 16)));
         v33 = v39;
         v34 = *(unsigned int *)(a1 + 16);
         v35 = v40;
@@ -16356,20 +16356,20 @@ LABEL_13:
         v21 = a2 + 128 - v34;
         *(_DWORD *)(a1 + 16) = 0;
         *(_DWORD *)(a1 + 320) = a5;
-        sub_940408B0(v35, v33);
-        v36 = sub_94036D90((int *)a1);
+        dcache_clean(v35, v33);
+        v36 = sprd_crypto_work((int *)a1);
         v15 = v36;
         if ( (_DWORD)v36 != 0 )
         {
-          v37 = sub_94040A98(v36);
-          sub_940407DC(3, "%p: %s: %s: sprd_crypto_process return 0x%x\n", v37, "SPRD_CE", "sprd_hash_process", v15);
+          v37 = get_current_thread(v36);
+          sprd_log(3, "%p: %s: %s: sprd_crypto_process return 0x%x\n", v37, "SPRD_CE", "sprd_hash_process", v15);
           goto LABEL_5;
         }
-        sub_94040A74(v11);
+        sprd_semaphore_wait(v11);
         if ( v20 == 0 )
         {
 LABEL_36:
-          sub_94040A34(v11);
+          sprd_semaphore_destroy(v11);
           goto LABEL_31;
         }
         v13 = v39;
@@ -16387,7 +16387,7 @@ LABEL_36:
           v25 = v21;
           v21 += v24;
           v22 -= v24;
-          sub_94040880(v40, v25, v24);
+          memcpy(v40, v25, v24);
           *(_DWORD *)(a1 + 304) = v24;
           v26 = v40;
           v27 = v39;
@@ -16395,12 +16395,12 @@ LABEL_36:
           *(_DWORD *)(a1 + 8) = 0;
           *(_QWORD *)(a1 + 312) = v26;
           *(_DWORD *)(a1 + 320) = a5;
-          sub_940408B0(v26, v27);
-          v15 = sub_94036D90((int *)a1);
+          dcache_clean(v26, v27);
+          v15 = sprd_crypto_work((int *)a1);
           v28 = v11;
           if ( v15 != 0 )
             goto LABEL_27;
-          sub_94040A74(v11);
+          sprd_semaphore_wait(v11);
           if ( --v23 == 0 )
             break;
           v13 = v39;
@@ -16408,38 +16408,38 @@ LABEL_36:
       }
       if ( v38 != 0 )
       {
-        sub_94040880(a1 + 20, a2 + v6 - v38, v38);
+        memcpy(a1 + 20, a2 + v6 - v38, v38);
         *(_DWORD *)(a1 + 16) = v38;
       }
       goto LABEL_36;
     }
   }
-  v14 = (const void *)sub_94040A98(v40);
+  v14 = (const void *)get_current_thread(v40);
   v15 = -65526;
-  sub_940407DC(3, "%p: %s: %s: buf = %p, buf_len is %d!\n", v14, "SPRD_CE", "sprd_hash_process", v40, v39);
+  sprd_log(3, "%p: %s: %s: buf = %p, buf_len is %d!\n", v14, "SPRD_CE", "sprd_hash_process", v40, v39);
 LABEL_5:
   if ( v40 != nullptr )
-    sub_9403719C((__int64)v40);
-  sub_94040A34(v11);
+    sprd_crypto_free_buf((__int64)v40);
+  sprd_semaphore_destroy(v11);
   v17 = *(_QWORD *)(a1 + 152);
   if ( v17 != 0 )
   {
-    sub_940408AC(v17, v16);
+    free(v17, v16);
     *(_QWORD *)(a1 + 152) = 0;
   }
-  sub_94037418((int *)a1);
+  sprd_crypto_lock_deinit((int *)a1);
   return v15;
 }
 
-/* ===== sub_9403870C @ 0x9403870C size 16 ===== */
-__int64 __fastcall sub_9403870C(__int64 a1, __int64 a2, unsigned int a3)
+/* ===== sprd_hash_update @ 0x9403870C size 16 ===== */
+__int64 __fastcall sprd_hash_update(__int64 a1, __int64 a2, unsigned int a3)
 {
   *(_DWORD *)(a1 + 8) = 0;
-  return sub_94038360(a1, a2, a3, 0, 0);
+  return sprd_hash_process(a1, a2, a3, 0, 0);
 }
 
-/* ===== sub_9403871C @ 0x9403871C size 336 ===== */
-__int64 __fastcall sub_9403871C(__int64 a1, __int64 a2)
+/* ===== sprd_hash_final @ 0x9403871C size 336 ===== */
+__int64 __fastcall sprd_hash_final(__int64 a1, __int64 a2)
 {
   int v3; // w0
   unsigned int v4; // w4
@@ -16482,7 +16482,7 @@ __int64 __fastcall sub_9403871C(__int64 a1, __int64 a2)
           v4 = 32;
         else
           v4 = 0;
-        v5 = sub_94038360(a1, 0, 0, a2, v4);
+        v5 = sprd_hash_process(a1, 0, 0, a2, v4);
         v7 = v5;
         if ( (_DWORD)v5 == 0 )
           goto LABEL_15;
@@ -16495,33 +16495,33 @@ LABEL_19:
     v9 = 64;
   }
 LABEL_14:
-  v5 = sub_94038360(a1, 0, 0, a2, v9);
+  v5 = sprd_hash_process(a1, 0, 0, a2, v9);
   v7 = v5;
   if ( (_DWORD)v5 != 0 )
   {
 LABEL_12:
-    v8 = (const void *)sub_94040A98(v5);
-    sub_940407DC(3, "%p: %s: %s: sprd_crypto_hash_process FAILED!\n", v8, "SPRD_CE", "sprd_hash_final");
+    v8 = (const void *)get_current_thread(v5);
+    sprd_log(3, "%p: %s: %s: sprd_crypto_hash_process FAILED!\n", v8, "SPRD_CE", "sprd_hash_final");
   }
 LABEL_15:
   v10 = *(_QWORD *)(a1 + 152);
   if ( v10 != 0 )
   {
-    sub_940408AC(v10, v6);
+    free(v10, v6);
     *(_QWORD *)(a1 + 152) = 0;
   }
-  sub_94037418((int *)a1);
+  sprd_crypto_lock_deinit((int *)a1);
   return v7;
 }
 
-/* ===== sub_9403886C @ 0x9403886C size 36 ===== */
-__int64 __fastcall sub_9403886C(int a1, __int64 a2, unsigned int a3, __int64 a4)
+/* ===== sprd_cmac_init @ 0x9403886C size 36 ===== */
+__int64 __fastcall sprd_cmac_init(int a1, __int64 a2, unsigned int a3, __int64 a4)
 {
-  return sub_94037D54(a1, 0, a4, a2, 0, a3, 0, 0);
+  return sprd_aes_init(a1, 0, a4, a2, 0, a3, 0, 0);
 }
 
-/* ===== sub_94038890 @ 0x94038890 size 660 ===== */
-__int64 __fastcall sub_94038890(__int64 a1, __int64 a2, int a3, __int64 a4, unsigned int a5)
+/* ===== sprd_cmac_process_internal @ 0x94038890 size 660 ===== */
+__int64 __fastcall sprd_cmac_process_internal(__int64 a1, __int64 a2, int a3, __int64 a4, unsigned int a5)
 {
   int v10; // w24
   __int64 v11; // x21
@@ -16547,10 +16547,10 @@ __int64 __fastcall sub_94038890(__int64 a1, __int64 a2, int a3, __int64 a4, unsi
 
   v31 = nullptr;
   v10 = *(_DWORD *)(a1 + 8);
-  v11 = sub_940409F8(0);
+  v11 = sprd_semaphore_create(0);
   if ( v11 == 0 )
     return 4294901770LL;
-  v12 = sub_94036FEC(a1, 0x40u, &v31, (int *)&v30);
+  v12 = sprd_crypto_malloc_buf(a1, 0x40u, &v31, (int *)&v30);
   v13 = v31;
   if ( v31 != nullptr )
   {
@@ -16568,13 +16568,13 @@ __int64 __fastcall sub_94038890(__int64 a1, __int64 a2, int a3, __int64 a4, unsi
           if ( v16 == 1 )
           {
             v18 = a3 + a2 - v17;
-            sub_94040880(v13, v17, v18);
+            memcpy(v13, v17, v18);
             v19 = v29;
           }
           else
           {
             v18 = v30;
-            sub_94040880(v13, v17, v30);
+            memcpy(v13, v17, v30);
             v19 = 0;
           }
           v20 = v31;
@@ -16588,12 +16588,12 @@ __int64 __fastcall sub_94038890(__int64 a1, __int64 a2, int a3, __int64 a4, unsi
           *(_DWORD *)(a1 + 320) = 0;
           *(_DWORD *)(a1 + 336) = a5;
           *(_QWORD *)(a1 + 344) = v11;
-          sub_940408B0(v20, v21);
-          v22 = sub_94036D90((int *)a1);
+          dcache_clean(v20, v21);
+          v22 = sprd_crypto_work((int *)a1);
           v23 = v11;
           if ( v22 != 0 )
             break;
-          sub_94040A74(v11);
+          sprd_semaphore_wait(v11);
           if ( --v16 == 0 )
             goto LABEL_11;
           v13 = v31;
@@ -16612,14 +16612,14 @@ __int64 __fastcall sub_94038890(__int64 a1, __int64 a2, int a3, __int64 a4, unsi
         *(_DWORD *)(a1 + 320) = 0;
         *(_DWORD *)(a1 + 336) = a5;
         *(_QWORD *)(a1 + 344) = v11;
-        sub_940408B0(v27, v14);
-        v23 = sub_94036D90((int *)a1);
+        dcache_clean(v27, v14);
+        v23 = sprd_crypto_work((int *)a1);
         v26 = v23;
         if ( (_DWORD)v23 != 0 )
         {
 LABEL_25:
-          v28 = (const void *)sub_94040A98(v23);
-          sub_940407DC(
+          v28 = (const void *)get_current_thread(v23);
+          sprd_log(
             3,
             "%p: %s: %s: sprd_crypto_process return 0x%x\n",
             v28,
@@ -16628,33 +16628,33 @@ LABEL_25:
             v26);
           goto LABEL_18;
         }
-        sub_94040A74(v11);
+        sprd_semaphore_wait(v11);
 LABEL_11:
         if ( a4 != 0 && v15 == 1 )
         {
-          sub_940408C0(v31, v30);
-          sub_94040880(a4, v31, a5);
+          dcache_invalidate(v31, v30);
+          memcpy(a4, v31, a5);
         }
       }
-      sub_94040A34(v11);
+      sprd_semaphore_destroy(v11);
       if ( v31 != nullptr )
-        sub_9403719C((__int64)v31);
+        sprd_crypto_free_buf((__int64)v31);
       return 0;
     }
   }
-  v25 = (const void *)sub_94040A98(v12);
+  v25 = (const void *)get_current_thread(v12);
   v26 = -65526;
-  sub_940407DC(3, "%p: %s: %s: buf = %p, buf_len is %d!\n", v25, "SPRD_CE", "sprd_cmac_process_internal", v31, v30);
+  sprd_log(3, "%p: %s: %s: buf = %p, buf_len is %d!\n", v25, "SPRD_CE", "sprd_cmac_process_internal", v31, v30);
 LABEL_18:
   if ( v31 != nullptr )
-    sub_9403719C((__int64)v31);
-  sub_94040A34(v11);
-  sub_940381DC(a1, 0, 0, 0, nullptr, 0);
+    sprd_crypto_free_buf((__int64)v31);
+  sprd_semaphore_destroy(v11);
+  sprd_aes_final(a1, 0, 0, 0, nullptr, 0);
   return v26;
 }
 
-/* ===== sub_94038B24 @ 0x94038B24 size 400 ===== */
-__int64 __fastcall sub_94038B24(__int64 a1, __int64 a2, __int64 a3)
+/* ===== sprd_cmac_update @ 0x94038B24 size 400 ===== */
+__int64 __fastcall sprd_cmac_update(__int64 a1, __int64 a2, __int64 a3)
 {
   unsigned int v3; // w4
   int v6; // w20
@@ -16679,17 +16679,17 @@ __int64 __fastcall sub_94038B24(__int64 a1, __int64 a2, __int64 a3)
   v7 = a3;
   if ( (unsigned int)a3 + v3 <= 0x10 )
   {
-    sub_94040880(a1 + v3 + 124, a2, a3);
+    memcpy(a1 + v3 + 124, a2, a3);
     *(_DWORD *)(a1 + 120) += v7;
     return 0;
   }
-  sub_94040880(a1 + v3 + 124, a2, 16 - v3);
-  v8 = sub_94038890(a1, a1 + 124, 16, 0, 0);
+  memcpy(a1 + v3 + 124, a2, 16 - v3);
+  v8 = sprd_cmac_process_internal(a1, a1 + 124, 16, 0, 0);
   v9 = v8;
   if ( (_DWORD)v8 != 0 )
   {
-    v18 = (const void *)sub_94040A98(v8);
-    sub_940407DC(3, "%p: %s: %s: sprd_cmac_process_internal FAILED[0x%x]\n", v18, "SPRD_CE", "sprd_cmac_update", v9);
+    v18 = (const void *)get_current_thread(v8);
+    sprd_log(3, "%p: %s: %s: sprd_cmac_process_internal FAILED[0x%x]\n", v18, "SPRD_CE", "sprd_cmac_update", v9);
     return v9;
   }
   v10 = *(_DWORD *)(a1 + 120);
@@ -16706,23 +16706,23 @@ __int64 __fastcall sub_94038B24(__int64 a1, __int64 a2, __int64 a3)
     v14 = 16;
     v12 = 16;
   }
-  sub_94040880(a1 + 124, v13 + v11 - v14, v12);
+  memcpy(a1 + 124, v13 + v11 - v14, v12);
   *(_DWORD *)(a1 + 120) = v12;
   if ( v11 == v12 )
     return 0;
-  v16 = sub_94038890(a1, v13, v11 - v12, 0, 0);
+  v16 = sprd_cmac_process_internal(a1, v13, v11 - v12, 0, 0);
   result = 0;
   if ( v16 != 0 )
   {
-    v17 = (const void *)sub_94040A98(0);
-    sub_940407DC(3, "%p: %s: %s: sprd_cmac_process_internal FAILED[0x%x]\n", v17, "SPRD_CE", "sprd_cmac_update", v16);
+    v17 = (const void *)get_current_thread(0);
+    sprd_log(3, "%p: %s: %s: sprd_cmac_process_internal FAILED[0x%x]\n", v17, "SPRD_CE", "sprd_cmac_update", v16);
     return v16;
   }
   return result;
 }
 
-/* ===== sub_94038CB4 @ 0x94038CB4 size 156 ===== */
-__int64 __fastcall sub_94038CB4(__int64 a1, __int64 a2)
+/* ===== sprd_cmac_final @ 0x94038CB4 size 156 ===== */
+__int64 __fastcall sprd_cmac_final(__int64 a1, __int64 a2)
 {
   int v3; // w2
   __int64 v4; // x0
@@ -16733,45 +16733,45 @@ __int64 __fastcall sub_94038CB4(__int64 a1, __int64 a2)
     return 4294901767LL;
   v3 = *(_DWORD *)(a1 + 120);
   *(_DWORD *)(a1 + 8) = 1;
-  v4 = sub_94038890(a1, a1 + 124, v3, a2, 0x10u);
+  v4 = sprd_cmac_process_internal(a1, a1 + 124, v3, a2, 0x10u);
   v5 = v4;
   if ( (_DWORD)v4 != 0 )
   {
-    v7 = (const void *)sub_94040A98(v4);
-    sub_940407DC(3, "%p: %s: %s: sprd_cmac_process_internal FAILED[0x%x]\n", v7, "SPRD_CE", "sprd_cmac_final", v5);
+    v7 = (const void *)get_current_thread(v4);
+    sprd_log(3, "%p: %s: %s: sprd_cmac_process_internal FAILED[0x%x]\n", v7, "SPRD_CE", "sprd_cmac_final", v5);
   }
-  sub_940381DC(a1, 0, 0, 0, nullptr, 0);
+  sprd_aes_final(a1, 0, 0, 0, nullptr, 0);
   return v5;
 }
 
-/* ===== sub_94038D50 @ 0x94038D50 size 160 ===== */
-__int64 __fastcall sub_94038D50(__int64 a1)
+/* ===== sprd_ecc_work @ 0x94038D50 size 160 ===== */
+__int64 __fastcall sprd_ecc_work(__int64 a1)
 {
   __int64 v2; // x0
   __int64 v3; // x21
   unsigned int v4; // w20
   _QWORD v6[44]; // [xsp+30h] [xbp+30h] BYREF
 
-  sub_94040888(v6, 0, 352);
-  v2 = sub_94037378(v6);
+  memset(v6, 0, 352);
+  v2 = sprd_crypto_lock_init(v6);
   if ( (_DWORD)v2 != 0 )
     return 4294901760LL;
-  v3 = sub_940409F8(v2);
+  v3 = sprd_semaphore_create(v2);
   if ( v3 == 0 )
     return 4294901770LL;
   v6[2] = a1;
   v6[43] = v3;
   LODWORD(v6[0]) = 84082688;
-  v4 = sub_94036D90((int *)v6);
+  v4 = sprd_crypto_work((int *)v6);
   if ( v4 == 0 )
-    sub_94040A74(v3);
-  sub_94040A34(v3);
-  sub_94037418((int *)v6);
+    sprd_semaphore_wait(v3);
+  sprd_semaphore_destroy(v3);
+  sprd_crypto_lock_deinit((int *)v6);
   return v4;
 }
 
-/* ===== sub_94038DF0 @ 0x94038DF0 size 232 ===== */
-__int64 __fastcall sub_94038DF0(unsigned int a1, __int64 a2, __int64 a3, unsigned __int8 a4, __int64 a5)
+/* ===== sprd_ecc_sign @ 0x94038DF0 size 232 ===== */
+__int64 __fastcall sprd_ecc_sign(unsigned int a1, __int64 a2, __int64 a3, unsigned __int8 a4, __int64 a5)
 {
   unsigned int v6; // w22
   _DWORD *v10; // x19
@@ -16783,25 +16783,25 @@ __int64 __fastcall sub_94038DF0(unsigned int a1, __int64 a2, __int64 a3, unsigne
   v6 = a4;
   v15 = nullptr;
   v14 = 0;
-  sub_94036FEC(0, 0x1000u, &v15, (int *)&v14);
-  sub_94040888(v15, 0, v14);
+  sprd_crypto_malloc_buf(0, 0x1000u, &v15, (int *)&v14);
+  memset(v15, 0, v14);
   v10 = v15;
   v11 = v15;
   *v15 = 1;
-  sub_94040880(v11 + 2, (char *)qword_9405B120 + 508 * a1, 508);
-  sub_94040880(v10 + 641, a2, 84);
-  sub_94040880(v10 + 662, a3, v6);
+  memcpy(v11 + 2, (char *)qword_9405B120 + 508 * a1, 508);
+  memcpy(v10 + 641, a2, 84);
+  memcpy(v10 + 662, a3, v6);
   *((_BYTE *)v10 + 2728) = v6;
-  sub_94038D50((__int64)v10);
+  sprd_ecc_work((__int64)v10);
   v12 = v10[1];
-  sub_94040880(a5, v10 + 683, 164);
+  memcpy(a5, v10 + 683, 164);
   *(_DWORD *)(a5 + 160) = a1;
-  sub_9403719C((__int64)v15);
+  sprd_crypto_free_buf((__int64)v15);
   return v12;
 }
 
-/* ===== sub_94038ED8 @ 0x94038ED8 size 272 ===== */
-__int64 __fastcall sub_94038ED8(unsigned int a1, __int64 a2, __int64 a3, unsigned __int8 a4, __int64 a5)
+/* ===== sprd_ecc_verify @ 0x94038ED8 size 272 ===== */
+__int64 __fastcall sprd_ecc_verify(unsigned int a1, __int64 a2, __int64 a3, unsigned __int8 a4, __int64 a5)
 {
   unsigned int v5; // w21
   _DWORD *v9; // x19
@@ -16812,30 +16812,30 @@ __int64 __fastcall sub_94038ED8(unsigned int a1, __int64 a2, __int64 a3, unsigne
   v5 = a4;
   v14 = nullptr;
   v13 = 0;
-  sub_94036FEC(0, 0x1000u, &v14, (int *)&v13);
-  sub_94040888(v14, 0, v13);
+  sprd_crypto_malloc_buf(0, 0x1000u, &v14, (int *)&v13);
+  memset(v14, 0, v13);
   v9 = v14;
   *v14 = 2;
-  sub_94040880(v9 + 2, (char *)qword_9405B120 + 508 * a1, 508);
-  sub_94040880(v9 + 641, a2, 164);
-  sub_94040880(v9 + 682, a3, v5);
+  memcpy(v9 + 2, (char *)qword_9405B120 + 508 * a1, 508);
+  memcpy(v9 + 641, a2, 164);
+  memcpy(v9 + 682, a3, v5);
   *((_BYTE *)v9 + 2808) = v5;
-  sub_94040880(v9 + 703, a5, 164);
-  sub_94038D50((__int64)v9);
+  memcpy(v9 + 703, a5, 164);
+  sprd_ecc_work((__int64)v9);
   v10 = v9[1];
   if ( v10 == 0 )
   {
-    if ( (unsigned int)sub_94040870(v9 + 744, v9 + 703, (unsigned int)(4 * v9[126])) != 0 )
+    if ( (unsigned int)memcmp(v9 + 744, v9 + 703, (unsigned int)(4 * v9[126])) != 0 )
       v10 = 261;
     else
       v10 = 0;
   }
-  sub_9403719C((__int64)v14);
+  sprd_crypto_free_buf((__int64)v14);
   return v10;
 }
 
-/* ===== sub_94038FE8 @ 0x94038FE8 size 208 ===== */
-__int64 __fastcall sub_94038FE8(unsigned int a1, __int64 a2, unsigned int a3, __int64 a4)
+/* ===== sprd_ecc_verify_init @ 0x94038FE8 size 208 ===== */
+__int64 __fastcall sprd_ecc_verify_init(unsigned int a1, __int64 a2, unsigned int a3, __int64 a4)
 {
   __int64 result; // x0
   bool v6; // cc
@@ -16853,11 +16853,11 @@ __int64 __fastcall sub_94038FE8(unsigned int a1, __int64 a2, unsigned int a3, __
   {
     v7 = a1;
     v10 = v7;
-    sub_94040880(v12, (char *)qword_9405B120 + 508 * v7, 508);
+    memcpy(v12, (char *)qword_9405B120 + 508 * v7, 508);
     if ( a3 <= (unsigned int)(v13 + 7) >> 3 && a3 != 0 )
     {
-      sub_94040888(a4, 0, (unsigned int)(4 * v14));
-      sub_9403A604(a4, a2, a3);
+      memset(a4, 0, (unsigned int)(4 * v14));
+      reverse_bytes(a4, a2, a3);
       *(_DWORD *)(a4 + 80) = v10;
       return 0;
     }
@@ -16869,8 +16869,8 @@ __int64 __fastcall sub_94038FE8(unsigned int a1, __int64 a2, unsigned int a3, __
   return result;
 }
 
-/* ===== sub_940390B8 @ 0x940390B8 size 240 ===== */
-__int64 __fastcall sub_940390B8(unsigned int a1, __int64 a2, unsigned int a3, __int64 a4)
+/* ===== sprd_ecc_verify_prepare @ 0x940390B8 size 240 ===== */
+__int64 __fastcall sprd_ecc_verify_prepare(unsigned int a1, __int64 a2, unsigned int a3, __int64 a4)
 {
   __int64 result; // x0
   unsigned int v9; // w21
@@ -16880,23 +16880,23 @@ __int64 __fastcall sub_940390B8(unsigned int a1, __int64 a2, unsigned int a3, __
 
   if ( a2 == 0 || a4 == 0 )
     return 263;
-  sub_94040880(v10, (char *)qword_9405B120 + 508 * a1, 508);
+  memcpy(v10, (char *)qword_9405B120 + 508 * a1, 508);
   result = 259;
   if ( a3 != 0 && a3 <= 2 * ((unsigned int)(v11 + 7) >> 3) )
   {
     v9 = a3 >> 1;
-    sub_94040888(a4, 0, (unsigned int)(4 * v12));
-    sub_94040888(a4 + 80, 0, (unsigned int)(4 * v12));
-    sub_9403A604(a4, a2, v9);
-    sub_9403A604(a4 + 80, a2 + v9, v9);
+    memset(a4, 0, (unsigned int)(4 * v12));
+    memset(a4 + 80, 0, (unsigned int)(4 * v12));
+    reverse_bytes(a4, a2, v9);
+    reverse_bytes(a4 + 80, a2 + v9, v9);
     *(_DWORD *)(a4 + 160) = a1;
     return 0;
   }
   return result;
 }
 
-/* ===== sub_940391A8 @ 0x940391A8 size 240 ===== */
-__int64 __fastcall sub_940391A8(unsigned int a1, __int64 a2, unsigned int a3, __int64 a4)
+/* ===== sprd_ecc_verify_prepare2 @ 0x940391A8 size 240 ===== */
+__int64 __fastcall sprd_ecc_verify_prepare2(unsigned int a1, __int64 a2, unsigned int a3, __int64 a4)
 {
   __int64 result; // x0
   unsigned int v9; // w21
@@ -16906,23 +16906,23 @@ __int64 __fastcall sub_940391A8(unsigned int a1, __int64 a2, unsigned int a3, __
 
   if ( a2 == 0 || a4 == 0 )
     return 263;
-  sub_94040880(v10, (char *)qword_9405B120 + 508 * a1, 508);
+  memcpy(v10, (char *)qword_9405B120 + 508 * a1, 508);
   result = 259;
   if ( a3 != 0 && a3 <= 2 * ((unsigned int)(v11 + 7) >> 3) )
   {
     v9 = a3 >> 1;
-    sub_94040888(a4, 0, (unsigned int)(4 * v12));
-    sub_94040888(a4 + 80, 0, (unsigned int)(4 * v12));
-    sub_9403A604(a4, a2, v9);
-    sub_9403A604(a4 + 80, a2 + v9, v9);
+    memset(a4, 0, (unsigned int)(4 * v12));
+    memset(a4 + 80, 0, (unsigned int)(4 * v12));
+    reverse_bytes(a4, a2, v9);
+    reverse_bytes(a4 + 80, a2 + v9, v9);
     *(_DWORD *)(a4 + 160) = a1;
     return 0;
   }
   return result;
 }
 
-/* ===== sub_94039298 @ 0x94039298 size 224 ===== */
-__int64 __fastcall sub_94039298(__int64 a1, __int64 a2, int *a3)
+/* ===== sprd_ecc_sign_result @ 0x94039298 size 224 ===== */
+__int64 __fastcall sprd_ecc_sign_result(__int64 a1, __int64 a2, int *a3)
 {
   unsigned int v6; // w22
   int v7; // w0
@@ -16931,14 +16931,14 @@ __int64 __fastcall sub_94039298(__int64 a1, __int64 a2, int *a3)
 
   if ( a1 == 0 || a3 == nullptr || a2 == 0 )
     return 263;
-  sub_94040880(v9, (char *)qword_9405B120 + 508 * *(unsigned int *)(a1 + 160), 508);
+  memcpy(v9, (char *)qword_9405B120 + 508 * *(unsigned int *)(a1 + 160), 508);
   v6 = (unsigned int)(v10 + 7) >> 3;
   v7 = 2 * v6;
   if ( *a3 >= 2 * v6 )
   {
     *a3 = v7;
-    sub_9403A604(a2, a1, v6);
-    sub_9403A604(a2 + v6, a1 + 80, v6);
+    reverse_bytes(a2, a1, v6);
+    reverse_bytes(a2 + v6, a1 + 80, v6);
     return 0;
   }
   else
@@ -16948,8 +16948,8 @@ __int64 __fastcall sub_94039298(__int64 a1, __int64 a2, int *a3)
   }
 }
 
-/* ===== sub_94039378 @ 0x94039378 size 4748 ===== */
-__int64 __fastcall sub_94039378(__int64 a1)
+/* ===== sprd_ecc_hw_config @ 0x94039378 size 4748 ===== */
+__int64 __fastcall sprd_ecc_hw_config(__int64 a1)
 {
   unsigned int v2; // w20
   int v3; // w22
@@ -17023,46 +17023,46 @@ __int64 __fastcall sub_94039378(__int64 a1)
     case 0:
       v25 = 4 * *(_DWORD *)(a1 + 504);
       v26 = 4 * *(_DWORD *)(a1 + 500);
-      sub_9403A774(v25, 1);
-      sub_9403A774(v26, 2);
-      sub_9403A6C0(a1 + 516, a1 + 516);
-      *(_DWORD *)(a1 + 516) = sub_9403A7CC(0, 17, v25, 1);
-      *(_DWORD *)(a1 + 520) = sub_9403A7CC(0, 18, v25, 1);
-      *(_DWORD *)(a1 + 524) = sub_9403A7CC(0, 19, v25, 1);
-      *(_DWORD *)(a1 + 528) = sub_9403A7CC(0, 20, v25, 1);
-      *(_DWORD *)(a1 + 532) = sub_9403A7CC(0, 21, v25, 1);
-      v27 = sub_940408C8(a1 + 8);
-      *(_DWORD *)(a1 + 536) = sub_9403A7F0(v27, 17, v26, 2);
-      v28 = sub_940408C8(a1 + 88);
-      *(_DWORD *)(a1 + 540) = sub_9403A7F0(v28, 18, v26, 2);
-      v29 = sub_940408C8(a1 + 168);
-      *(_DWORD *)(a1 + 544) = sub_9403A7F0(v29, 19, v26, 2);
-      v30 = sub_940408C8(a1 + 248);
-      *(_DWORD *)(a1 + 548) = sub_9403A7F0(v30, 20, v26, 2);
-      v31 = sub_940408C8(a1 + 328);
-      *(_DWORD *)(a1 + 552) = sub_9403A7F0(v31, 21, v26, 2);
-      v32 = sub_940408C8(a1 + 408);
-      *(_DWORD *)(a1 + 556) = sub_9403A7F0(v32, 22, v25, 1);
-      *(_DWORD *)(a1 + 560) = sub_9403A638(1, 1, 2, 0, 0, 0, 0, 0);
-      *(_DWORD *)(a1 + 564) = sub_9403A638(15, 1, 1, 0, 2, 0, 22, 0);
-      *(_DWORD *)(a1 + 568) = sub_9403A638(13, 1, 2, 0, 1, 1, 1, 0);
-      *(_DWORD *)(a1 + 572) = sub_9403A734(5, 0, 16, 0);
-      *(_DWORD *)(a1 + 576) = sub_9403A638(28, 1, 0, 0, 17, 0, 0, 0);
-      *(_DWORD *)(a1 + 580) = sub_9403A638(29, 1, 4, 0, 18, 0, 1, 2);
-      *(_DWORD *)(a1 + 584) = sub_9403A638(2, 1, 5, 0, 20, 0, 21, 0);
-      *(_DWORD *)(a1 + 588) = sub_9403A734(5, 0, 17, 0);
-      v33 = sub_940408C8(a1 + 2564);
-      *(_DWORD *)(a1 + 592) = sub_9403A808(1, v33, v25, 1);
-      v34 = sub_940408C8(a1 + 2648);
-      *(_DWORD *)(a1 + 596) = sub_9403A808(4, v34, v26, 2);
-      v35 = sub_940408C8(a1 + 2728);
-      *(_DWORD *)(a1 + 600) = sub_9403A808(5, v35, v26, 2);
+      ce_cfg_dma_len(v25, 1);
+      ce_cfg_dma_len(v26, 2);
+      ce_cfg_dma_addr(a1 + 516, a1 + 516);
+      *(_DWORD *)(a1 + 516) = ce_cfg_dma_src(0, 17, v25, 1);
+      *(_DWORD *)(a1 + 520) = ce_cfg_dma_src(0, 18, v25, 1);
+      *(_DWORD *)(a1 + 524) = ce_cfg_dma_src(0, 19, v25, 1);
+      *(_DWORD *)(a1 + 528) = ce_cfg_dma_src(0, 20, v25, 1);
+      *(_DWORD *)(a1 + 532) = ce_cfg_dma_src(0, 21, v25, 1);
+      v27 = virt_to_phys(a1 + 8);
+      *(_DWORD *)(a1 + 536) = ce_cfg_dma_dst(v27, 17, v26, 2);
+      v28 = virt_to_phys(a1 + 88);
+      *(_DWORD *)(a1 + 540) = ce_cfg_dma_dst(v28, 18, v26, 2);
+      v29 = virt_to_phys(a1 + 168);
+      *(_DWORD *)(a1 + 544) = ce_cfg_dma_dst(v29, 19, v26, 2);
+      v30 = virt_to_phys(a1 + 248);
+      *(_DWORD *)(a1 + 548) = ce_cfg_dma_dst(v30, 20, v26, 2);
+      v31 = virt_to_phys(a1 + 328);
+      *(_DWORD *)(a1 + 552) = ce_cfg_dma_dst(v31, 21, v26, 2);
+      v32 = virt_to_phys(a1 + 408);
+      *(_DWORD *)(a1 + 556) = ce_cfg_dma_dst(v32, 22, v25, 1);
+      *(_DWORD *)(a1 + 560) = ce_cmd_field(1, 1, 2, 0, 0, 0, 0, 0);
+      *(_DWORD *)(a1 + 564) = ce_cmd_field(15, 1, 1, 0, 2, 0, 22, 0);
+      *(_DWORD *)(a1 + 568) = ce_cmd_field(13, 1, 2, 0, 1, 1, 1, 0);
+      *(_DWORD *)(a1 + 572) = ce_cmd_field2(5, 0, 16, 0);
+      *(_DWORD *)(a1 + 576) = ce_cmd_field(28, 1, 0, 0, 17, 0, 0, 0);
+      *(_DWORD *)(a1 + 580) = ce_cmd_field(29, 1, 4, 0, 18, 0, 1, 2);
+      *(_DWORD *)(a1 + 584) = ce_cmd_field(2, 1, 5, 0, 20, 0, 21, 0);
+      *(_DWORD *)(a1 + 588) = ce_cmd_field2(5, 0, 17, 0);
+      v33 = virt_to_phys(a1 + 2564);
+      *(_DWORD *)(a1 + 592) = ce_cfg_dma_key(1, v33, v25, 1);
+      v34 = virt_to_phys(a1 + 2648);
+      *(_DWORD *)(a1 + 596) = ce_cfg_dma_key(4, v34, v26, 2);
+      v35 = virt_to_phys(a1 + 2728);
+      *(_DWORD *)(a1 + 600) = ce_cfg_dma_key(5, v35, v26, 2);
       *(_DWORD *)(a1 + 604) = -1;
-      sub_9403A820(a1 + 516, 92);
-      sub_940408B8(a1 + 8, 508);
-      sub_940408B8(a1 + 516, 2048);
-      sub_940408C0(a1 + 2564, 84);
-      sub_940408C0(a1 + 2648, 164);
+      ce_nop(a1 + 516, 92);
+      dcache_clean2(a1 + 8, 508);
+      dcache_clean2(a1 + 516, 2048);
+      dcache_invalidate(a1 + 2564, 84);
+      dcache_invalidate(a1 + 2648, 164);
       result = 0;
       break;
     case 1:
@@ -17070,12 +17070,12 @@ __int64 __fastcall sub_94039378(__int64 a1)
       v3 = *(_DWORD *)(a1 + 500);
       v4 = *(unsigned __int8 *)(a1 + 2728);
       v65 = *(_DWORD *)(a1 + 496);
-      sub_94040888(v67, 0, v2);
+      memset(v67, 0, v2);
       v5 = 4 * v3;
       if ( *(_DWORD *)(a1 + 496) < 8 * v4 )
       {
         v48 = (unsigned int)(v65 + 7) >> 3;
-        sub_9403A604(v67, a1 + 2648, v48);
+        reverse_bytes(v67, a1 + 2648, v48);
         v49 = -*(_DWORD *)(a1 + 496) & 7;
         if ( v49 != 0 )
         {
@@ -17100,83 +17100,83 @@ __int64 __fastcall sub_94039378(__int64 a1)
       }
       else
       {
-        sub_9403A604(v67, a1 + 2648, v4);
+        reverse_bytes(v67, a1 + 2648, v4);
       }
-      sub_94040888(a1 + 2648, 0, 80);
-      sub_94040880(a1 + 2648, v67, v4);
-      sub_9403A774(v2, 1);
-      sub_9403A774(v5, 2);
-      sub_9403A6C0(a1 + 516, a1 + 516);
-      *(_DWORD *)(a1 + 516) = sub_9403A7CC(0, 17, v2, 1);
-      *(_DWORD *)(a1 + 520) = sub_9403A7CC(0, 18, v2, 1);
-      *(_DWORD *)(a1 + 524) = sub_9403A7CC(0, 19, v2, 1);
-      *(_DWORD *)(a1 + 528) = sub_9403A7CC(0, 20, v2, 1);
-      *(_DWORD *)(a1 + 532) = sub_9403A7CC(0, 21, v2, 1);
-      v6 = sub_940408C8(a1 + 8);
-      *(_DWORD *)(a1 + 536) = sub_9403A7F0(v6, 17, v5, 2);
-      v7 = sub_940408C8(a1 + 88);
-      *(_DWORD *)(a1 + 540) = sub_9403A7F0(v7, 18, v5, 2);
-      v8 = sub_940408C8(a1 + 168);
-      *(_DWORD *)(a1 + 544) = sub_9403A7F0(v8, 19, v5, 2);
-      v9 = sub_940408C8(a1 + 248);
-      *(_DWORD *)(a1 + 548) = sub_9403A7F0(v9, 20, v5, 2);
-      v10 = sub_940408C8(a1 + 328);
-      *(_DWORD *)(a1 + 552) = sub_9403A7F0(v10, 21, v5, 2);
-      v11 = sub_940408C8(a1 + 408);
-      *(_DWORD *)(a1 + 556) = sub_9403A7F0(v11, 22, v2, 1);
-      *(_DWORD *)(a1 + 560) = sub_9403A7CC(0, 11, v2, 1);
-      v12 = sub_940408C8(a1 + 2564);
-      *(_DWORD *)(a1 + 564) = sub_9403A7F0(v12, 11, v2, 1);
-      *(_DWORD *)(a1 + 568) = sub_9403A7CC(0, 9, v2, 1);
-      v13 = sub_940408C8(a1 + 2648);
-      *(_DWORD *)(a1 + 572) = sub_9403A7F0(v13, 9, v4, 1);
-      *(_DWORD *)(a1 + 576) = sub_9403A638(15, 1, 2, 0, 9, 0, 22, 0);
-      *(_DWORD *)(a1 + 580) = sub_9403A638(1, 1, 3, 0, 0, 0, 0, 0);
-      *(_DWORD *)(a1 + 584) = sub_9403A638(15, 1, 1, 0, 3, 0, 22, 0);
-      *(_DWORD *)(a1 + 588) = sub_9403A638(13, 1, 3, 0, 1, 1, 1, 0);
-      *(_DWORD *)(a1 + 592) = sub_9403A734(5, 0, 16, 0);
-      *(_DWORD *)(a1 + 596) = sub_9403A638(28, 1, 0, 0, 17, 0, 0, 0);
-      *(_DWORD *)(a1 + 600) = sub_9403A638(29, 1, 4, 0, 18, 0, 1, 2);
-      *(_DWORD *)(a1 + 604) = sub_9403A638(2, 1, 5, 0, 20, 0, 21, 0);
-      *(_DWORD *)(a1 + 608) = sub_9403A734(5, 0, 17, 0);
-      *(_DWORD *)(a1 + 612) = sub_9403A638(15, 1, 3, 0, 4, 0, 22, 0);
-      *(_DWORD *)(a1 + 616) = sub_9403A638(13, 1, 6, 0, 3, 1, 1, 0);
-      *(_DWORD *)(a1 + 620) = sub_9403A734(5, 0, 16, 0);
-      *(_DWORD *)(a1 + 624) = sub_9403A638(28, 1, 0, 0, 22, 0, 0, 0);
-      *(_DWORD *)(a1 + 628) = sub_9403A638(6, 1, 6, 0, 3, 0, 11, 0);
-      *(_DWORD *)(a1 + 632) = sub_9403A638(8, 1, 4, 0, 6, 0, 2, 0);
-      *(_DWORD *)(a1 + 636) = sub_9403A638(10, 1, 5, 0, 1, 0, 0, 0);
-      *(_DWORD *)(a1 + 640) = sub_9403A638(6, 1, 2, 0, 5, 0, 4, 0);
-      *(_DWORD *)(a1 + 644) = sub_9403A638(28, 1, 13, 0, 3, 0, 0, 0);
-      *(_DWORD *)(a1 + 648) = sub_9403A638(28, 1, 12, 0, 2, 0, 0, 0);
-      v14 = sub_940408C8(a1 + 2732);
-      *(_DWORD *)(a1 + 652) = sub_9403A808(13, v14, v2, 1);
-      v15 = sub_940408C8(a1 + 2812);
-      *(_DWORD *)(a1 + 656) = sub_9403A808(12, v15, v2, 1);
+      memset(a1 + 2648, 0, 80);
+      memcpy(a1 + 2648, v67, v4);
+      ce_cfg_dma_len(v2, 1);
+      ce_cfg_dma_len(v5, 2);
+      ce_cfg_dma_addr(a1 + 516, a1 + 516);
+      *(_DWORD *)(a1 + 516) = ce_cfg_dma_src(0, 17, v2, 1);
+      *(_DWORD *)(a1 + 520) = ce_cfg_dma_src(0, 18, v2, 1);
+      *(_DWORD *)(a1 + 524) = ce_cfg_dma_src(0, 19, v2, 1);
+      *(_DWORD *)(a1 + 528) = ce_cfg_dma_src(0, 20, v2, 1);
+      *(_DWORD *)(a1 + 532) = ce_cfg_dma_src(0, 21, v2, 1);
+      v6 = virt_to_phys(a1 + 8);
+      *(_DWORD *)(a1 + 536) = ce_cfg_dma_dst(v6, 17, v5, 2);
+      v7 = virt_to_phys(a1 + 88);
+      *(_DWORD *)(a1 + 540) = ce_cfg_dma_dst(v7, 18, v5, 2);
+      v8 = virt_to_phys(a1 + 168);
+      *(_DWORD *)(a1 + 544) = ce_cfg_dma_dst(v8, 19, v5, 2);
+      v9 = virt_to_phys(a1 + 248);
+      *(_DWORD *)(a1 + 548) = ce_cfg_dma_dst(v9, 20, v5, 2);
+      v10 = virt_to_phys(a1 + 328);
+      *(_DWORD *)(a1 + 552) = ce_cfg_dma_dst(v10, 21, v5, 2);
+      v11 = virt_to_phys(a1 + 408);
+      *(_DWORD *)(a1 + 556) = ce_cfg_dma_dst(v11, 22, v2, 1);
+      *(_DWORD *)(a1 + 560) = ce_cfg_dma_src(0, 11, v2, 1);
+      v12 = virt_to_phys(a1 + 2564);
+      *(_DWORD *)(a1 + 564) = ce_cfg_dma_dst(v12, 11, v2, 1);
+      *(_DWORD *)(a1 + 568) = ce_cfg_dma_src(0, 9, v2, 1);
+      v13 = virt_to_phys(a1 + 2648);
+      *(_DWORD *)(a1 + 572) = ce_cfg_dma_dst(v13, 9, v4, 1);
+      *(_DWORD *)(a1 + 576) = ce_cmd_field(15, 1, 2, 0, 9, 0, 22, 0);
+      *(_DWORD *)(a1 + 580) = ce_cmd_field(1, 1, 3, 0, 0, 0, 0, 0);
+      *(_DWORD *)(a1 + 584) = ce_cmd_field(15, 1, 1, 0, 3, 0, 22, 0);
+      *(_DWORD *)(a1 + 588) = ce_cmd_field(13, 1, 3, 0, 1, 1, 1, 0);
+      *(_DWORD *)(a1 + 592) = ce_cmd_field2(5, 0, 16, 0);
+      *(_DWORD *)(a1 + 596) = ce_cmd_field(28, 1, 0, 0, 17, 0, 0, 0);
+      *(_DWORD *)(a1 + 600) = ce_cmd_field(29, 1, 4, 0, 18, 0, 1, 2);
+      *(_DWORD *)(a1 + 604) = ce_cmd_field(2, 1, 5, 0, 20, 0, 21, 0);
+      *(_DWORD *)(a1 + 608) = ce_cmd_field2(5, 0, 17, 0);
+      *(_DWORD *)(a1 + 612) = ce_cmd_field(15, 1, 3, 0, 4, 0, 22, 0);
+      *(_DWORD *)(a1 + 616) = ce_cmd_field(13, 1, 6, 0, 3, 1, 1, 0);
+      *(_DWORD *)(a1 + 620) = ce_cmd_field2(5, 0, 16, 0);
+      *(_DWORD *)(a1 + 624) = ce_cmd_field(28, 1, 0, 0, 22, 0, 0, 0);
+      *(_DWORD *)(a1 + 628) = ce_cmd_field(6, 1, 6, 0, 3, 0, 11, 0);
+      *(_DWORD *)(a1 + 632) = ce_cmd_field(8, 1, 4, 0, 6, 0, 2, 0);
+      *(_DWORD *)(a1 + 636) = ce_cmd_field(10, 1, 5, 0, 1, 0, 0, 0);
+      *(_DWORD *)(a1 + 640) = ce_cmd_field(6, 1, 2, 0, 5, 0, 4, 0);
+      *(_DWORD *)(a1 + 644) = ce_cmd_field(28, 1, 13, 0, 3, 0, 0, 0);
+      *(_DWORD *)(a1 + 648) = ce_cmd_field(28, 1, 12, 0, 2, 0, 0, 0);
+      v14 = virt_to_phys(a1 + 2732);
+      *(_DWORD *)(a1 + 652) = ce_cfg_dma_key(13, v14, v2, 1);
+      v15 = virt_to_phys(a1 + 2812);
+      *(_DWORD *)(a1 + 656) = ce_cfg_dma_key(12, v15, v2, 1);
       *(_DWORD *)(a1 + 660) = -1;
-      sub_9403A820(a1 + 516, 148);
-      sub_940408B8(a1 + 8, 508);
-      sub_940408B8(a1 + 516, 2048);
-      sub_940408B8(a1 + 2564, 84);
-      sub_940408B8(a1 + 2648, v4);
-      sub_940408C0(a1 + 2732, 164);
+      ce_nop(a1 + 516, 148);
+      dcache_clean2(a1 + 8, 508);
+      dcache_clean2(a1 + 516, 2048);
+      dcache_clean2(a1 + 2564, 84);
+      dcache_clean2(a1 + 2648, v4);
+      dcache_invalidate(a1 + 2732, 164);
       goto LABEL_5;
     case 2:
       v17 = 4 * *(_DWORD *)(a1 + 504);
       v18 = *(_DWORD *)(a1 + 500);
       v19 = *(unsigned __int8 *)(a1 + 2808);
       v64 = *(_DWORD *)(a1 + 496);
-      sub_94040888(v67, 0, v17);
+      memset(v67, 0, v17);
       v20 = 4 * v18;
       v66 = a1 + 2976;
       if ( *(_DWORD *)(a1 + 496) >= 8 * v19 )
       {
-        sub_9403A604(v67, a1 + 2728, v19);
+        reverse_bytes(v67, a1 + 2728, v19);
       }
       else
       {
         v21 = (unsigned int)(v64 + 7) >> 3;
-        sub_9403A604(v67, a1 + 2728, v21);
+        reverse_bytes(v67, a1 + 2728, v21);
         v22 = -*(_DWORD *)(a1 + 496) & 7;
         if ( v22 != 0 )
         {
@@ -17199,109 +17199,109 @@ __int64 __fastcall sub_94039378(__int64 a1)
         }
         v19 = (unsigned __int8)((unsigned int)(v64 + 7) >> 3);
       }
-      sub_94040888(a1 + 2728, 0, 80);
-      sub_94040880(a1 + 2728, v67, v19);
-      sub_9403A774(v17, 1);
-      sub_9403A774(v20, 2);
-      sub_9403A6C0(a1 + 516, a1 + 516);
-      *(_DWORD *)(a1 + 516) = sub_9403A7CC(0, 17, v17, 1);
-      *(_DWORD *)(a1 + 520) = sub_9403A7CC(0, 18, v17, 1);
-      *(_DWORD *)(a1 + 524) = sub_9403A7CC(0, 19, v17, 1);
-      *(_DWORD *)(a1 + 528) = sub_9403A7CC(0, 20, v17, 1);
-      *(_DWORD *)(a1 + 532) = sub_9403A7CC(0, 21, v17, 1);
-      v52 = sub_940408C8(a1 + 8);
-      *(_DWORD *)(a1 + 536) = sub_9403A7F0(v52, 17, v20, 2);
-      v53 = sub_940408C8(a1 + 88);
-      *(_DWORD *)(a1 + 540) = sub_9403A7F0(v53, 18, v20, 2);
-      v54 = sub_940408C8(a1 + 168);
-      *(_DWORD *)(a1 + 544) = sub_9403A7F0(v54, 19, v20, 2);
-      v55 = sub_940408C8(a1 + 248);
-      *(_DWORD *)(a1 + 548) = sub_9403A7F0(v55, 20, v20, 2);
-      v56 = sub_940408C8(a1 + 328);
-      *(_DWORD *)(a1 + 552) = sub_9403A7F0(v56, 21, v20, 2);
-      v57 = sub_940408C8(a1 + 408);
-      *(_DWORD *)(a1 + 556) = sub_9403A7F0(v57, 22, v17, 1);
-      *(_DWORD *)(a1 + 560) = sub_9403A7CC(0, 13, v17, 1);
-      *(_DWORD *)(a1 + 564) = sub_9403A7CC(0, 14, v17, 1);
-      v58 = sub_940408C8(a1 + 2564);
-      *(_DWORD *)(a1 + 568) = sub_9403A7F0(v58, 13, v20, 2);
-      v59 = sub_940408C8(a1 + 2644);
-      *(_DWORD *)(a1 + 572) = sub_9403A7F0(v59, 14, v20, 2);
-      v60 = sub_940408C8(a1 + 2812);
-      *(_DWORD *)(a1 + 576) = sub_9403A7F0(v60, 11, v17, 1);
-      v61 = sub_940408C8(a1 + 2892);
-      *(_DWORD *)(a1 + 580) = sub_9403A7F0(v61, 12, v17, 1);
-      *(_DWORD *)(a1 + 584) = sub_9403A7CC(0, 10, v17, 1);
-      v62 = sub_940408C8(a1 + 2728);
-      *(_DWORD *)(a1 + 588) = sub_9403A7F0(v62, 10, v17, 1);
-      *(_DWORD *)(a1 + 592) = sub_9403A638(15, 1, 1, 0, 10, 0, 22, 0);
-      *(_DWORD *)(a1 + 596) = sub_9403A638(28, 1, 0, 0, 22, 0, 0, 0);
-      *(_DWORD *)(a1 + 600) = sub_9403A638(10, 1, 2, 0, 12, 0, 0, 0);
-      *(_DWORD *)(a1 + 604) = sub_9403A638(6, 1, 3, 0, 1, 0, 2, 0);
-      *(_DWORD *)(a1 + 608) = sub_9403A638(6, 1, 4, 0, 11, 0, 2, 0);
-      *(_DWORD *)(a1 + 612) = sub_9403A638(28, 1, 0, 0, 17, 0, 0, 0);
-      *(_DWORD *)(a1 + 616) = sub_9403A638(29, 1, 5, 0, 18, 0, 3, 2);
-      *(_DWORD *)(a1 + 620) = sub_9403A638(2, 1, 6, 0, 20, 0, 21, 0);
-      *(_DWORD *)(a1 + 624) = sub_9403A638(29, 1, 1, 0, 18, 0, 4, 2);
-      *(_DWORD *)(a1 + 628) = sub_9403A638(2, 1, 2, 0, 13, 0, 14, 0);
-      *(_DWORD *)(a1 + 632) = sub_9403A638(26, 0, 4, 0, 5, 0, 6, 0);
-      *(_DWORD *)(a1 + 636) = sub_9403A638(3, 1, 3, 0, 1, 0, 2, 0);
-      v63 = sub_940408C8(v66);
-      *(_DWORD *)(a1 + 640) = sub_9403A808(4, v63, v17, 1);
+      memset(a1 + 2728, 0, 80);
+      memcpy(a1 + 2728, v67, v19);
+      ce_cfg_dma_len(v17, 1);
+      ce_cfg_dma_len(v20, 2);
+      ce_cfg_dma_addr(a1 + 516, a1 + 516);
+      *(_DWORD *)(a1 + 516) = ce_cfg_dma_src(0, 17, v17, 1);
+      *(_DWORD *)(a1 + 520) = ce_cfg_dma_src(0, 18, v17, 1);
+      *(_DWORD *)(a1 + 524) = ce_cfg_dma_src(0, 19, v17, 1);
+      *(_DWORD *)(a1 + 528) = ce_cfg_dma_src(0, 20, v17, 1);
+      *(_DWORD *)(a1 + 532) = ce_cfg_dma_src(0, 21, v17, 1);
+      v52 = virt_to_phys(a1 + 8);
+      *(_DWORD *)(a1 + 536) = ce_cfg_dma_dst(v52, 17, v20, 2);
+      v53 = virt_to_phys(a1 + 88);
+      *(_DWORD *)(a1 + 540) = ce_cfg_dma_dst(v53, 18, v20, 2);
+      v54 = virt_to_phys(a1 + 168);
+      *(_DWORD *)(a1 + 544) = ce_cfg_dma_dst(v54, 19, v20, 2);
+      v55 = virt_to_phys(a1 + 248);
+      *(_DWORD *)(a1 + 548) = ce_cfg_dma_dst(v55, 20, v20, 2);
+      v56 = virt_to_phys(a1 + 328);
+      *(_DWORD *)(a1 + 552) = ce_cfg_dma_dst(v56, 21, v20, 2);
+      v57 = virt_to_phys(a1 + 408);
+      *(_DWORD *)(a1 + 556) = ce_cfg_dma_dst(v57, 22, v17, 1);
+      *(_DWORD *)(a1 + 560) = ce_cfg_dma_src(0, 13, v17, 1);
+      *(_DWORD *)(a1 + 564) = ce_cfg_dma_src(0, 14, v17, 1);
+      v58 = virt_to_phys(a1 + 2564);
+      *(_DWORD *)(a1 + 568) = ce_cfg_dma_dst(v58, 13, v20, 2);
+      v59 = virt_to_phys(a1 + 2644);
+      *(_DWORD *)(a1 + 572) = ce_cfg_dma_dst(v59, 14, v20, 2);
+      v60 = virt_to_phys(a1 + 2812);
+      *(_DWORD *)(a1 + 576) = ce_cfg_dma_dst(v60, 11, v17, 1);
+      v61 = virt_to_phys(a1 + 2892);
+      *(_DWORD *)(a1 + 580) = ce_cfg_dma_dst(v61, 12, v17, 1);
+      *(_DWORD *)(a1 + 584) = ce_cfg_dma_src(0, 10, v17, 1);
+      v62 = virt_to_phys(a1 + 2728);
+      *(_DWORD *)(a1 + 588) = ce_cfg_dma_dst(v62, 10, v17, 1);
+      *(_DWORD *)(a1 + 592) = ce_cmd_field(15, 1, 1, 0, 10, 0, 22, 0);
+      *(_DWORD *)(a1 + 596) = ce_cmd_field(28, 1, 0, 0, 22, 0, 0, 0);
+      *(_DWORD *)(a1 + 600) = ce_cmd_field(10, 1, 2, 0, 12, 0, 0, 0);
+      *(_DWORD *)(a1 + 604) = ce_cmd_field(6, 1, 3, 0, 1, 0, 2, 0);
+      *(_DWORD *)(a1 + 608) = ce_cmd_field(6, 1, 4, 0, 11, 0, 2, 0);
+      *(_DWORD *)(a1 + 612) = ce_cmd_field(28, 1, 0, 0, 17, 0, 0, 0);
+      *(_DWORD *)(a1 + 616) = ce_cmd_field(29, 1, 5, 0, 18, 0, 3, 2);
+      *(_DWORD *)(a1 + 620) = ce_cmd_field(2, 1, 6, 0, 20, 0, 21, 0);
+      *(_DWORD *)(a1 + 624) = ce_cmd_field(29, 1, 1, 0, 18, 0, 4, 2);
+      *(_DWORD *)(a1 + 628) = ce_cmd_field(2, 1, 2, 0, 13, 0, 14, 0);
+      *(_DWORD *)(a1 + 632) = ce_cmd_field(26, 0, 4, 0, 5, 0, 6, 0);
+      *(_DWORD *)(a1 + 636) = ce_cmd_field(3, 1, 3, 0, 1, 0, 2, 0);
+      v63 = virt_to_phys(v66);
+      *(_DWORD *)(a1 + 640) = ce_cfg_dma_key(4, v63, v17, 1);
       *(_DWORD *)(a1 + 644) = -1;
-      sub_9403A820(a1 + 516, 132);
-      sub_940408B8(a1 + 8, 508);
-      sub_940408B8(a1 + 516, 2048);
-      sub_940408B8(a1 + 2564, 164);
-      sub_940408B8(a1 + 2728, v19);
-      sub_940408B8(a1 + 2812, 164);
-      sub_940408C0(v66, v17);
+      ce_nop(a1 + 516, 132);
+      dcache_clean2(a1 + 8, 508);
+      dcache_clean2(a1 + 516, 2048);
+      dcache_clean2(a1 + 2564, 164);
+      dcache_clean2(a1 + 2728, v19);
+      dcache_clean2(a1 + 2812, 164);
+      dcache_invalidate(v66, v17);
       result = 0;
       break;
     case 3:
       v36 = 4 * *(_DWORD *)(a1 + 504);
       v37 = 4 * *(_DWORD *)(a1 + 500);
-      sub_9403A774(v36, 1);
-      sub_9403A774(v37, 2);
-      sub_9403A6C0(a1 + 516, a1 + 516);
-      *(_DWORD *)(a1 + 516) = sub_9403A7CC(0, 17, v36, 1);
-      *(_DWORD *)(a1 + 520) = sub_9403A7CC(0, 18, v36, 1);
-      *(_DWORD *)(a1 + 524) = sub_9403A7CC(0, 19, v36, 1);
-      *(_DWORD *)(a1 + 528) = sub_9403A7CC(0, 20, v36, 1);
-      *(_DWORD *)(a1 + 532) = sub_9403A7CC(0, 21, v36, 1);
-      v38 = sub_940408C8(a1 + 8);
-      *(_DWORD *)(a1 + 536) = sub_9403A7F0(v38, 17, v37, 2);
-      v39 = sub_940408C8(a1 + 88);
-      *(_DWORD *)(a1 + 540) = sub_9403A7F0(v39, 18, v37, 2);
-      v40 = sub_940408C8(a1 + 168);
-      *(_DWORD *)(a1 + 544) = sub_9403A7F0(v40, 19, v37, 2);
-      v41 = sub_940408C8(a1 + 248);
-      *(_DWORD *)(a1 + 548) = sub_9403A7F0(v41, 20, v37, 2);
-      v42 = sub_940408C8(a1 + 328);
-      *(_DWORD *)(a1 + 552) = sub_9403A7F0(v42, 21, v37, 2);
-      v43 = sub_940408C8(a1 + 408);
-      *(_DWORD *)(a1 + 556) = sub_9403A7F0(v43, 22, v36, 1);
-      *(_DWORD *)(a1 + 560) = sub_9403A7CC(0, 4, v36, 1);
-      v44 = sub_940408C8(a1 + 2564);
-      *(_DWORD *)(a1 + 564) = sub_9403A7F0(v44, 4, v36, 1);
-      *(_DWORD *)(a1 + 568) = sub_9403A7CC(0, 13, v36, 1);
-      v45 = sub_940408C8(a1 + 2648);
-      *(_DWORD *)(a1 + 572) = sub_9403A7F0(v45, 13, v37, 2);
-      *(_DWORD *)(a1 + 576) = sub_9403A7CC(0, 14, v36, 1);
-      v46 = sub_940408C8(a1 + 2728);
-      *(_DWORD *)(a1 + 580) = sub_9403A7F0(v46, 14, v37, 2);
-      *(_DWORD *)(a1 + 584) = sub_9403A638(28, 1, 0, 0, 17, 0, 0, 0);
-      *(_DWORD *)(a1 + 588) = sub_9403A638(29, 1, 1, 0, 18, 0, 4, 2);
-      *(_DWORD *)(a1 + 592) = sub_9403A638(2, 1, 2, 0, 13, 0, 14, 0);
-      v47 = sub_940408C8(a1 + 2812);
-      *(_DWORD *)(a1 + 596) = sub_9403A808(1, v47, v37, 2);
+      ce_cfg_dma_len(v36, 1);
+      ce_cfg_dma_len(v37, 2);
+      ce_cfg_dma_addr(a1 + 516, a1 + 516);
+      *(_DWORD *)(a1 + 516) = ce_cfg_dma_src(0, 17, v36, 1);
+      *(_DWORD *)(a1 + 520) = ce_cfg_dma_src(0, 18, v36, 1);
+      *(_DWORD *)(a1 + 524) = ce_cfg_dma_src(0, 19, v36, 1);
+      *(_DWORD *)(a1 + 528) = ce_cfg_dma_src(0, 20, v36, 1);
+      *(_DWORD *)(a1 + 532) = ce_cfg_dma_src(0, 21, v36, 1);
+      v38 = virt_to_phys(a1 + 8);
+      *(_DWORD *)(a1 + 536) = ce_cfg_dma_dst(v38, 17, v37, 2);
+      v39 = virt_to_phys(a1 + 88);
+      *(_DWORD *)(a1 + 540) = ce_cfg_dma_dst(v39, 18, v37, 2);
+      v40 = virt_to_phys(a1 + 168);
+      *(_DWORD *)(a1 + 544) = ce_cfg_dma_dst(v40, 19, v37, 2);
+      v41 = virt_to_phys(a1 + 248);
+      *(_DWORD *)(a1 + 548) = ce_cfg_dma_dst(v41, 20, v37, 2);
+      v42 = virt_to_phys(a1 + 328);
+      *(_DWORD *)(a1 + 552) = ce_cfg_dma_dst(v42, 21, v37, 2);
+      v43 = virt_to_phys(a1 + 408);
+      *(_DWORD *)(a1 + 556) = ce_cfg_dma_dst(v43, 22, v36, 1);
+      *(_DWORD *)(a1 + 560) = ce_cfg_dma_src(0, 4, v36, 1);
+      v44 = virt_to_phys(a1 + 2564);
+      *(_DWORD *)(a1 + 564) = ce_cfg_dma_dst(v44, 4, v36, 1);
+      *(_DWORD *)(a1 + 568) = ce_cfg_dma_src(0, 13, v36, 1);
+      v45 = virt_to_phys(a1 + 2648);
+      *(_DWORD *)(a1 + 572) = ce_cfg_dma_dst(v45, 13, v37, 2);
+      *(_DWORD *)(a1 + 576) = ce_cfg_dma_src(0, 14, v36, 1);
+      v46 = virt_to_phys(a1 + 2728);
+      *(_DWORD *)(a1 + 580) = ce_cfg_dma_dst(v46, 14, v37, 2);
+      *(_DWORD *)(a1 + 584) = ce_cmd_field(28, 1, 0, 0, 17, 0, 0, 0);
+      *(_DWORD *)(a1 + 588) = ce_cmd_field(29, 1, 1, 0, 18, 0, 4, 2);
+      *(_DWORD *)(a1 + 592) = ce_cmd_field(2, 1, 2, 0, 13, 0, 14, 0);
+      v47 = virt_to_phys(a1 + 2812);
+      *(_DWORD *)(a1 + 596) = ce_cfg_dma_key(1, v47, v37, 2);
       *(_DWORD *)(a1 + 600) = -1;
-      sub_9403A820(a1 + 516, 88);
-      sub_940408B8(a1 + 8, 508);
-      sub_940408B8(a1 + 516, 2048);
-      sub_940408B8(a1 + 2648, 164);
-      sub_940408B8(a1 + 2564, 84);
-      sub_940408C0(a1 + 2812, 128);
+      ce_nop(a1 + 516, 88);
+      dcache_clean2(a1 + 8, 508);
+      dcache_clean2(a1 + 516, 2048);
+      dcache_clean2(a1 + 2648, 164);
+      dcache_clean2(a1 + 2564, 84);
+      dcache_invalidate(a1 + 2812, 128);
       result = 0;
       break;
     default:
@@ -17312,8 +17312,8 @@ LABEL_5:
   return result;
 }
 
-/* ===== sub_9403A604 @ 0x9403A604 size 52 ===== */
-_BYTE *__fastcall sub_9403A604(_BYTE *result, __int64 a2, unsigned int a3)
+/* ===== reverse_bytes @ 0x9403A604 size 52 ===== */
+_BYTE *__fastcall reverse_bytes(_BYTE *result, __int64 a2, unsigned int a3)
 {
   __int64 v3; // x4
   char *v4; // x1
@@ -17337,8 +17337,8 @@ _BYTE *__fastcall sub_9403A604(_BYTE *result, __int64 a2, unsigned int a3)
   return result;
 }
 
-/* ===== sub_9403A638 @ 0x9403A638 size 136 ===== */
-__int64 __fastcall sub_9403A638(
+/* ===== ce_cmd_field @ 0x9403A638 size 136 ===== */
+__int64 __fastcall ce_cmd_field(
         unsigned __int8 a1,
         unsigned __int8 a2,
         unsigned __int8 a3,
@@ -17369,22 +17369,22 @@ __int64 __fastcall sub_9403A638(
   return result;
 }
 
-/* ===== sub_9403A6C0 @ 0x9403A6C0 size 116 ===== */
-__int64 __fastcall sub_9403A6C0(__int64 a1, __int64 a2)
+/* ===== ce_cfg_dma_addr @ 0x9403A6C0 size 116 ===== */
+__int64 __fastcall ce_cfg_dma_addr(__int64 a1, __int64 a2)
 {
   unsigned __int64 v2; // x20
   int v5; // [xsp+4Ch] [xbp+4Ch] BYREF
 
-  v5 = ((unsigned __int64)sub_940408C8(a1) >> 17) & 0x7FFFF;
-  v2 = ((unsigned __int64)sub_940408C8(a2) >> 17) & 0x7FFFF;
-  sub_940356B4(0x610u, 1u, (__int64)&v5);
+  v5 = ((unsigned __int64)virt_to_phys(a1) >> 17) & 0x7FFFF;
+  v2 = ((unsigned __int64)virt_to_phys(a2) >> 17) & 0x7FFFF;
+  ce_write_cmd_pka(0x610u, 1u, (__int64)&v5);
   v5 = v2;
-  sub_940356B4(0x60Cu, 1u, (__int64)&v5);
+  ce_write_cmd_pka(0x60Cu, 1u, (__int64)&v5);
   return 0;
 }
 
-/* ===== sub_9403A734 @ 0x9403A734 size 64 ===== */
-__int64 __fastcall sub_9403A734(unsigned __int8 a1, unsigned __int8 a2, unsigned __int8 a3, int a4)
+/* ===== ce_cmd_field2 @ 0x9403A734 size 64 ===== */
+__int64 __fastcall ce_cmd_field2(unsigned __int8 a1, unsigned __int8 a2, unsigned __int8 a3, int a4)
 {
   int v4; // w4
   bool v5; // zf
@@ -17398,8 +17398,8 @@ __int64 __fastcall sub_9403A734(unsigned __int8 a1, unsigned __int8 a2, unsigned
   return result;
 }
 
-/* ===== sub_9403A774 @ 0x9403A774 size 88 ===== */
-__int64 __fastcall sub_9403A774(int a1, unsigned int a2)
+/* ===== ce_cfg_dma_len @ 0x9403A774 size 88 ===== */
+__int64 __fastcall ce_cfg_dma_len(int a1, unsigned int a2)
 {
   __int64 result; // x0
   int v4; // [xsp+1Ch] [xbp+1Ch] BYREF
@@ -17408,38 +17408,38 @@ __int64 __fastcall sub_9403A774(int a1, unsigned int a2)
   if ( a2 <= 3 && (a1 & 0xFFFFFC00) == 0 )
   {
     v4 = a1 << (16 * (a2 & 1));
-    sub_940356B4(4 * ((a2 >> 1) + 52), 1u, (__int64)&v4);
+    ce_write_cmd_pka(4 * ((a2 >> 1) + 52), 1u, (__int64)&v4);
     return 0;
   }
   return result;
 }
 
-/* ===== sub_9403A7CC @ 0x9403A7CC size 36 ===== */
-__int64 __fastcall sub_9403A7CC(unsigned __int8 a1, unsigned __int8 a2, __int64 a3, unsigned __int8 a4)
+/* ===== ce_cfg_dma_src @ 0x9403A7CC size 36 ===== */
+__int64 __fastcall ce_cfg_dma_src(unsigned __int8 a1, unsigned __int8 a2, __int64 a3, unsigned __int8 a4)
 {
-  return sub_9403A638(0x1Cu, a4, a2, 0, a1, 0, 0, 3u);
+  return ce_cmd_field(0x1Cu, a4, a2, 0, a1, 0, 0, 3u);
 }
 
-/* ===== sub_9403A7F0 @ 0x9403A7F0 size 24 ===== */
-__int64 __fastcall sub_9403A7F0(int a1, unsigned __int8 a2, __int64 a3, unsigned __int8 a4)
+/* ===== ce_cfg_dma_dst @ 0x9403A7F0 size 24 ===== */
+__int64 __fastcall ce_cfg_dma_dst(int a1, unsigned __int8 a2, __int64 a3, unsigned __int8 a4)
 {
-  return sub_9403A734(0x16u, a4, a2, a1);
+  return ce_cmd_field2(0x16u, a4, a2, a1);
 }
 
-/* ===== sub_9403A808 @ 0x9403A808 size 24 ===== */
-__int64 __fastcall sub_9403A808(unsigned __int8 a1, int a2, __int64 a3, unsigned __int8 a4)
+/* ===== ce_cfg_dma_key @ 0x9403A808 size 24 ===== */
+__int64 __fastcall ce_cfg_dma_key(unsigned __int8 a1, int a2, __int64 a3, unsigned __int8 a4)
 {
-  return sub_9403A734(0x17u, a4, a1, a2);
+  return ce_cmd_field2(0x17u, a4, a1, a2);
 }
 
-/* ===== sub_9403A820 @ 0x9403A820 size 8 ===== */
-__int64 sub_9403A820()
+/* ===== ce_nop @ 0x9403A820 size 8 ===== */
+__int64 ce_nop()
 {
   return 0;
 }
 
-/* ===== sub_9403A828 @ 0x9403A828 size 584 ===== */
-__int64 __fastcall sub_9403A828(__int64 a1, unsigned int a2, int a3, __int64 a4, _BYTE *a5, _DWORD *a6)
+/* ===== sprd_pkcs1_v1_5_encode @ 0x9403A828 size 584 ===== */
+__int64 __fastcall sprd_pkcs1_v1_5_encode(__int64 a1, unsigned int a2, int a3, __int64 a4, _BYTE *a5, _DWORD *a6)
 {
   __int64 v7; // x0
   const void *v12; // x0
@@ -17466,8 +17466,8 @@ __int64 __fastcall sub_9403A828(__int64 a1, unsigned int a2, int a3, __int64 a4,
     v14 = a2 + 11;
     if ( (unsigned int)v14 > (unsigned int)a4 )
     {
-      v16 = (const void *)sub_94040A98(v14);
-      sub_940407DC(3, "%p: %s: %s: msglen(%d) is too big\n", v16, "SPRD_CE", "sprd_pkcs1_v1_5_encode", a2);
+      v16 = (const void *)get_current_thread(v14);
+      sprd_log(3, "%p: %s: %s: msglen(%d) is too big\n", v16, "SPRD_CE", "sprd_pkcs1_v1_5_encode", a2);
       return 4294901767LL;
     }
     else if ( a5 != nullptr && a6 != nullptr && (v14 = (unsigned int)*a6, (unsigned int)a4 <= (unsigned int)v14) )
@@ -17482,7 +17482,7 @@ __int64 __fastcall sub_9403A828(__int64 a1, unsigned int a2, int a3, __int64 a4,
         while ( 1 )
         {
           v26 = a4;
-          v20 = sub_9403BFB0(v29, 512);
+          v20 = sprd_rng_gen(v29, 512);
           v21 = v20;
           if ( (_DWORD)v20 != 0 )
             break;
@@ -17501,27 +17501,27 @@ LABEL_14:
           if ( v18 <= v19 )
             goto LABEL_19;
         }
-        v25 = (const void *)sub_94040A98(v20);
-        sub_940407DC(3, "%p: %s: %s: get rng failed\n", v25, "SPRD_CE", "sprd_pkcs1_v1_5_encode");
+        v25 = (const void *)get_current_thread(v20);
+        sprd_log(3, "%p: %s: %s: get rng failed\n", v25, "SPRD_CE", "sprd_pkcs1_v1_5_encode");
         return v21;
       }
       else
       {
         v28 = a4;
-        sub_94040888(a5 + 2, 0xFFFFFFFFLL, v18);
+        memset(a5 + 2, 0xFFFFFFFFLL, v18);
         LODWORD(a4) = v28;
 LABEL_19:
         v27 = a4;
         a5[v17 - 1] = 0;
-        sub_94040880(&a5[v17], a1, a2);
+        memcpy(&a5[v17], a1, a2);
         *a6 = v27;
         return 0;
       }
     }
     else
     {
-      v15 = (const void *)sub_94040A98(v14);
-      sub_940407DC(
+      v15 = (const void *)get_current_thread(v14);
+      sprd_log(
         3,
         "%p: %s: %s: out(%p) or outlen(%p) is less than required\n",
         v15,
@@ -17534,14 +17534,14 @@ LABEL_19:
   }
   else
   {
-    v12 = (const void *)sub_94040A98(v7);
-    sub_940407DC(3, "%p: %s: %s: invalid block type in padding(0x%x)\n", v12, "SPRD_CE", "sprd_pkcs1_v1_5_encode", a3);
+    v12 = (const void *)get_current_thread(v7);
+    sprd_log(3, "%p: %s: %s: invalid block type in padding(0x%x)\n", v12, "SPRD_CE", "sprd_pkcs1_v1_5_encode", a3);
     return 4294901765LL;
   }
 }
 
-/* ===== sub_9403AA70 @ 0x9403AA70 size 796 ===== */
-__int64 __fastcall sub_9403AA70(
+/* ===== sprd_pkcs1_v1_5_decode @ 0x9403AA70 size 796 ===== */
+__int64 __fastcall sprd_pkcs1_v1_5_decode(
         unsigned __int8 *a1,
         unsigned int a2,
         unsigned int a3,
@@ -17572,28 +17572,28 @@ __int64 __fastcall sub_9403AA70(
   v9 = a3;
   if ( a1 == nullptr || a2 == 0 )
   {
-    v15 = (const void *)sub_94040A98(a1);
-    sub_940407DC(3, "%p: %s: %s: msg is %p or msglen is %d\n", v15, "SPRD_CE", "sprd_pkcs1_v1_5_decode", a1, a2);
+    v15 = (const void *)get_current_thread(a1);
+    sprd_log(3, "%p: %s: %s: msg is %p or msglen is %d\n", v15, "SPRD_CE", "sprd_pkcs1_v1_5_decode", a1, a2);
     return 4294901767LL;
   }
   if ( a7 == nullptr )
   {
-    v17 = (const void *)sub_94040A98(a1);
-    sub_940407DC(3, "%p: %s: %s: is_valid is NULL\n", v17, "SPRD_CE", "sprd_pkcs1_v1_5_decode");
+    v17 = (const void *)get_current_thread(a1);
+    sprd_log(3, "%p: %s: %s: is_valid is NULL\n", v17, "SPRD_CE", "sprd_pkcs1_v1_5_decode");
     return 4294901767LL;
   }
   *a7 = 0;
   if ( a2 > a4 || a4 <= 0xA )
   {
-    v16 = (const void *)sub_94040A98(a1);
-    sub_940407DC(3, "%p: %s: %s: msglen(%d) is too big or too small\n", v16, "SPRD_CE", "sprd_pkcs1_v1_5_decode", a2);
+    v16 = (const void *)get_current_thread(a1);
+    sprd_log(3, "%p: %s: %s: msglen(%d) is too big or too small\n", v16, "SPRD_CE", "sprd_pkcs1_v1_5_decode", a2);
     return 4294901768LL;
   }
   v12 = *a1;
   if ( (_DWORD)v12 != 0 || (_DWORD)(v12 = a1[1]) != (unsigned __int8)a3 )
   {
-    v13 = sub_94040A98(v12);
-    sub_940407DC(
+    v13 = get_current_thread(v12);
+    sprd_log(
       3,
       "%p: %s: %s: bad msg[0](0x%x) or msg[1](0x%x)\n",
       v13,
@@ -17623,8 +17623,8 @@ __int64 __fastcall sub_9403AA70(
     }
     if ( v25 != 0 )
     {
-      v27 = (const void *)sub_94040A98(v18);
-      sub_940407DC(
+      v27 = (const void *)get_current_thread(v18);
+      sprd_log(
         3,
         "%p: %s: %s: There was no 0x00 to separate ps from msg. msg[%d] = 0x%x\n",
         v27,
@@ -17639,8 +17639,8 @@ __int64 __fastcall sub_9403AA70(
   {
     if ( a3 != 2 )
     {
-      v24 = (const void *)sub_94040A98(v12);
-      sub_940407DC(3, "%p: %s: %s: invalid block type in padding(0x%x)\n", v24, "SPRD_CE", "sprd_pkcs1_v1_5_decode", v9);
+      v24 = (const void *)get_current_thread(v12);
+      sprd_log(3, "%p: %s: %s: invalid block type in padding(0x%x)\n", v24, "SPRD_CE", "sprd_pkcs1_v1_5_decode", v9);
       return 4294901765LL;
     }
     v18 = (unsigned __int64)(a1 + 2);
@@ -17656,8 +17656,8 @@ __int64 __fastcall sub_9403AA70(
   v20 = v9 + 1;
   if ( a4 <= v9 + 1 )
   {
-    v28 = sub_94040A98(v18);
-    sub_940407DC(
+    v28 = get_current_thread(v18);
+    sprd_log(
       3,
       "%p: %s: %s: There was no 0x00 to separate ps from msg. msg[%d] = 0x%x\n",
       v28,
@@ -17670,8 +17670,8 @@ __int64 __fastcall sub_9403AA70(
   v21 = v9 - 2;
   if ( v21 <= 7 )
   {
-    v29 = (const void *)sub_94040A98(v18);
-    sub_940407DC(3, "%p: %s: %s: the length of ps(%d) is less than 8\n", v29, "SPRD_CE", "sprd_pkcs1_v1_5_decode", v21);
+    v29 = (const void *)get_current_thread(v18);
+    sprd_log(3, "%p: %s: %s: the length of ps(%d) is less than 8\n", v29, "SPRD_CE", "sprd_pkcs1_v1_5_decode", v21);
     return 4294901768LL;
   }
   else if ( a5 != nullptr
@@ -17679,14 +17679,14 @@ __int64 __fastcall sub_9403AA70(
          && (v18 = (unsigned int)*a6, v22 = a2 - 3 - v21, (unsigned int)v18 >= (unsigned int)v22) )
   {
     *a6 = v22;
-    sub_94040880(a5, &a1[v20], v22);
+    memcpy(a5, &a1[v20], v22);
     *a7 = 1;
     return 0;
   }
   else
   {
-    v23 = (const void *)sub_94040A98(v18);
-    sub_940407DC(
+    v23 = (const void *)get_current_thread(v18);
+    sprd_log(
       3,
       "%p: %s: %s: out(%p) or outlen(%p) is less than required\n",
       v23,
@@ -17698,8 +17698,8 @@ __int64 __fastcall sub_9403AA70(
   }
 }
 
-/* ===== sub_9403AD8C @ 0x9403AD8C size 88 ===== */
-__int64 __fastcall sub_9403AD8C(unsigned __int8 *a1, int a2, unsigned __int8 *a3)
+/* ===== cmp_big_endian @ 0x9403AD8C size 88 ===== */
+__int64 __fastcall cmp_big_endian(unsigned __int8 *a1, int a2, unsigned __int8 *a3)
 {
   unsigned int v3; // w4
   unsigned int v4; // w3
@@ -17734,8 +17734,8 @@ LABEL_7:
     return 1;
 }
 
-/* ===== sub_9403ADE4 @ 0x9403ADE4 size 884 ===== */
-__int64 __fastcall sub_9403ADE4(
+/* ===== sprd_rsa_nopad @ 0x9403ADE4 size 884 ===== */
+__int64 __fastcall sprd_rsa_nopad(
         int a1,
         __int64 a2,
         unsigned int a3,
@@ -17761,7 +17761,7 @@ __int64 __fastcall sub_9403ADE4(
   _QWORD v30[44]; // [xsp+80h] [xbp+80h] BYREF
 
   v29 = 0;
-  v16 = sub_94040888(v30, 0, 352);
+  v16 = memset(v30, 0, 352);
   if ( a3 == 256 )
   {
     if ( a1 == 1 )
@@ -17803,8 +17803,8 @@ LABEL_11:
   if ( a3 != 128 )
   {
 LABEL_21:
-    v23 = (const void *)sub_94040A98(v16);
-    sub_940407DC(3, "%p: %s: %s: bad key len!\n", v23, "SPRD_CE", "sprd_rsa_nopad");
+    v23 = (const void *)get_current_thread(v16);
+    sprd_log(3, "%p: %s: %s: bad key len!\n", v23, "SPRD_CE", "sprd_rsa_nopad");
     return 4294901769LL;
   }
   if ( a1 == 1 )
@@ -17812,25 +17812,25 @@ LABEL_21:
   else
     LODWORD(v30[0]) = 83951622;
 LABEL_12:
-  v18 = sub_94037378(v30);
+  v18 = sprd_crypto_lock_init(v30);
   if ( (_DWORD)v18 != 0 )
   {
-    v26 = (const void *)sub_94040A98(v18);
-    sub_940407DC(3, "%p: %s: %s: FAILED!\n", v26, "SPRD_CE", "sprd_rsa_nopad");
+    v26 = (const void *)get_current_thread(v18);
+    sprd_log(3, "%p: %s: %s: FAILED!\n", v26, "SPRD_CE", "sprd_rsa_nopad");
     return 4294901760LL;
   }
   else
   {
-    v19 = sub_940409F8(v18);
+    v19 = sprd_semaphore_create(v18);
     if ( v19 != 0 )
     {
-      sub_94036FEC((__int64)v30, 0x1000u, &v29, (int *)&v28);
+      sprd_crypto_malloc_buf((__int64)v30, 0x1000u, &v29, (int *)&v28);
       if ( v29 != 0 && v28 > 0xFFF )
       {
-        sub_94040880(v29, a2, a3);
-        sub_94040888(v29 + 512, 0, a3);
-        sub_94040880(v29 + 512LL - a5 + a3, a4, a5);
-        sub_94040880(v29 + 1024, a6, a7);
+        memcpy(v29, a2, a3);
+        memset(v29 + 512, 0, a3);
+        memcpy(v29 + 512LL - a5 + a3, a4, a5);
+        memcpy(v29 + 1024, a6, a7);
         LODWORD(v30[4]) = a3;
         v30[2] = v29;
         v30[3] = v29 + 512;
@@ -17842,33 +17842,33 @@ LABEL_12:
         LODWORD(v30[38]) = a7;
         LODWORD(v30[40]) = a7;
         v30[43] = v19;
-        sub_940408B0(v29, 0x2000);
-        v24 = sub_94036D90((int *)v30);
+        dcache_clean(v29, 0x2000);
+        v24 = sprd_crypto_work((int *)v30);
         v21 = v24;
         if ( (_DWORD)v24 != 0 )
         {
-          v25 = (const void *)sub_94040A98(v24);
-          sub_940407DC(3, "%p: %s: %s: sprd_crypto_process return 0x%x\n", v25, "SPRD_CE", "sprd_rsa_nopad", v21);
+          v25 = (const void *)get_current_thread(v24);
+          sprd_log(3, "%p: %s: %s: sprd_crypto_process return 0x%x\n", v25, "SPRD_CE", "sprd_rsa_nopad", v21);
         }
         else
         {
-          sub_94040A74(v19);
+          sprd_semaphore_wait(v19);
           if ( a9 != nullptr )
             *a9 = a7;
-          sub_940408C0(v29 + 1536, 512);
-          sub_94040880(a8, v29 + 1536, a7);
+          dcache_invalidate(v29 + 1536, 512);
+          memcpy(a8, v29 + 1536, a7);
         }
       }
       else
       {
-        v20 = (const void *)sub_94040A98(v29);
+        v20 = (const void *)get_current_thread(v29);
         v21 = -65526;
-        sub_940407DC(3, "%p: %s: %s: buf_len is %d, too small!\n", v20, "SPRD_CE", "sprd_rsa_nopad", v28);
+        sprd_log(3, "%p: %s: %s: buf_len is %d, too small!\n", v20, "SPRD_CE", "sprd_rsa_nopad", v28);
       }
       if ( v29 != 0 )
-        sub_9403719C(v29);
-      sub_94040A34(v19);
-      sub_94037418((int *)v30);
+        sprd_crypto_free_buf(v29);
+      sprd_semaphore_destroy(v19);
+      sprd_crypto_lock_deinit((int *)v30);
       return v21;
     }
     else
@@ -17878,8 +17878,8 @@ LABEL_12:
   }
 }
 
-/* ===== sub_9403B158 @ 0x9403B158 size 452 ===== */
-__int64 __fastcall sub_9403B158(__int64 a1, unsigned __int8 *a2, int a3, __int64 a4, unsigned int *a5, int *a6)
+/* ===== sprd_rsa_public_encrypt @ 0x9403B158 size 452 ===== */
+__int64 __fastcall sprd_rsa_public_encrypt(__int64 a1, unsigned __int8 *a2, int a3, __int64 a4, unsigned int *a5, int *a6)
 {
   unsigned int v6; // w6
   __int64 v7; // x7
@@ -17906,8 +17906,8 @@ __int64 __fastcall sub_9403B158(__int64 a1, unsigned __int8 *a2, int a3, __int64
         if ( v8 != 0 )
         {
           v24 = v8;
-          v18 = (const void *)sub_94040A98(a1);
-          sub_940407DC(3, "%p: %s: %s: Bad padding type(%d)!\n", v18, "SPRD_CE", "sprd_rsa_public_encrypt", v24);
+          v18 = (const void *)get_current_thread(a1);
+          sprd_log(3, "%p: %s: %s: Bad padding type(%d)!\n", v18, "SPRD_CE", "sprd_rsa_public_encrypt", v24);
           return 4294901765LL;
         }
         else
@@ -17917,13 +17917,13 @@ __int64 __fastcall sub_9403B158(__int64 a1, unsigned __int8 *a2, int a3, __int64
           v14 = a3 - v12;
           if ( a3 == v12 )
           {
-            v14 = sub_9403AD8C(a2, a3, v13);
+            v14 = cmp_big_endian(a2, a3, v13);
             v7 = a4;
             v6 = a3;
           }
           if ( (v14 & 0x80000000) != 0 )
           {
-            return sub_9403ADE4(
+            return sprd_rsa_nopad(
                      1,
                      (__int64)v13,
                      v12,
@@ -17936,36 +17936,36 @@ __int64 __fastcall sub_9403B158(__int64 a1, unsigned __int8 *a2, int a3, __int64
           }
           else
           {
-            v16 = (const void *)sub_94040A98(v14);
-            sub_940407DC(3, "%p: %s: %s: Bad data too lager for modulus!\n", v16, "SPRD_CE", "sprd_rsa_public_encrypt");
+            v16 = (const void *)get_current_thread(v14);
+            sprd_log(3, "%p: %s: %s: Bad data too lager for modulus!\n", v16, "SPRD_CE", "sprd_rsa_public_encrypt");
             return 4294901772LL;
           }
         }
       }
       else
       {
-        v20 = (const void *)sub_94040A98(a1);
-        sub_940407DC(3, "%p: %s: %s: Bad dst(%p)\n", v20, "SPRD_CE", "sprd_rsa_public_encrypt", nullptr);
+        v20 = (const void *)get_current_thread(a1);
+        sprd_log(3, "%p: %s: %s: Bad dst(%p)\n", v20, "SPRD_CE", "sprd_rsa_public_encrypt", nullptr);
         return 4294901767LL;
       }
     }
     else
     {
-      v17 = (const void *)sub_94040A98(a1);
-      sub_940407DC(3, "%p: %s: %s: Bad src(%p) or src_size(%d)\n", v17, "SPRD_CE", "sprd_rsa_public_encrypt", a2, a3);
+      v17 = (const void *)get_current_thread(a1);
+      sprd_log(3, "%p: %s: %s: Bad src(%p) or src_size(%d)\n", v17, "SPRD_CE", "sprd_rsa_public_encrypt", a2, a3);
       return 4294901767LL;
     }
   }
   else
   {
-    v19 = (const void *)sub_94040A98(0);
-    sub_940407DC(3, "%p: %s: %s: Bad pub key(%p)!\n", v19, "SPRD_CE", "sprd_rsa_public_encrypt", nullptr);
+    v19 = (const void *)get_current_thread(0);
+    sprd_log(3, "%p: %s: %s: Bad pub key(%p)!\n", v19, "SPRD_CE", "sprd_rsa_public_encrypt", nullptr);
     return 4294901762LL;
   }
 }
 
-/* ===== sub_9403B31C @ 0x9403B31C size 452 ===== */
-__int64 __fastcall sub_9403B31C(__int64 a1, unsigned __int8 *a2, int a3, __int64 a4, unsigned int *a5, int *a6)
+/* ===== sprd_rsa_private_decrypt @ 0x9403B31C size 452 ===== */
+__int64 __fastcall sprd_rsa_private_decrypt(__int64 a1, unsigned __int8 *a2, int a3, __int64 a4, unsigned int *a5, int *a6)
 {
   unsigned int v6; // w6
   __int64 v7; // x7
@@ -17992,8 +17992,8 @@ __int64 __fastcall sub_9403B31C(__int64 a1, unsigned __int8 *a2, int a3, __int64
         if ( v8 != 0 )
         {
           v24 = v8;
-          v18 = (const void *)sub_94040A98(a1);
-          sub_940407DC(3, "%p: %s: %s: Bad padding type(%d)!\n", v18, "SPRD_CE", "sprd_rsa_private_decrypt", v24);
+          v18 = (const void *)get_current_thread(a1);
+          sprd_log(3, "%p: %s: %s: Bad padding type(%d)!\n", v18, "SPRD_CE", "sprd_rsa_private_decrypt", v24);
           return 4294901765LL;
         }
         else
@@ -18003,13 +18003,13 @@ __int64 __fastcall sub_9403B31C(__int64 a1, unsigned __int8 *a2, int a3, __int64
           v14 = a3 - v12;
           if ( a3 == v12 )
           {
-            v14 = sub_9403AD8C(a2, a3, v13);
+            v14 = cmp_big_endian(a2, a3, v13);
             v7 = a4;
             v6 = a3;
           }
           if ( (v14 & 0x80000000) != 0 )
           {
-            return sub_9403ADE4(
+            return sprd_rsa_nopad(
                      0,
                      (__int64)v13,
                      v12,
@@ -18022,36 +18022,36 @@ __int64 __fastcall sub_9403B31C(__int64 a1, unsigned __int8 *a2, int a3, __int64
           }
           else
           {
-            v16 = (const void *)sub_94040A98(v14);
-            sub_940407DC(3, "%p: %s: %s: Bad data too lager for modulus!\n", v16, "SPRD_CE", "sprd_rsa_private_decrypt");
+            v16 = (const void *)get_current_thread(v14);
+            sprd_log(3, "%p: %s: %s: Bad data too lager for modulus!\n", v16, "SPRD_CE", "sprd_rsa_private_decrypt");
             return 4294901772LL;
           }
         }
       }
       else
       {
-        v20 = (const void *)sub_94040A98(a1);
-        sub_940407DC(3, "%p: %s: %s: Bad dst(%p)\n", v20, "SPRD_CE", "sprd_rsa_private_decrypt", nullptr);
+        v20 = (const void *)get_current_thread(a1);
+        sprd_log(3, "%p: %s: %s: Bad dst(%p)\n", v20, "SPRD_CE", "sprd_rsa_private_decrypt", nullptr);
         return 4294901767LL;
       }
     }
     else
     {
-      v17 = (const void *)sub_94040A98(a1);
-      sub_940407DC(3, "%p: %s: %s: Bad src(%p) or src_size(%d)\n", v17, "SPRD_CE", "sprd_rsa_private_decrypt", a2, a3);
+      v17 = (const void *)get_current_thread(a1);
+      sprd_log(3, "%p: %s: %s: Bad src(%p) or src_size(%d)\n", v17, "SPRD_CE", "sprd_rsa_private_decrypt", a2, a3);
       return 4294901767LL;
     }
   }
   else
   {
-    v19 = (const void *)sub_94040A98(0);
-    sub_940407DC(3, "%p: %s: %s: Bad priv key(%p)!\n", v19, "SPRD_CE", "sprd_rsa_private_decrypt", nullptr);
+    v19 = (const void *)get_current_thread(0);
+    sprd_log(3, "%p: %s: %s: Bad priv key(%p)!\n", v19, "SPRD_CE", "sprd_rsa_private_decrypt", nullptr);
     return 4294901762LL;
   }
 }
 
-/* ===== sub_9403B4E0 @ 0x9403B4E0 size 756 ===== */
-__int64 __fastcall sub_9403B4E0(__int64 a1, unsigned int a2, int a3, __int64 a4, __int64 a5)
+/* ===== sprd_rsa_key_gen @ 0x9403B4E0 size 756 ===== */
+__int64 __fastcall sprd_rsa_key_gen(__int64 a1, unsigned int a2, int a3, __int64 a4, __int64 a5)
 {
   __int64 v10; // x0
   __int64 v11; // x0
@@ -18066,7 +18066,7 @@ __int64 __fastcall sub_9403B4E0(__int64 a1, unsigned int a2, int a3, __int64 a4,
   __int64 v21; // [xsp+68h] [xbp+68h] BYREF
   _QWORD v22[44]; // [xsp+70h] [xbp+70h] BYREF
 
-  v10 = sub_94040888(v22, 0, 352);
+  v10 = memset(v22, 0, 352);
   if ( a3 == 256 )
   {
     LODWORD(v22[4]) = 256;
@@ -18098,31 +18098,31 @@ __int64 __fastcall sub_9403B4E0(__int64 a1, unsigned int a2, int a3, __int64 a4,
         goto LABEL_6;
       }
 LABEL_17:
-      v16 = (const void *)sub_94040A98(v10);
-      sub_940407DC(3, "%p: %s: %s: bad key len!\n", v16, "SPRD_CE", "sprd_rsa_key_gen");
+      v16 = (const void *)get_current_thread(v10);
+      sprd_log(3, "%p: %s: %s: bad key len!\n", v16, "SPRD_CE", "sprd_rsa_key_gen");
       return 4294901769LL;
     }
     LODWORD(v22[4]) = 32;
     LODWORD(v22[0]) = 84017152;
   }
 LABEL_6:
-  v11 = sub_94037378(v22);
+  v11 = sprd_crypto_lock_init(v22);
   if ( (_DWORD)v11 != 0 )
   {
-    v19 = (const void *)sub_94040A98(v11);
-    sub_940407DC(3, "%p: %s: %s: FAILED!\n", v19, "SPRD_CE", "sprd_rsa_key_gen");
+    v19 = (const void *)get_current_thread(v11);
+    sprd_log(3, "%p: %s: %s: FAILED!\n", v19, "SPRD_CE", "sprd_rsa_key_gen");
     return 4294901760LL;
   }
   else
   {
-    v12 = sub_940409F8(v11);
+    v12 = sprd_semaphore_create(v11);
     if ( v12 != 0 )
     {
-      sub_94036FEC((__int64)v22, 0x1000u, &v21, (int *)&v20);
+      sprd_crypto_malloc_buf((__int64)v22, 0x1000u, &v21, (int *)&v20);
       if ( v21 != 0 && v20 > 0xFFF )
       {
-        sub_94040888(v21 + 1024, 0, (unsigned int)a3);
-        sub_94040880(v21 + 1024, a1, a2);
+        memset(v21 + 1024, 0, (unsigned int)a3);
+        memcpy(v21 + 1024, a1, a2);
         HIDWORD(v22[0]) = 0;
         LODWORD(v22[38]) = a2;
         v22[37] = v21 + 1024;
@@ -18131,32 +18131,32 @@ LABEL_6:
         LODWORD(v22[40]) = 2 * a3;
         v22[5] = v21 + 4096;
         v22[43] = v12;
-        sub_940408B0(v21, 0x2000);
-        v17 = sub_94036D90((int *)v22);
+        dcache_clean(v21, 0x2000);
+        v17 = sprd_crypto_work((int *)v22);
         v14 = v17;
         if ( (_DWORD)v17 != 0 )
         {
-          v18 = (const void *)sub_94040A98(v17);
-          sub_940407DC(3, "%p: %s: %s: sprd_crypto_process return 0x%x\n", v18, "SPRD_CE", "sprd_rsa_key_gen", v14);
+          v18 = (const void *)get_current_thread(v17);
+          sprd_log(3, "%p: %s: %s: sprd_crypto_process return 0x%x\n", v18, "SPRD_CE", "sprd_rsa_key_gen", v14);
         }
         else
         {
-          sub_94040A74(v12);
-          sub_940408C0(v21 + 1536, 1024);
-          sub_94040880(a4, v21 + 1536, (unsigned int)a3);
-          sub_94040880(a5, v21 + a3 + 1536LL, (unsigned int)a3);
+          sprd_semaphore_wait(v12);
+          dcache_invalidate(v21 + 1536, 1024);
+          memcpy(a4, v21 + 1536, (unsigned int)a3);
+          memcpy(a5, v21 + a3 + 1536LL, (unsigned int)a3);
         }
       }
       else
       {
-        v13 = (const void *)sub_94040A98(v21);
+        v13 = (const void *)get_current_thread(v21);
         v14 = -65526;
-        sub_940407DC(3, "%p: %s: %s: buf_len is %d, too small!\n", v13, "SPRD_CE", "sprd_rsa_key_gen", v20);
+        sprd_log(3, "%p: %s: %s: buf_len is %d, too small!\n", v13, "SPRD_CE", "sprd_rsa_key_gen", v20);
       }
       if ( v21 != 0 )
-        sub_9403719C(v21);
-      sub_94040A34(v12);
-      sub_94037418((int *)v22);
+        sprd_crypto_free_buf(v21);
+      sprd_semaphore_destroy(v12);
+      sprd_crypto_lock_deinit((int *)v22);
       return v14;
     }
     else
@@ -18166,8 +18166,8 @@ LABEL_6:
   }
 }
 
-/* ===== sub_9403B7D4 @ 0x9403B7D4 size 528 ===== */
-__int64 __fastcall sub_9403B7D4(unsigned int a1, __int64 a2)
+/* ===== sprd_rsa_prime_gen @ 0x9403B7D4 size 528 ===== */
+__int64 __fastcall sprd_rsa_prime_gen(unsigned int a1, __int64 a2)
 {
   __int64 v4; // x0
   __int64 v5; // x0
@@ -18183,13 +18183,13 @@ __int64 __fastcall sub_9403B7D4(unsigned int a1, __int64 a2)
   __int64 v16; // [xsp+48h] [xbp+48h] BYREF
   _QWORD v17[44]; // [xsp+50h] [xbp+50h] BYREF
 
-  sub_94040888(v17, 0, 352);
+  memset(v17, 0, 352);
   v4 = 84213760;
   LODWORD(v17[0]) = 84213760;
   if ( a1 - 32 > 0xE9 || (v4 = a1 & 3, (a1 & 3) != 0) )
   {
-    v13 = (const void *)sub_94040A98(v4);
-    sub_940407DC(
+    v13 = (const void *)get_current_thread(v4);
+    sprd_log(
       3,
       "%p: %s: %s: prime_len: range [32byte-265byte] and must be integral multiple of 4!\n",
       v13,
@@ -18200,19 +18200,19 @@ __int64 __fastcall sub_9403B7D4(unsigned int a1, __int64 a2)
   else
   {
     LODWORD(v17[3]) = a1;
-    v5 = sub_94037378(v17);
+    v5 = sprd_crypto_lock_init(v17);
     if ( (_DWORD)v5 != 0 )
     {
-      v14 = (const void *)sub_94040A98(v5);
-      sub_940407DC(3, "%p: %s: %s: FAILED!\n", v14, "SPRD_CE", "sprd_rsa_prime_gen");
+      v14 = (const void *)get_current_thread(v5);
+      sprd_log(3, "%p: %s: %s: FAILED!\n", v14, "SPRD_CE", "sprd_rsa_prime_gen");
       return 4294901760LL;
     }
     else
     {
-      v6 = sub_940409F8(v5);
+      v6 = sprd_semaphore_create(v5);
       if ( v6 != 0 )
       {
-        v7 = sub_94036FEC((__int64)v17, 0x1000u, &v16, (int *)&v15);
+        v7 = sprd_crypto_malloc_buf((__int64)v17, 0x1000u, &v16, (int *)&v15);
         if ( v16 != 0 && (v7 = v15, v15 > 0xFFF) )
         {
           LODWORD(v17[1]) = 1;
@@ -18223,31 +18223,31 @@ __int64 __fastcall sub_9403B7D4(unsigned int a1, __int64 a2)
           LODWORD(v17[38]) = a1;
           LODWORD(v17[40]) = a1;
           v17[43] = v6;
-          sub_940408B0(v16, 4096);
-          v11 = sub_94036D90((int *)v17);
+          dcache_clean(v16, 4096);
+          v11 = sprd_crypto_work((int *)v17);
           v9 = v11;
           if ( (_DWORD)v11 != 0 )
           {
-            v12 = (const void *)sub_94040A98(v11);
-            sub_940407DC(3, "%p: %s: %s: sprd_crypto_process return 0x%x\n", v12, "SPRD_CE", "sprd_rsa_prime_gen", v9);
+            v12 = (const void *)get_current_thread(v11);
+            sprd_log(3, "%p: %s: %s: sprd_crypto_process return 0x%x\n", v12, "SPRD_CE", "sprd_rsa_prime_gen", v9);
           }
           else
           {
-            sub_94040A74(v6);
-            sub_940408C0(v16, 1024);
-            sub_94040880(a2, v16, a1);
+            sprd_semaphore_wait(v6);
+            dcache_invalidate(v16, 1024);
+            memcpy(a2, v16, a1);
           }
         }
         else
         {
-          v8 = (const void *)sub_94040A98(v7);
+          v8 = (const void *)get_current_thread(v7);
           v9 = -65526;
-          sub_940407DC(3, "%p: %s: %s: buf_len is %d, too small!\n", v8, "SPRD_CE", "sprd_rsa_prime_gen", v15);
+          sprd_log(3, "%p: %s: %s: buf_len is %d, too small!\n", v8, "SPRD_CE", "sprd_rsa_prime_gen", v15);
         }
         if ( v16 != 0 )
-          sub_9403719C(v16);
-        sub_94040A34(v6);
-        sub_94037418((int *)v17);
+          sprd_crypto_free_buf(v16);
+        sprd_semaphore_destroy(v6);
+        sprd_crypto_lock_deinit((int *)v17);
         return v9;
       }
       else
@@ -18258,8 +18258,8 @@ __int64 __fastcall sub_9403B7D4(unsigned int a1, __int64 a2)
   }
 }
 
-/* ===== sub_9403B9E4 @ 0x9403B9E4 size 568 ===== */
-__int64 __fastcall sub_9403B9E4(__int64 a1, __int64 a2, unsigned int a3, const void *a4, unsigned int *a5, int *a6)
+/* ===== sprd_rsa_sign @ 0x9403B9E4 size 568 ===== */
+__int64 __fastcall sprd_rsa_sign(__int64 a1, __int64 a2, unsigned int a3, const void *a4, unsigned int *a5, int *a6)
 {
   __int64 v6; // x20
   unsigned __int8 *v7; // x23
@@ -18286,14 +18286,14 @@ __int64 __fastcall sub_9403B9E4(__int64 a1, __int64 a2, unsigned int a3, const v
   v10 = *a6;
   if ( a1 == 0 )
   {
-    v23 = (const void *)sub_94040A98(0);
-    sub_940407DC(3, "%p: %s: %s: Bad priv key(%p)!\n", v23, "SPRD_CE", "sprd_rsa_sign", nullptr);
+    v23 = (const void *)get_current_thread(0);
+    sprd_log(3, "%p: %s: %s: Bad priv key(%p)!\n", v23, "SPRD_CE", "sprd_rsa_sign", nullptr);
     return 4294901762LL;
   }
   if ( a4 == nullptr || a5 == nullptr || (v11 = *(_DWORD *)(a1 + 24), (unsigned int)(a1 = *a5) < v11) )
   {
-    v22 = (const void *)sub_94040A98(a1);
-    sub_940407DC(3, "%p: %s: %s: Bad sig(%p) or sig_size(%p)!\n", v22, "SPRD_CE", "sprd_rsa_sign", a4, a5);
+    v22 = (const void *)get_current_thread(a1);
+    sprd_log(3, "%p: %s: %s: Bad sig(%p) or sig_size(%p)!\n", v22, "SPRD_CE", "sprd_rsa_sign", a4, a5);
     return 4294901767LL;
   }
   if ( v10 != 0 )
@@ -18301,17 +18301,17 @@ __int64 __fastcall sub_9403B9E4(__int64 a1, __int64 a2, unsigned int a3, const v
     if ( v10 != 20 )
     {
       v25 = v10;
-      v19 = (const void *)sub_94040A98(a1);
-      sub_940407DC(3, "%p: %s: %s: Bad padding type(%d)!\n", v19, "SPRD_CE", "sprd_rsa_sign", v25);
+      v19 = (const void *)get_current_thread(a1);
+      sprd_log(3, "%p: %s: %s: Bad padding type(%d)!\n", v19, "SPRD_CE", "sprd_rsa_sign", v25);
       return 4294901765LL;
     }
     v26 = v11;
-    v12 = sub_9403A828(a2, a3, 1, v11, v27, &v26);
+    v12 = sprd_pkcs1_v1_5_encode(a2, a3, 1, v11, v27, &v26);
     v13 = v12;
     if ( (_DWORD)v12 != 0 )
     {
-      v20 = (const void *)sub_94040A98(v12);
-      sub_940407DC(3, "%p: %s: %s: rsa padding encode failed(0x%x)!\n", v20, "SPRD_CE", "sprd_rsa_sign", v13);
+      v20 = (const void *)get_current_thread(v12);
+      sprd_log(3, "%p: %s: %s: rsa padding encode failed(0x%x)!\n", v20, "SPRD_CE", "sprd_rsa_sign", v13);
       return v13;
     }
     v14 = v26;
@@ -18329,11 +18329,11 @@ __int64 __fastcall sub_9403B9E4(__int64 a1, __int64 a2, unsigned int a3, const v
   if ( v14 == v15 )
   {
     v24 = v14;
-    v16 = sub_9403AD8C(v7, v14, *(unsigned __int8 **)v6);
+    v16 = cmp_big_endian(v7, v14, *(unsigned __int8 **)v6);
     v14 = v24;
   }
   if ( (v16 & 0x80000000) != 0 )
-    return sub_9403ADE4(
+    return sprd_rsa_nopad(
              0,
              (__int64)v17,
              v15,
@@ -18343,13 +18343,13 @@ __int64 __fastcall sub_9403B9E4(__int64 a1, __int64 a2, unsigned int a3, const v
              v14,
              (__int64)a4,
              a5);
-  v21 = (const void *)sub_94040A98(v16);
-  sub_940407DC(3, "%p: %s: %s: Bad data too lager for modulus!\n", v21, "SPRD_CE", "sprd_rsa_sign");
+  v21 = (const void *)get_current_thread(v16);
+  sprd_log(3, "%p: %s: %s: Bad data too lager for modulus!\n", v21, "SPRD_CE", "sprd_rsa_sign");
   return 4294901772LL;
 }
 
-/* ===== sub_9403BC1C @ 0x9403BC1C size 916 ===== */
-__int64 __fastcall sub_9403BC1C(
+/* ===== sprd_rsa_verify @ 0x9403BC1C size 916 ===== */
+__int64 __fastcall sprd_rsa_verify(
         __int64 a1,
         __int64 a2,
         unsigned int a3,
@@ -18386,26 +18386,26 @@ __int64 __fastcall sub_9403BC1C(
   v12 = *a6;
   if ( a1 == 0 )
   {
-    v29 = (const void *)sub_94040A98(0);
-    sub_940407DC(3, "%p: %s: %s: Bad pub key(%p)!\n", v29, "SPRD_CE", "sprd_rsa_verify", nullptr);
+    v29 = (const void *)get_current_thread(0);
+    sprd_log(3, "%p: %s: %s: Bad pub key(%p)!\n", v29, "SPRD_CE", "sprd_rsa_verify", nullptr);
     return 4294901762LL;
   }
   if ( a2 == 0 )
   {
-    v30 = sub_94040A98(a1);
-    sub_940407DC(3, "%p: %s: %s: Bad dig(%p)!\n", v30, "SPRD_CE", "sprd_rsa_verify", 0);
+    v30 = get_current_thread(a1);
+    sprd_log(3, "%p: %s: %s: Bad dig(%p)!\n", v30, "SPRD_CE", "sprd_rsa_verify", 0);
     return 4294901767LL;
   }
   if ( a4 == nullptr || a5 == 0 )
   {
-    v28 = (const void *)sub_94040A98(a1);
-    sub_940407DC(3, "%p: %s: %s: Bad sig(%p) or sig_size(%d)!\n", v28, "SPRD_CE", "sprd_rsa_verify", a4, a5);
+    v28 = (const void *)get_current_thread(a1);
+    sprd_log(3, "%p: %s: %s: Bad sig(%p) or sig_size(%d)!\n", v28, "SPRD_CE", "sprd_rsa_verify", a4, a5);
     return 4294901767LL;
   }
   if ( a7 == nullptr )
   {
-    v31 = sub_94040A98(a1);
-    sub_940407DC(3, "%p: %s: %s: Bad result(%p)!\n", v31, "SPRD_CE", "sprd_rsa_verify", 0);
+    v31 = get_current_thread(a1);
+    sprd_log(3, "%p: %s: %s: Bad result(%p)!\n", v31, "SPRD_CE", "sprd_rsa_verify", 0);
     return 4294901767LL;
   }
   *a7 = -1;
@@ -18413,10 +18413,10 @@ __int64 __fastcall sub_9403BC1C(
   v14 = *(_DWORD *)(a1 + 16);
   v15 = a5 - v14;
   if ( a5 == v14 )
-    v15 = sub_9403AD8C(a4, a5, *(unsigned __int8 **)a1);
+    v15 = cmp_big_endian(a4, a5, *(unsigned __int8 **)a1);
   if ( (v15 & 0x80000000) != 0 )
   {
-    v16 = sub_9403ADE4(
+    v16 = sprd_rsa_nopad(
             1,
             (__int64)v13,
             v14,
@@ -18429,8 +18429,8 @@ __int64 __fastcall sub_9403BC1C(
     v17 = v16;
     if ( (_DWORD)v16 != 0 )
     {
-      v26 = (const void *)sub_94040A98(v16);
-      sub_940407DC(3, "%p: %s: %s: sprd_rsa_nopad failed(0x%x)!\n", v26, "SPRD_CE", "sprd_rsa_verify", v17);
+      v26 = (const void *)get_current_thread(v16);
+      sprd_log(3, "%p: %s: %s: sprd_rsa_nopad failed(0x%x)!\n", v26, "SPRD_CE", "sprd_rsa_verify", v17);
       return v17;
     }
     else if ( v12 != 0 )
@@ -18439,12 +18439,12 @@ __int64 __fastcall sub_9403BC1C(
       {
         v18 = *(_DWORD *)(a1 + 16);
         v34 = 512;
-        v19 = sub_9403AA70(v36, v33, 1u, v18, v37, &v34, &v35);
+        v19 = sprd_pkcs1_v1_5_decode(v36, v33, 1u, v18, v37, &v34, &v35);
         v20 = v19;
         if ( (_DWORD)v19 != 0 || (v19 = v35, v35 == 0) )
         {
-          v25 = (const void *)sub_94040A98(v19);
-          sub_940407DC(
+          v25 = (const void *)get_current_thread(v19);
+          sprd_log(
             3,
             "%p: %s: %s: rsa padding decode failed(0x%x), is_valid(%d)!\n",
             v25,
@@ -18462,12 +18462,12 @@ __int64 __fastcall sub_9403BC1C(
             v21 = v34;
             if ( v34 == a3 )
             {
-              v21 = sub_94040870(v37, a2, a3);
+              v21 = memcmp(v37, a2, a3);
               if ( (_DWORD)v21 == 0 )
                 goto LABEL_20;
             }
-            v22 = (const void *)sub_94040A98(v21);
-            sub_940407DC(
+            v22 = (const void *)get_current_thread(v21);
+            sprd_log(
               3,
               "%p: %s: %s: temp_len(%d) is not equal dig_size(%d) or memcmp is failed\n",
               v22,
@@ -18477,15 +18477,15 @@ __int64 __fastcall sub_9403BC1C(
               a3);
             goto LABEL_17;
           }
-          sub_94040880(a2, v37, v34);
+          memcpy(a2, v37, v34);
           *a7 = v34;
           return 0;
         }
       }
       else
       {
-        v24 = (const void *)sub_94040A98(v16);
-        sub_940407DC(3, "%p: %s: %s: Bad padding type(%d)!\n", v24, "SPRD_CE", "sprd_rsa_verify", v12);
+        v24 = (const void *)get_current_thread(v16);
+        sprd_log(3, "%p: %s: %s: Bad padding type(%d)!\n", v24, "SPRD_CE", "sprd_rsa_verify", v12);
         return 4294901765LL;
       }
     }
@@ -18493,7 +18493,7 @@ __int64 __fastcall sub_9403BC1C(
     {
       if ( a3 != 0 )
       {
-        if ( (unsigned int)sub_94040870(v36, a2, a3) == 0 )
+        if ( (unsigned int)memcmp(v36, a2, a3) == 0 )
         {
 LABEL_20:
           *a7 = 0;
@@ -18503,21 +18503,21 @@ LABEL_17:
         *a7 = -1;
         return 0;
       }
-      sub_94040880(a2, v36, v33);
+      memcpy(a2, v36, v33);
       *a7 = v33;
       return 0;
     }
   }
   else
   {
-    v27 = (const void *)sub_94040A98(v15);
-    sub_940407DC(3, "%p: %s: %s: Bad data too lager for modulus!\n", v27, "SPRD_CE", "sprd_rsa_verify");
+    v27 = (const void *)get_current_thread(v15);
+    sprd_log(3, "%p: %s: %s: Bad data too lager for modulus!\n", v27, "SPRD_CE", "sprd_rsa_verify");
     return 4294901772LL;
   }
 }
 
-/* ===== sub_9403BFB0 @ 0x9403BFB0 size 540 ===== */
-__int64 __fastcall sub_9403BFB0(__int64 a1, int a2)
+/* ===== sprd_rng_gen @ 0x9403BFB0 size 540 ===== */
+__int64 __fastcall sprd_rng_gen(__int64 a1, int a2)
 {
   __int64 v4; // x0
   unsigned int v5; // w24
@@ -18536,22 +18536,22 @@ __int64 __fastcall sub_9403BFB0(__int64 a1, int a2)
   _QWORD v19[44]; // [xsp+70h] [xbp+70h] BYREF
 
   v18 = nullptr;
-  sub_94040888(v19, 0, 352);
+  memset(v19, 0, 352);
   LODWORD(v19[0]) = 84148224;
-  v4 = sub_94037378(v19);
+  v4 = sprd_crypto_lock_init(v19);
   v5 = v4;
   if ( (_DWORD)v4 != 0 )
   {
-    v16 = (const void *)sub_94040A98(v4);
-    sub_940407DC(3, "%p: %s: %s: FAILED!\n", v16, "SPRD_CE", "sprd_rng_gen");
+    v16 = (const void *)get_current_thread(v4);
+    sprd_log(3, "%p: %s: %s: FAILED!\n", v16, "SPRD_CE", "sprd_rng_gen");
     return 4294901760LL;
   }
   else
   {
-    v6 = sub_940409F8(v4);
+    v6 = sprd_semaphore_create(v4);
     if ( v6 != 0 )
     {
-      v7 = sub_94036FEC((__int64)v19, 0x40u, &v18, (int *)&v17);
+      v7 = sprd_crypto_malloc_buf((__int64)v19, 0x40u, &v18, (int *)&v17);
       if ( v18 != nullptr && (v7 = v17, v17 > 0x1FF) )
       {
         v19[39] = v18;
@@ -18564,7 +18564,7 @@ __int64 __fastcall sub_9403BFB0(__int64 a1, int a2)
         LODWORD(v19[40]) = 512;
         v19[2] = v18 + 4096;
         v19[43] = v6;
-        sub_940408B0(v18, 0x2000);
+        dcache_clean(v18, 0x2000);
         if ( v10 != 0 )
         {
           while ( 1 )
@@ -18572,34 +18572,34 @@ __int64 __fastcall sub_9403BFB0(__int64 a1, int a2)
             v13 = 512;
             if ( v10 == 1 )
               v13 = a2 + a1 - v11;
-            sub_940408B0(v18, 512);
-            v14 = sub_94036D90((int *)v19);
+            dcache_clean(v18, 512);
+            v14 = sprd_crypto_work((int *)v19);
             if ( v14 != 0 )
               break;
-            sub_94040A74(v6);
-            sub_940408C0(v18, 512);
+            sprd_semaphore_wait(v6);
+            dcache_invalidate(v18, 512);
             v12 = v11;
             v11 += v13;
-            sub_94040880(v12, v18, v13);
+            memcpy(v12, v18, v13);
             if ( --v10 == 0 )
               goto LABEL_6;
           }
           v5 = v14;
-          v15 = (const void *)sub_94040A98(v6);
-          sub_940407DC(3, "%p: %s: %s: sprd_crypto_work return 0x%x\n", v15, "SPRD_CE", "sprd_rng_gen", v5);
+          v15 = (const void *)get_current_thread(v6);
+          sprd_log(3, "%p: %s: %s: sprd_crypto_work return 0x%x\n", v15, "SPRD_CE", "sprd_rng_gen", v5);
         }
       }
       else
       {
-        v8 = (const void *)sub_94040A98(v7);
+        v8 = (const void *)get_current_thread(v7);
         v5 = -65526;
-        sub_940407DC(3, "%p: %s: %s: buf = %p, buf_len is %d!\n", v8, "SPRD_CE", "sprd_rng_gen", v18, v17);
+        sprd_log(3, "%p: %s: %s: buf = %p, buf_len is %d!\n", v8, "SPRD_CE", "sprd_rng_gen", v18, v17);
       }
 LABEL_6:
       if ( v18 != nullptr )
-        sub_9403719C((__int64)v18);
-      sub_94040A34(v6);
-      sub_94037418((int *)v19);
+        sprd_crypto_free_buf((__int64)v18);
+      sprd_semaphore_destroy(v6);
+      sprd_crypto_lock_deinit((int *)v19);
       return v5;
     }
     else
@@ -18609,8 +18609,8 @@ LABEL_6:
   }
 }
 
-/* ===== sub_9403C1CC @ 0x9403C1CC size 436 ===== */
-__int64 sub_9403C1CC()
+/* ===== sprd_dma_irq_handler @ 0x9403C1CC size 436 ===== */
+__int64 sprd_dma_irq_handler()
 {
   int v0; // w23
   int v1; // w0
@@ -18693,23 +18693,23 @@ __int64 sub_9403C1CC()
 LABEL_14:
     *(_DWORD *)(80LL * v5 - 536469752) = v10;
     *(_DWORD *)(v7 + 12) = 520093696;
-    sub_940407DC(2, "DMA [%d] irq,int_type=%d,req_type=%d!\n", v5, v6, v9);
+    sprd_log(2, "DMA [%d] irq,int_type=%d,req_type=%d!\n", v5, v6, v9);
     if ( *(_DWORD *)(80 * v4 - 536469752) != 0 && *(_QWORD *)(80 * (v4 + 1) - 536469824) != 0 )
       (*(void (__fastcall **)(_QWORD))(80 * (v4 + 1) - 536469824))(*(_QWORD *)(80 * (v4 + 1) - 536469816));
     if ( v0 == 0 )
       return 0;
   }
-  sub_940407DC(2, "DMA %d is not security channel!\n", v3);
+  sprd_log(2, "DMA %d is not security channel!\n", v3);
   return 0;
 }
 
-/* ===== sub_9403C380 @ 0x9403C380 size 256 ===== */
-__int64 sub_9403C380()
+/* ===== sprd_dma_init @ 0x9403C380 size 256 ===== */
+__int64 sprd_dma_init()
 {
-  sub_94040888(-536469824, 0, 336);
-  sub_94040888(-536472904, 0, 3080);
-  if ( (unsigned int)sub_940408CC("sprd-dma", 537919488, 12288, 2, -536469824) != 0 )
-    return sub_940407DC(2, "%s: mem map failed %d\n");
+  memset(-536469824, 0, 336);
+  memset(-536472904, 0, 3080);
+  if ( (unsigned int)sprd_iomap("sprd-dma", 537919488, 12288, 2, -536469824) != 0 )
+    return sprd_log(2, "%s: mem map failed %d\n");
   MEMORY[0xFFFFFFFFE0061F30] = MEMORY[0xFFFFFFFFE0061EC0] + 5952LL;
   MEMORY[0xFFFFFFFFE0061EE0] = MEMORY[0xFFFFFFFFE0061EC0] + 5888LL;
   MEMORY[0xFFFFFFFFE0061ED0] = 28;
@@ -18719,13 +18719,13 @@ __int64 sub_9403C380()
   MEMORY[0xFFFFFFFFE0061FD0] = MEMORY[0xFFFFFFFFE0061EC0] + 6080LL;
   MEMORY[0xFFFFFFFFE0061FC0] = 31;
   MEMORY[0xFFFFFFFFE0061EC8] = 4;
-  sub_9404078C(84, sub_9403C1CC, 0);
-  sub_94040788(0x54u);
-  return sub_940407DC(2, "sprd dma init ok!\n");
+  irq_register(84, sprd_dma_irq_handler, 0);
+  irq_enable(0x54u);
+  return sprd_log(2, "sprd dma init ok!\n");
 }
 
-/* ===== sub_9403C480 @ 0x9403C480 size 92 ===== */
-__int64 __fastcall sub_9403C480(__int64 a1, int a2)
+/* ===== efuse_set_bits @ 0x9403C480 size 92 ===== */
+__int64 __fastcall efuse_set_bits(__int64 a1, int a2)
 {
   unsigned int v3; // w20
   __int64 result; // x0
@@ -18747,8 +18747,8 @@ __int64 __fastcall sub_9403C480(__int64 a1, int a2)
   return result;
 }
 
-/* ===== sub_9403C4DC @ 0x9403C4DC size 116 ===== */
-__int64 __fastcall sub_9403C4DC(unsigned int a1, unsigned int a2)
+/* ===== efuse_lock @ 0x9403C4DC size 116 ===== */
+__int64 __fastcall efuse_lock(unsigned int a1, unsigned int a2)
 {
   unsigned int v2; // w2
   int v4; // w0
@@ -18764,8 +18764,8 @@ __int64 __fastcall sub_9403C4DC(unsigned int a1, unsigned int a2)
   return v2;
 }
 
-/* ===== sub_9403C550 @ 0x9403C550 size 128 ===== */
-__int64 __fastcall sub_9403C550(__int64 a1, int a2)
+/* ===== efuse_write_bits @ 0x9403C550 size 128 ===== */
+__int64 __fastcall efuse_write_bits(__int64 a1, int a2)
 {
   unsigned int v3; // w19
   unsigned int v4; // w1
@@ -18778,7 +18778,7 @@ __int64 __fastcall sub_9403C550(__int64 a1, int a2)
   v7 = 0;
   if ( (unsigned int)((__int64 (__fastcall *)(__int64, int *))loc_9403CFF8)(a1, &v8) != 0 )
     return (unsigned int)-65533;
-  v6 = sub_9403C480(v3, a2);
+  v6 = efuse_set_bits(v3, a2);
   v4 = -65534;
   if ( v6 != 0 )
     return v4;
@@ -18796,8 +18796,8 @@ __int64 __fastcall sub_9403C550(__int64 a1, int a2)
   }
 }
 
-/* ===== sub_9403C5D0 @ 0x9403C5D0 size 232 ===== */
-__int64 __fastcall sub_9403C5D0(unsigned int a1, unsigned int a2, int *a3)
+/* ===== efuse_write_blocks @ 0x9403C5D0 size 232 ===== */
+__int64 __fastcall efuse_write_blocks(unsigned int a1, unsigned int a2, int *a3)
 {
   unsigned int v6; // w19
   int v7; // w22
@@ -18805,7 +18805,7 @@ __int64 __fastcall sub_9403C5D0(unsigned int a1, unsigned int a2, int *a3)
   int v10; // [xsp+5Ch] [xbp+5Ch] BYREF
 
   if ( a2 < a1 )
-    return sub_9403C4DC(a1, a2);
+    return efuse_lock(a1, a2);
   v6 = a1;
   while ( 1 )
   {
@@ -18814,7 +18814,7 @@ __int64 __fastcall sub_9403C5D0(unsigned int a1, unsigned int a2, int *a3)
     v10 = 0;
     if ( (unsigned int)((__int64 (__fastcall *)(_QWORD, int *))loc_9403CFF8)(v6, &v10) != 0 )
       return 4294901763LL;
-    if ( (unsigned int)sub_9403C480(v6, v7) != 0 )
+    if ( (unsigned int)efuse_set_bits(v6, v7) != 0 )
       return 4294901762LL;
     if ( (unsigned int)((__int64 (__fastcall *)(_QWORD, int *))loc_9403CFF8)(v6, &v9) != 0 )
       return 4294901763LL;
@@ -18823,13 +18823,13 @@ __int64 __fastcall sub_9403C5D0(unsigned int a1, unsigned int a2, int *a3)
     ++v6;
     ++a3;
     if ( v6 > a2 )
-      return sub_9403C4DC(a1, a2);
+      return efuse_lock(a1, a2);
   }
   return 4294901764LL;
 }
 
-/* ===== sub_9403C6B8 @ 0x9403C6B8 size 96 ===== */
-__int64 sub_9403C6B8()
+/* ===== efuse_init @ 0x9403C6B8 size 96 ===== */
+__int64 efuse_init()
 {
   __int64 result; // x0
   int v1; // [xsp+18h] [xbp+18h] BYREF
@@ -18839,13 +18839,13 @@ __int64 sub_9403C6B8()
   v1 = 0;
   v2 = 0;
   result = ((__int64 (__fastcall *)(_QWORD, __int64, int *, int *))loc_9403CFA8)(0, 7, &v1, &v2);
-  if ( (_DWORD)result == 0 && (v1 == 0 || (_DWORD)(result = sub_9403C480(34, v1)) == 0) && v2 != 0 )
-    return sub_9403C480(35, v2);
+  if ( (_DWORD)result == 0 && (v1 == 0 || (_DWORD)(result = efuse_set_bits(34, v1)) == 0) && v2 != 0 )
+    return efuse_set_bits(35, v2);
   return result;
 }
 
-/* ===== sub_9403C718 @ 0x9403C718 size 168 ===== */
-__int64 __fastcall sub_9403C718(int *a1)
+/* ===== efuse_set_block_bits @ 0x9403C718 size 168 ===== */
+__int64 __fastcall efuse_set_block_bits(int *a1)
 {
   int *v1; // x20
   unsigned int v2; // w19
@@ -18869,22 +18869,22 @@ __int64 __fastcall sub_9403C718(int *a1)
       return 4294901762LL;
     }
     if ( ++v2 == 16 )
-      return sub_9403C4DC(8u, 0xFu);
+      return efuse_lock(8u, 0xFu);
   }
   return result;
 }
 
-/* ===== sub_9403C7C0 @ 0x9403C7C0 size 28 ===== */
-__int64 __fastcall sub_9403C7C0(int *a1)
+/* ===== efuse_set_secure_bits @ 0x9403C7C0 size 28 ===== */
+__int64 __fastcall efuse_set_secure_bits(int *a1)
 {
   if ( a1 != nullptr )
-    return sub_9403C5D0(0x19u, 0x20u, a1);
+    return efuse_write_blocks(0x19u, 0x20u, a1);
   else
     return 4294901761LL;
 }
 
-/* ===== sub_9403C7DC @ 0x9403C7DC size 80 ===== */
-__int64 sub_9403C7DC()
+/* ===== efuse_lock_secure @ 0x9403C7DC size 80 ===== */
+__int64 efuse_lock_secure()
 {
   __int64 result; // x0
   int v1; // [xsp+1Ch] [xbp+1Ch] BYREF
@@ -18904,8 +18904,8 @@ __int64 sub_9403C7DC()
   return result;
 }
 
-/* ===== sub_9403C82C @ 0x9403C82C size 176 ===== */
-__int64 __fastcall sub_9403C82C(int a1, _DWORD *a2)
+/* ===== efuse_read_version @ 0x9403C82C size 176 ===== */
+__int64 __fastcall efuse_read_version(int a1, _DWORD *a2)
 {
   unsigned int v3; // w19
   int v4; // w21
@@ -18941,8 +18941,8 @@ __int64 __fastcall sub_9403C82C(int a1, _DWORD *a2)
   return result;
 }
 
-/* ===== sub_9403C8DC @ 0x9403C8DC size 296 ===== */
-__int64 __fastcall sub_9403C8DC(int a1, unsigned int a2)
+/* ===== efuse_write_version @ 0x9403C8DC size 296 ===== */
+__int64 __fastcall efuse_write_version(int a1, unsigned int a2)
 {
   __int64 result; // x0
   unsigned int v4; // w19
@@ -18974,7 +18974,7 @@ __int64 __fastcall sub_9403C8DC(int a1, unsigned int a2)
           if ( (unsigned int)((__int64 (__fastcall *)(_QWORD, int *))loc_9403CFF8)(v5, &v10) != 0 )
             return 4294901763LL;
           v7 = 0xFFFFFFFFuLL >> (32 - (unsigned __int8)v6);
-          if ( (unsigned int)sub_9403C480(v5, v7) != 0 )
+          if ( (unsigned int)efuse_set_bits(v5, v7) != 0 )
             return 4294901762LL;
           result = ((__int64 (__fastcall *)(_QWORD, int *))loc_9403CFF8)(v5, &v9);
           if ( (_DWORD)result != 0 )
@@ -18990,22 +18990,22 @@ __int64 __fastcall sub_9403C8DC(int a1, unsigned int a2)
     }
     else
     {
-      return sub_9403C550(24, a2);
+      return efuse_write_bits(24, a2);
     }
   }
   return result;
 }
 
-/* ===== sub_9403CA04 @ 0x9403CA04 size 28 ===== */
-__int64 sub_9403CA04()
+/* ===== efuse_read_lock_status @ 0x9403CA04 size 28 ===== */
+__int64 efuse_read_lock_status()
 {
   char v1; // [xsp+1Ch] [xbp+1Ch] BYREF
 
   return ((__int64 (__fastcall *)(__int64, char *))loc_9403CFF8)(33, &v1);
 }
 
-/* ===== sub_9403CA20 @ 0x9403CA20 size 392 ===== */
-__int64 __fastcall sub_9403CA20(_DWORD *a1)
+/* ===== efuse_get_lcs @ 0x9403CA20 size 392 ===== */
+__int64 __fastcall efuse_get_lcs(_DWORD *a1)
 {
   __int64 result; // x0
   _DWORD *v3; // x19
@@ -19076,8 +19076,8 @@ LABEL_13:
   return result;
 }
 
-/* ===== sub_9403CBA8 @ 0x9403CBA8 size 136 ===== */
-__int64 __fastcall sub_9403CBA8(unsigned int a1, unsigned int a2, __int64 a3)
+/* ===== efuse_read_blocks @ 0x9403CBA8 size 136 ===== */
+__int64 __fastcall efuse_read_blocks(unsigned int a1, unsigned int a2, __int64 a3)
 {
   unsigned int v3; // w19
   __int64 result; // x0
@@ -19105,20 +19105,20 @@ __int64 __fastcall sub_9403CBA8(unsigned int a1, unsigned int a2, __int64 a3)
   return result;
 }
 
-/* ===== sub_9403CC30 @ 0x9403CC30 size 16 ===== */
-__int64 __fastcall sub_9403CC30(__int64 a1)
+/* ===== efuse_read_secure_blocks @ 0x9403CC30 size 16 ===== */
+__int64 __fastcall efuse_read_secure_blocks(__int64 a1)
 {
-  return sub_9403CBA8(0x10u, 0x17u, a1);
+  return efuse_read_blocks(0x10u, 0x17u, a1);
 }
 
-/* ===== sub_9403CC40 @ 0x9403CC40 size 16 ===== */
-__int64 __fastcall sub_9403CC40(__int64 a1)
+/* ===== efuse_read_ns_blocks @ 0x9403CC40 size 16 ===== */
+__int64 __fastcall efuse_read_ns_blocks(__int64 a1)
 {
-  return sub_9403CBA8(0x19u, 0x20u, a1);
+  return efuse_read_blocks(0x19u, 0x20u, a1);
 }
 
-/* ===== sub_9403CC50 @ 0x9403CC50 size 60 ===== */
-__int64 __fastcall sub_9403CC50(_DWORD *a1)
+/* ===== efuse_is_secure @ 0x9403CC50 size 60 ===== */
+__int64 __fastcall efuse_is_secure(_DWORD *a1)
 {
   __int64 result; // x0
   int v3; // [xsp+2Ch] [xbp+2Ch] BYREF
@@ -19130,24 +19130,24 @@ __int64 __fastcall sub_9403CC50(_DWORD *a1)
   return result;
 }
 
-/* ===== sub_9403CC8C @ 0x9403CC8C size 4 ===== */
+/* ===== sprd_sec_hw_init @ 0x9403CC8C size 4 ===== */
 // attributes: thunk
-void sub_9403CC8C(void)
+void sprd_sec_hw_init(void)
 {
   JUMPOUT(0x9403D464LL);
 }
 
-/* ===== sub_9403CC90 @ 0x9403CC90 size 2308 ===== */
-__int64 sub_9403CC90()
+/* ===== sprd_sec_hw_deinit @ 0x9403CC90 size 2308 ===== */
+__int64 sprd_sec_hw_deinit()
 {
   unsigned int v1; // [xsp+7Ch] [xbp-4h] BYREF
 
-  sub_94040978(&qword_94067AF0, &v1, 3221225472LL);
-  return sub_940409B8(&qword_94067AF0, v1, 3221225472LL);
+  sprd_spin_lock_irqsave(&qword_94067AF0, &v1, 3221225472LL);
+  return sprd_spin_unlock_irqrestore(&qword_94067AF0, v1, 3221225472LL);
 }
 
-/* ===== sub_9403D594 @ 0x9403D594 size 420 ===== */
-__int64 __fastcall sub_9403D594(unsigned int a1, unsigned int a2, __int64 a3, int a4)
+/* ===== efuse_write_drv @ 0x9403D594 size 420 ===== */
+__int64 __fastcall efuse_write_drv(unsigned int a1, unsigned int a2, __int64 a3, int a4)
 {
   int v6; // w0
   __int64 v7; // x2
@@ -19160,7 +19160,7 @@ __int64 __fastcall sub_9403D594(unsigned int a1, unsigned int a2, __int64 a3, in
   int v16; // [xsp+30h] [xbp+30h]
   __int64 v18; // [xsp+38h] [xbp+38h]
 
-  v6 = sub_9404096C(0);
+  v6 = sprd_mutex_lock(0);
   v7 = a3;
   if ( v6 != 0 )
     return 2;
@@ -19171,9 +19171,9 @@ __int64 __fastcall sub_9403D594(unsigned int a1, unsigned int a2, __int64 a3, in
   MEMORY[0x40] |= 0x10u;
   MEMORY[0x54] |= 4u;
   MEMORY[0x54] &= ~2u;
-  sub_94040A88(1u);
+  thread_sleep_ms(1u);
   MEMORY[0x54] |= 1u;
-  sub_94040A88(1u);
+  thread_sleep_ms(1u);
   MEMORY[0x40] |= 2u;
   if ( v16 != 0 )
     v9 = MEMORY[0x40] | 4;
@@ -19189,28 +19189,28 @@ __int64 __fastcall sub_9403D594(unsigned int a1, unsigned int a2, __int64 a3, in
   {
     v14 = a1;
     v13 = 2;
-    sub_940407DC(2, "efuse_write_drv(): err = %x start_id = %d end_id = %d\n", MEMORY[0x44], v14, a2);
+    sprd_log(2, "efuse_write_drv(): err = %x start_id = %d end_id = %d\n", MEMORY[0x44], v14, a2);
   }
   else
   {
     v13 = 0;
   }
   MEMORY[0x54] &= ~1u;
-  sub_94040A88(1u);
+  thread_sleep_ms(1u);
   MEMORY[0x54] |= 2u;
-  sub_94040A88(1u);
+  thread_sleep_ms(1u);
   MEMORY[0x54] &= ~4u;
   MEMORY[0x40] &= ~0x10u;
   MEMORY[0x4C] = 0;
   ((void (*)(void))loc_9403D4F8)();
-  if ( (unsigned int)sub_94040974(0) != 0 )
+  if ( (unsigned int)sprd_mutex_unlock(0) != 0 )
     return 2;
   else
     return v13;
 }
 
-/* ===== sub_9403D738 @ 0x9403D738 size 248 ===== */
-__int64 __fastcall sub_9403D738(unsigned int a1, unsigned int a2, __int64 a3, int a4)
+/* ===== efuse_read_drv @ 0x9403D738 size 248 ===== */
+__int64 __fastcall efuse_read_drv(unsigned int a1, unsigned int a2, __int64 a3, int a4)
 {
   unsigned int v9; // w0
   unsigned int i; // w0
@@ -19219,7 +19219,7 @@ __int64 __fastcall sub_9403D738(unsigned int a1, unsigned int a2, __int64 a3, in
   unsigned int v13; // w19
   int v14; // w3
 
-  if ( (unsigned int)sub_9404096C(0) != 0 )
+  if ( (unsigned int)sprd_mutex_lock(0) != 0 )
     return 1;
   ((void (*)(void))loc_9403D46C)();
   if ( a4 != 0 )
@@ -19237,70 +19237,70 @@ __int64 __fastcall sub_9403D738(unsigned int a1, unsigned int a2, __int64 a3, in
   {
     v14 = a1;
     v13 = 1;
-    sub_940407DC(2, "efuse_read_drv(): err = %x start_id = %d end_id = %d\n", MEMORY[0x44], v14, a2);
+    sprd_log(2, "efuse_read_drv(): err = %x start_id = %d end_id = %d\n", MEMORY[0x44], v14, a2);
   }
   else
   {
     v13 = 0;
   }
   ((void (*)(void))loc_9403D4F8)();
-  if ( (unsigned int)sub_94040974(0) != 0 )
+  if ( (unsigned int)sprd_mutex_unlock(0) != 0 )
     return 1;
   else
     return v13;
 }
 
-/* ===== sub_9403D830 @ 0x9403D830 size 324 ===== */
-__int64 __fastcall sub_9403D830(int a1, int a2)
+/* ===== efuse_rewrite_double_bit @ 0x9403D830 size 324 ===== */
+__int64 __fastcall efuse_rewrite_double_bit(int a1, int a2)
 {
   unsigned int v4; // w19
 
-  if ( (unsigned int)sub_9404096C(0) != 0 )
+  if ( (unsigned int)sprd_mutex_lock(0) != 0 )
     return 2;
   ((void (*)(void))loc_9403D46C)();
   v4 = 0;
   MEMORY[0x4C] = 34832;
   MEMORY[0x54] |= 4u;
   MEMORY[0x54] &= ~2u;
-  sub_94040A88(1u);
+  thread_sleep_ms(1u);
   MEMORY[0x54] |= 1u;
-  sub_94040A88(1u);
+  thread_sleep_ms(1u);
   MEMORY[0x40] &= ~2u;
   MEMORY[0x40] |= 4u;
   *(_DWORD *)(4LL * (a1 & 0x3FFFFFFF) + 0x1000) = a2;
   if ( MEMORY[0x44] != 0 )
   {
     v4 = 2;
-    sub_940407DC(2, "efuse_rewrite_double_bit(): err = %x block_id = %d\n", MEMORY[0x44], a1);
+    sprd_log(2, "efuse_rewrite_double_bit(): err = %x block_id = %d\n", MEMORY[0x44], a1);
   }
   MEMORY[0x54] &= ~1u;
-  sub_94040A88(1u);
+  thread_sleep_ms(1u);
   MEMORY[0x54] |= 2u;
-  sub_94040A88(1u);
+  thread_sleep_ms(1u);
   MEMORY[0x54] &= ~4u;
   MEMORY[0x4C] = 0;
   ((void (*)(void))loc_9403D4F8)();
-  if ( (unsigned int)sub_94040974(0) != 0 )
+  if ( (unsigned int)sprd_mutex_unlock(0) != 0 )
     return 2;
   else
     return v4;
 }
 
-/* ===== sub_9403D974 @ 0x9403D974 size 408 ===== */
-__int64 sub_9403D974()
+/* ===== efuse_huk_program @ 0x9403D974 size 408 ===== */
+__int64 efuse_huk_program()
 {
   unsigned int v1; // w19
 
-  if ( (unsigned int)sub_9404096C(0) != 0 )
+  if ( (unsigned int)sprd_mutex_lock(0) != 0 )
     return 2;
   ((void (*)(void))loc_9403D46C)();
   MEMORY[0x4C] = 34832;
   MEMORY[0x40] |= 0x10u;
   MEMORY[0x54] |= 4u;
   MEMORY[0x54] &= ~2u;
-  sub_94040A88(1u);
+  thread_sleep_ms(1u);
   MEMORY[0x54] |= 1u;
-  sub_94040A88(1u);
+  thread_sleep_ms(1u);
   MEMORY[0x40] |= 2u;
   MEMORY[0x40] |= 4u;
   MEMORY[0x3038] |= 1u;
@@ -19316,40 +19316,40 @@ __int64 sub_9403D974()
   if ( MEMORY[0x44] != 0 )
   {
     v1 = 2;
-    sub_940407DC(2, "efuse_huk_program(): err = %x\n", MEMORY[0x44]);
+    sprd_log(2, "efuse_huk_program(): err = %x\n", MEMORY[0x44]);
   }
   MEMORY[0x54] &= ~1u;
-  sub_94040A88(1u);
+  thread_sleep_ms(1u);
   MEMORY[0x54] |= 2u;
-  sub_94040A88(1u);
+  thread_sleep_ms(1u);
   MEMORY[0x54] &= ~4u;
   MEMORY[0x40] &= ~0x10u;
   MEMORY[0x4C] = 0;
   ((void (*)(void))loc_9403D4F8)();
-  if ( (unsigned int)sub_94040974(0) != 0 )
+  if ( (unsigned int)sprd_mutex_unlock(0) != 0 )
     return 2;
   else
     return v1;
 }
 
-/* ===== sub_9403DC08 @ 0x9403DC08 size 76 ===== */
-__int64 sub_9403DC08()
+/* ===== fp_driver_register @ 0x9403DC08 size 76 ===== */
+__int64 fp_driver_register()
 {
   __int64 result; // x0
 
-  result = sub_9402D420(7u, (__int64)qword_9405C718);
+  result = trusty_install_handler(7u, (__int64)qword_9405C718);
   if ( (_DWORD)result != 0 && MEMORY[0xFFFFFFFFE003CB98] > 1 )
-    return sub_9404B2FC("fp_driver can not install std in handler: %d\n", result);
+    return log_printf("fp_driver can not install std in handler: %d\n", result);
   return result;
 }
 
-/* ===== sub_9403DC54 @ 0x9403DC54 size 240 ===== */
-__int64 __fastcall sub_9403DC54(int a1, char a2, char a3, char a4, unsigned __int8 a5)
+/* ===== sprd_fp_default_init @ 0x9403DC54 size 240 ===== */
+__int64 __fastcall sprd_fp_default_init(int a1, char a2, char a3, char a4, unsigned __int8 a5)
 {
   __int64 v9; // x0
   unsigned int v10; // w19
 
-  v9 = sub_940490FC(a5);
+  v9 = fp_spi_get_ctrl(a5);
   MEMORY[0xFFFFFFFFE0062010] = v9;
   if ( v9 != 0 )
   {
@@ -19358,22 +19358,22 @@ __int64 __fastcall sub_9403DC54(int a1, char a2, char a3, char a4, unsigned __in
     *(_BYTE *)(v9 + 5) = a3;
     *(_BYTE *)(v9 + 6) = a4;
     if ( MEMORY[0xFFFFFFFFE0047B28] != 0 && (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-      sub_9404B2FC((const char *)&loc_94053648);
-    v10 = sub_940490E4(MEMORY[0xFFFFFFFFE0062010]);
+      log_printf((const char *)&loc_94053648);
+    v10 = spi_setup_wrap(MEMORY[0xFFFFFFFFE0062010]);
     if ( MEMORY[0xFFFFFFFFE0047B28] != 0 && (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-      sub_9404B2FC("fp_driver after spi_setup ret:%d\n", v10);
+      log_printf("fp_driver after spi_setup ret:%d\n", v10);
   }
   else
   {
     v10 = -1;
     if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-      sub_9404B2FC((const char *)&loc_94053608);
+      log_printf((const char *)&loc_94053608);
   }
   return v10;
 }
 
-/* ===== sub_9403DD44 @ 0x9403DD44 size 1088 ===== */
-__int64 __fastcall sub_9403DD44(__int64 a1, int a2, unsigned int a3)
+/* ===== fp_driver_ioctl @ 0x9403DD44 size 1088 ===== */
+__int64 __fastcall fp_driver_ioctl(__int64 a1, int a2, unsigned int a3)
 {
   __int64 v4; // x21
   __int64 v5; // x0
@@ -19398,11 +19398,11 @@ __int64 __fastcall sub_9403DD44(__int64 a1, int a2, unsigned int a3)
   switch ( a2 )
   {
     case 0:
-      sub_9404D244(&v12, a3, 24);
+      copy_from_user(&v12, a3, 24);
       MEMORY[0xFFFFFFFFE0047B28] = v20;
       if ( v20 != 0 && (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-        sub_9404B2FC((const char *)&loc_94053690, v13, v14, v15, v16, v19);
-      v6 = sub_9403DC54(v12, v13, v14, v15, v16);
+        log_printf((const char *)&loc_94053690, v13, v14, v15, v16, v19);
+      v6 = sprd_fp_default_init(v12, v13, v14, v15, v16);
       if ( MEMORY[0xFFFFFFFFE0047B28] != 0 )
       {
         if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) != 0 )
@@ -19411,34 +19411,34 @@ __int64 __fastcall sub_9403DD44(__int64 a1, int a2, unsigned int a3)
             return 0xFFFFFFFFLL;
           goto LABEL_34;
         }
-        sub_9404B2FC("fp_driver after sprd_fp_default_init\n");
+        log_printf("fp_driver after sprd_fp_default_init\n");
       }
       if ( v6 == 0 )
       {
 LABEL_34:
-        v7 = sub_9404CBC4(v19);
+        v7 = malloc(v19);
         v8 = v7;
         if ( v7 == 0 )
         {
           if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-            sub_9404B2FC("malloc txbuf error\n");
+            log_printf("malloc txbuf error\n");
           return 4294967291LL;
         }
-        sub_9404D244(v7, v18, v19);
-        v9 = sub_9404CBC4(v19);
+        copy_from_user(v7, v18, v19);
+        v9 = malloc(v19);
         if ( v9 == 0 )
         {
           if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-            sub_9404B2FC("malloc rxbuf error\n");
-          sub_9404CC20(v8);
+            log_printf("malloc rxbuf error\n");
+          free(v8);
           return 4294967291LL;
         }
         v21[0] = v8;
         v21[1] = v9;
         v21[2] = v19;
         if ( MEMORY[0xFFFFFFFFE0047B28] != 0 && (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-          sub_9404B2FC((const char *)sub_94053770);
-        v10 = sub_940490CC(MEMORY[0xFFFFFFFFE0062010], v21);
+          log_printf((const char *)fp_spi_sync_stub);
+        v10 = spi_sync_wrap(MEMORY[0xFFFFFFFFE0062010], v21);
         if ( MEMORY[0xFFFFFFFFE0047B28] != 0 )
         {
           if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) != 0 )
@@ -19446,89 +19446,89 @@ LABEL_34:
             if ( v10 != 0 )
             {
 LABEL_45:
-              sub_9404CC20(v8);
-              sub_9404CC20(v9);
+              free(v8);
+              free(v9);
               return 0xFFFFFFFFLL;
             }
 LABEL_52:
-            sub_9404D224(v17, v9, v19);
-            sub_9404CC20(v8);
-            sub_9404CC20(v9);
+            copy_to_user(v17, v9, v19);
+            free(v8);
+            free(v9);
             return 0;
           }
-          sub_9404B2FC("fp_driver after spi_sync ret:%d\n", v10);
+          log_printf("fp_driver after spi_sync ret:%d\n", v10);
         }
         if ( v10 != 0 )
         {
           if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-            sub_9404B2FC((const char *)&loc_940537B8);
+            log_printf((const char *)&loc_940537B8);
           goto LABEL_45;
         }
         goto LABEL_52;
       }
       if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) != 0 )
         return 0xFFFFFFFFLL;
-      sub_9404B2FC((const char *)&loc_94053718);
+      log_printf((const char *)&loc_94053718);
       return 0xFFFFFFFFLL;
     case 1:
-      sub_9404D244(-536577244, a3, 4);
+      copy_from_user(-536577244, a3, 4);
       return 0;
     case 2:
-      sub_9404D224(a3, -536577244, 4);
+      copy_to_user(a3, -536577244, 4);
       return 0;
     case 3:
       if ( MEMORY[0xFFFFFFFFE0062020] != 0 )
       {
-        sub_9404CC20(MEMORY[0xFFFFFFFFE0062020]);
+        free(MEMORY[0xFFFFFFFFE0062020]);
         MEMORY[0xFFFFFFFFE0062020] = 0;
       }
       MEMORY[0xFFFFFFFFE0062018] = 0;
-      sub_9404D244(-536469480, a3, 4);
+      copy_from_user(-536469480, a3, 4);
       v4 = (unsigned int)(4 * MEMORY[0xFFFFFFFFE0062018]);
       if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-        sub_9404B2FC("IFAA_SET_FP_ENROLLED_ID_LIST--> list_num = %d, fps_len = %d\n", MEMORY[0xFFFFFFFFE0062018], v4);
-      v5 = sub_9404CBC4(v4);
+        log_printf("IFAA_SET_FP_ENROLLED_ID_LIST--> list_num = %d, fps_len = %d\n", MEMORY[0xFFFFFFFFE0062018], v4);
+      v5 = malloc(v4);
       MEMORY[0xFFFFFFFFE0062020] = v5;
       if ( v5 != 0 )
       {
-        sub_9404CDC4(v5, 0, v4);
-        sub_9404D244(MEMORY[0xFFFFFFFFE0062020], a3 + 4, v4);
+        memset(v5, 0, v4);
+        copy_from_user(MEMORY[0xFFFFFFFFE0062020], a3 + 4, v4);
         if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-          sub_9404B2FC("IFAA_SET_FP_ENROLLED_ID_LIST--> id[0] = 0x%x\n", *MEMORY[0xFFFFFFFFE0062020]);
+          log_printf("IFAA_SET_FP_ENROLLED_ID_LIST--> id[0] = 0x%x\n", *MEMORY[0xFFFFFFFFE0062020]);
         return 0;
       }
       else
       {
         if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) != 0 )
           return 0xFFFFFFFFLL;
-        sub_9404B2FC("IFAA_SET_FP_ENROLLED_ID_LIST malloc failed.\n");
+        log_printf("IFAA_SET_FP_ENROLLED_ID_LIST malloc failed.\n");
         return 0xFFFFFFFFLL;
       }
     case 4:
       if ( MEMORY[0xFFFFFFFFE0062020] == 0 )
         return 0xFFFFFFFFLL;
-      sub_9404D224(a3, -536469480, 4);
-      sub_9404D224(a3 + 4, MEMORY[0xFFFFFFFFE0062020], 4LL * MEMORY[0xFFFFFFFFE0062018]);
+      copy_to_user(a3, -536469480, 4);
+      copy_to_user(a3 + 4, MEMORY[0xFFFFFFFFE0062020], 4LL * MEMORY[0xFFFFFFFFE0062018]);
       return 0;
     case 5:
-      sub_9404D244(-536469464, a3, 136);
+      copy_from_user(-536469464, a3, 136);
       return 0;
     case 6:
-      sub_9404D224(a3, -536469464, 136);
+      copy_to_user(a3, -536469464, 136);
       return 0;
     case 7:
-      sub_9404D244(-536577248, a3, 2);
+      copy_from_user(-536577248, a3, 2);
       return 0;
     case 8:
-      sub_9404D224(a3, -536577248, 2);
+      copy_to_user(a3, -536577248, 2);
       return 0;
     default:
       return 4294967272LL;
   }
 }
 
-/* ===== sub_9403E184 @ 0x9403E184 size 292 ===== */
-__int64 sub_9403E184()
+/* ===== sprd_pal_fw_init @ 0x9403E184 size 292 ===== */
+__int64 sprd_pal_fw_init()
 {
   __int64 v0; // x0
   __int64 v1; // x0
@@ -19543,56 +19543,56 @@ __int64 sub_9403E184()
   __int64 v11; // [xsp+20h] [xbp+20h] BYREF
   __int64 v12; // [xsp+28h] [xbp+28h] BYREF
 
-  v0 = sub_9402D420(6u, (__int64)qword_9405C730);
+  v0 = trusty_install_handler(6u, (__int64)qword_9405C730);
   if ( (_DWORD)v0 != 0 )
   {
     v10 = v0;
-    v7 = (const void *)sub_94040A98(v0);
-    sub_940407DC(3, "%p: %s: %s: failed to install firewall handler: %d\n", v7, "SPRD_FW", "sprd_pal_fw_init", v10);
+    v7 = (const void *)get_current_thread(v0);
+    sprd_log(3, "%p: %s: %s: failed to install firewall handler: %d\n", v7, "SPRD_FW", "sprd_pal_fw_init", v10);
   }
-  v1 = sub_940408CC("sprd_fw_iram", 57344, 0x2000, 2, &v11);
+  v1 = sprd_iomap("sprd_fw_iram", 57344, 0x2000, 2, &v11);
   if ( (_DWORD)v1 != 0 )
   {
     v9 = v1;
-    v6 = (const void *)sub_94040A98(v1);
-    sub_940407DC(3, "%p: %s: %s: map sprd_fw_iram failed[0x%x]\n", v6, "SPRD_FW", "sprd_pal_fw_init", v9);
+    v6 = (const void *)get_current_thread(v1);
+    sprd_log(3, "%p: %s: %s: map sprd_fw_iram failed[0x%x]\n", v6, "SPRD_FW", "sprd_pal_fw_init", v9);
   }
   v11 += 3072;
-  v2 = sub_940408CC("sprd_fw", 838926336, 0x10000, 2, &v12);
+  v2 = sprd_iomap("sprd_fw", 838926336, 0x10000, 2, &v12);
   if ( (_DWORD)v2 != 0 )
   {
     v8 = v2;
-    v3 = (const void *)sub_94040A98(v2);
-    sub_940407DC(3, "%p: %s: %s: map fw_vaddr failed[0x%x]\n", v3, "SPRD_FW", "sprd_pal_fw_init", v8);
+    v3 = (const void *)get_current_thread(v2);
+    sprd_log(3, "%p: %s: %s: map fw_vaddr failed[0x%x]\n", v3, "SPRD_FW", "sprd_pal_fw_init", v8);
   }
-  v4 = sub_9403F4C8(v12, v11);
-  return sub_9403E3A8(v4);
+  v4 = tzfw_init(v12, v11);
+  return sprd_fw_config_default(v4);
 }
 
-/* ===== sub_9403E2A8 @ 0x9403E2A8 size 32 ===== */
-__int64 sub_9403E2A8()
+/* ===== sprd_fw_save_config @ 0x9403E2A8 size 32 ===== */
+__int64 sprd_fw_save_config()
 {
   __int64 result; // x0
 
-  result = sub_94040AA0();
+  result = arch_curr_cpu_num();
   if ( (_DWORD)result == 0 )
-    return sub_9403E548();
+    return sprd_fw_save_config_all();
   return result;
 }
 
-/* ===== sub_9403E2C8 @ 0x9403E2C8 size 32 ===== */
-__int64 sub_9403E2C8()
+/* ===== sprd_fw_restore_config @ 0x9403E2C8 size 32 ===== */
+__int64 sprd_fw_restore_config()
 {
   __int64 result; // x0
 
-  result = sub_94040AA0();
+  result = arch_curr_cpu_num();
   if ( (_DWORD)result == 0 )
-    return sub_9403E620();
+    return sprd_fw_restore_config_all();
   return result;
 }
 
-/* ===== sub_9403E2E8 @ 0x9403E2E8 size 184 ===== */
-__int64 __fastcall sub_9403E2E8(__int64 a1, int a2)
+/* ===== sprd_fw_lock_cp @ 0x9403E2E8 size 184 ===== */
+__int64 __fastcall sprd_fw_lock_cp(__int64 a1, int a2)
 {
   unsigned int v2; // w19
   __int64 v4; // x0
@@ -19602,38 +19602,38 @@ __int64 __fastcall sub_9403E2E8(__int64 a1, int a2)
 
   if ( a2 == 1 )
   {
-    v6 = sub_9403E804();
+    v6 = sprd_recreate_cp_modem();
     v2 = v6;
     if ( (_DWORD)v6 == 0 )
       return v2;
-    v7 = sub_94040A98(v6);
-    sub_940407DC(3, "%p: %s: %s: lock CP error. res = 0x%x\n", v7, "SPRD_FW", &loc_940540D8, v2);
+    v7 = get_current_thread(v6);
+    sprd_log(3, "%p: %s: %s: lock CP error. res = 0x%x\n", v7, "SPRD_FW", &loc_940540D8, v2);
     return v2;
   }
   if ( a2 == 0 )
   {
-    v4 = sub_9403E710();
+    v4 = sprd_destroy_cp_modem();
     v2 = v4;
     if ( (_DWORD)v4 == 0 )
       return v2;
-    v5 = sub_94040A98(v4);
-    sub_940407DC(3, "%p: %s: %s: unlock CP error. res = 0x%x\n", v5, "SPRD_FW", &loc_940540D8, v2);
+    v5 = get_current_thread(v4);
+    sprd_log(3, "%p: %s: %s: unlock CP error. res = 0x%x\n", v5, "SPRD_FW", &loc_940540D8, v2);
     return v2;
   }
   if ( a2 != 2 )
     return (unsigned int)-24;
-  sub_9403E6F8();
+  sprd_fw_lock();
   return 0;
 }
 
-/* ===== sub_9403E3A0 @ 0x9403E3A0 size 8 ===== */
-__int64 sub_9403E3A0()
+/* ===== sprd_fw_null @ 0x9403E3A0 size 8 ===== */
+__int64 sprd_fw_null()
 {
   return 0;
 }
 
-/* ===== sub_9403E3A8 @ 0x9403E3A8 size 416 ===== */
-__int64 sub_9403E3A8()
+/* ===== sprd_fw_config_default @ 0x9403E3A8 size 416 ===== */
+__int64 sprd_fw_config_default()
 {
   __int64 v0; // x0
   unsigned int v1; // w19
@@ -19652,39 +19652,39 @@ __int64 sub_9403E3A8()
   __int64 v15; // x2
   _QWORD v16[10]; // [xsp+20h] [xbp+20h] BYREF
 
-  sub_9403F4B8();
-  v0 = sub_9403ED58(3, 275, 1, 1);
+  sprd_fw_lock2();
+  v0 = tzfw_cfg_slv_fw(3, 275, 1, 1);
   v1 = v0;
   if ( (_DWORD)v0 != 0 )
   {
-    v7 = (const void *)sub_94040A98(v0);
-    v8 = sub_940407DC(
+    v7 = (const void *)get_current_thread(v0);
+    v8 = sprd_log(
            3,
            "%p: %s: %s: config SLV_FW_AP SLV_ID_SCE Error(0x%x)!\n",
            v7,
            "SPRD_FW",
            "sprd_config_default_slave_fw",
            v1);
-    v9 = (const void *)sub_94040A98(v8);
-    v10 = sub_940407DC(
+    v9 = (const void *)get_current_thread(v8);
+    v10 = sprd_log(
             3,
             "%p: %s: %s: config default slave fw failed(0x%x)!\n",
             v9,
             "SPRD_FW",
             "sprd_fw_config_default",
             v1);
-    sub_9403F4C0(v10);
+    sprd_fw_unlock(v10);
     return v1;
   }
   else
   {
-    v2 = sub_940408C8(-536465408);
-    v3 = sub_9403F0D8(10, v2);
+    v2 = virt_to_phys(-536465408);
+    v3 = tzfw_cfg_dft_addr(10, v2);
     v4 = v3;
     if ( (_DWORD)v3 != 0 )
     {
-      v11 = sub_94040A98(v3);
-      v12 = sub_940407DC(
+      v11 = get_current_thread(v3);
+      v12 = sprd_log(
               3,
               "%p: %s: %s: config default addr Error(0x%x)!\n",
               v11,
@@ -19704,15 +19704,15 @@ __int64 sub_9403E3A8()
       v16[5] = 0;
       v16[7] = -1;
       v16[9] = 0;
-      v5 = sub_9403F078(10, 256, v16);
+      v5 = tzfw_cfg_mem_fw_seg(10, 256, v16);
       v4 = v5;
       if ( (_DWORD)v5 == 0 )
       {
-        sub_9403F4C0(v5);
+        sprd_fw_unlock(v5);
         return 0;
       }
-      v15 = sub_94040A98(v5);
-      v12 = sub_940407DC(
+      v15 = get_current_thread(v5);
+      v12 = sprd_log(
               3,
               "%p: %s: %s: config region TOS_MEMORY Error(0x%x)!\n",
               v15,
@@ -19720,21 +19720,21 @@ __int64 sub_9403E3A8()
               "sprd_config_default_memory_fw",
               v4);
     }
-    v13 = (const void *)sub_94040A98(v12);
-    v14 = sub_940407DC(
+    v13 = (const void *)get_current_thread(v12);
+    v14 = sprd_log(
             3,
             "%p: %s: %s: config default memory fw failed(0x%x)!\n",
             v13,
             "SPRD_FW",
             "sprd_fw_config_default",
             v4);
-    sub_9403F4C0(v14);
+    sprd_fw_unlock(v14);
     return v4;
   }
 }
 
-/* ===== sub_9403E548 @ 0x9403E548 size 216 ===== */
-__int64 sub_9403E548()
+/* ===== sprd_fw_save_config_all @ 0x9403E548 size 216 ===== */
+__int64 sprd_fw_save_config_all()
 {
   __int64 v0; // x0
   unsigned int v1; // w19
@@ -19746,40 +19746,40 @@ __int64 sub_9403E548()
   __int64 v8; // x2
   __int64 v9; // x2
 
-  sub_9403F4B8();
-  v0 = sub_9403EAE4(1);
+  sprd_fw_lock2();
+  v0 = tzfw_save_ap_cfg(1);
   v1 = v0;
   if ( (_DWORD)v0 != 0 )
   {
-    v8 = sub_94040A98(v0);
-    v4 = sub_940407DC(3, "%p: %s: %s: save MST_CTRL_AP failed(0x%x)!\n", v8, "SPRD_FW", "sprd_fw_save_config", v1);
+    v8 = get_current_thread(v0);
+    v4 = sprd_log(3, "%p: %s: %s: save MST_CTRL_AP failed(0x%x)!\n", v8, "SPRD_FW", "sprd_fw_save_config", v1);
   }
   else
   {
-    v2 = sub_9403EAE4(3);
+    v2 = tzfw_save_ap_cfg(3);
     v1 = v2;
     if ( (_DWORD)v2 != 0 )
     {
-      v6 = sub_94040A98(v2);
-      v4 = sub_940407DC(3, "%p: %s: %s: save SLV_FW_AP failed(0x%x)!\n", v6, "SPRD_FW", "sprd_fw_save_config", v1);
+      v6 = get_current_thread(v2);
+      v4 = sprd_log(3, "%p: %s: %s: save SLV_FW_AP failed(0x%x)!\n", v6, "SPRD_FW", "sprd_fw_save_config", v1);
     }
     else
     {
-      v3 = sub_9403EAE4(7);
+      v3 = tzfw_save_ap_cfg(7);
       v1 = v3;
       if ( (_DWORD)v3 != 0 )
       {
-        v9 = sub_94040A98(v3);
-        v4 = sub_940407DC(3, "%p: %s: %s: save REG_FW_AP_APB failed(0x%x)!\n", v9, "SPRD_FW", "sprd_fw_save_config", v1);
+        v9 = get_current_thread(v3);
+        v4 = sprd_log(3, "%p: %s: %s: save REG_FW_AP_APB failed(0x%x)!\n", v9, "SPRD_FW", "sprd_fw_save_config", v1);
       }
       else
       {
-        v4 = sub_9403EAE4(8);
+        v4 = tzfw_save_ap_cfg(8);
         v1 = v4;
         if ( (_DWORD)v4 != 0 )
         {
-          v5 = sub_94040A98(v4);
-          v4 = sub_940407DC(
+          v5 = get_current_thread(v4);
+          v4 = sprd_log(
                  3,
                  "%p: %s: %s: save REG_FW_AP_AHB failed(0x%x)!\n",
                  v5,
@@ -19790,12 +19790,12 @@ __int64 sub_9403E548()
       }
     }
   }
-  sub_9403F4C0(v4);
+  sprd_fw_unlock(v4);
   return v1;
 }
 
-/* ===== sub_9403E620 @ 0x9403E620 size 216 ===== */
-__int64 sub_9403E620()
+/* ===== sprd_fw_restore_config_all @ 0x9403E620 size 216 ===== */
+__int64 sprd_fw_restore_config_all()
 {
   __int64 v0; // x0
   unsigned int v1; // w19
@@ -19807,31 +19807,31 @@ __int64 sub_9403E620()
   __int64 v8; // x2
   __int64 v9; // x2
 
-  sub_9403F4B8();
-  v0 = sub_9403EBEC(1);
+  sprd_fw_lock2();
+  v0 = tzfw_restore_ap_cfg(1);
   v1 = v0;
   if ( (_DWORD)v0 != 0 )
   {
-    v8 = sub_94040A98(v0);
-    v4 = sub_940407DC(3, "%p: %s: %s: restore MST_CTRL_AP failed(0x%x)!\n", v8, "SPRD_FW", "sprd_fw_restore_config", v1);
+    v8 = get_current_thread(v0);
+    v4 = sprd_log(3, "%p: %s: %s: restore MST_CTRL_AP failed(0x%x)!\n", v8, "SPRD_FW", "sprd_fw_restore_config", v1);
   }
   else
   {
-    v2 = sub_9403EBEC(3);
+    v2 = tzfw_restore_ap_cfg(3);
     v1 = v2;
     if ( (_DWORD)v2 != 0 )
     {
-      v6 = sub_94040A98(v2);
-      v4 = sub_940407DC(3, "%p: %s: %s: restore SLV_FW_AP failed(0x%x)!\n", v6, "SPRD_FW", "sprd_fw_restore_config", v1);
+      v6 = get_current_thread(v2);
+      v4 = sprd_log(3, "%p: %s: %s: restore SLV_FW_AP failed(0x%x)!\n", v6, "SPRD_FW", "sprd_fw_restore_config", v1);
     }
     else
     {
-      v3 = sub_9403EBEC(7);
+      v3 = tzfw_restore_ap_cfg(7);
       v1 = v3;
       if ( (_DWORD)v3 != 0 )
       {
-        v9 = sub_94040A98(v3);
-        v4 = sub_940407DC(
+        v9 = get_current_thread(v3);
+        v4 = sprd_log(
                3,
                "%p: %s: %s: restore REG_FW_AP_APB failed(0x%x)!\n",
                v9,
@@ -19841,12 +19841,12 @@ __int64 sub_9403E620()
       }
       else
       {
-        v4 = sub_9403EBEC(8);
+        v4 = tzfw_restore_ap_cfg(8);
         v1 = v4;
         if ( (_DWORD)v4 != 0 )
         {
-          v5 = sub_94040A98(v4);
-          v4 = sub_940407DC(
+          v5 = get_current_thread(v4);
+          v4 = sprd_log(
                  3,
                  "%p: %s: %s: restore REG_FW_AP_AHB failed(0x%x)!\n",
                  v5,
@@ -19857,23 +19857,23 @@ __int64 sub_9403E620()
       }
     }
   }
-  sub_9403F4C0(v4);
+  sprd_fw_unlock(v4);
   return v1;
 }
 
-/* ===== sub_9403E6F8 @ 0x9403E6F8 size 24 ===== */
-__int64 sub_9403E6F8()
+/* ===== sprd_fw_lock @ 0x9403E6F8 size 24 ===== */
+__int64 sprd_fw_lock()
 {
   __int64 v0; // x0
   __int64 v1; // x0
 
-  v0 = sub_9403F4B8();
-  v1 = sub_9403F210(v0);
-  return sub_9403F4C0(v1);
+  v0 = sprd_fw_lock2();
+  v1 = tzfw_build_table(v0);
+  return sprd_fw_unlock(v1);
 }
 
-/* ===== sub_9403E710 @ 0x9403E710 size 244 ===== */
-__int64 sub_9403E710()
+/* ===== sprd_destroy_cp_modem @ 0x9403E710 size 244 ===== */
+__int64 sprd_destroy_cp_modem()
 {
   __int64 v0; // x0
   unsigned int v1; // w19
@@ -19882,16 +19882,16 @@ __int64 sub_9403E710()
   __int64 v5; // x2
   _QWORD v6[10]; // [xsp+20h] [xbp+20h] BYREF
 
-  sub_9403F4B8();
-  sub_94040888(v6, 0, 80);
+  sprd_fw_lock2();
+  memset(v6, 0, 80);
   v6[1] = 0;
   v6[0] = -1;
-  v0 = sub_9403F078(10, 257, v6);
+  v0 = tzfw_cfg_mem_fw_seg(10, 257, v6);
   v1 = v0;
   if ( (_DWORD)v0 != 0 )
   {
-    v5 = sub_94040A98(v0);
-    v2 = sub_940407DC(
+    v5 = get_current_thread(v0);
+    v2 = sprd_log(
            3,
            "%p: %s: %s: config region CP_MODEM Error(0x%x)!\n",
            v5,
@@ -19901,14 +19901,14 @@ __int64 sub_9403E710()
   }
   else
   {
-    v2 = sub_9403ED58(2, 74, 3, 3);
+    v2 = tzfw_cfg_slv_fw(2, 74, 3, 3);
     v1 = v2;
     if ( (_DWORD)v2 != 0
-      || (v2 = sub_9403ED58(2, 73, 3, 3), v1 = v2, (_DWORD)v2 != 0)
-      || (v2 = sub_9403ED58(2, 72, 3, 3), v1 = v2, (_DWORD)v2 != 0) )
+      || (v2 = tzfw_cfg_slv_fw(2, 73, 3, 3), v1 = v2, (_DWORD)v2 != 0)
+      || (v2 = tzfw_cfg_slv_fw(2, 72, 3, 3), v1 = v2, (_DWORD)v2 != 0) )
     {
-      v3 = sub_94040A98(v2);
-      v2 = sub_940407DC(
+      v3 = get_current_thread(v2);
+      v2 = sprd_log(
              3,
              "%p: %s: %s: config SLV_FW_AON SLV_ID_SM4_IRAM1 Error(0x%x)!\n",
              v3,
@@ -19917,12 +19917,12 @@ __int64 sub_9403E710()
              v1);
     }
   }
-  sub_9403F4C0(v2);
+  sprd_fw_unlock(v2);
   return v1;
 }
 
-/* ===== sub_9403E804 @ 0x9403E804 size 384 ===== */
-__int64 sub_9403E804()
+/* ===== sprd_recreate_cp_modem @ 0x9403E804 size 384 ===== */
+__int64 sprd_recreate_cp_modem()
 {
   unsigned int v0; // w3
   int v1; // w0
@@ -19939,8 +19939,8 @@ __int64 sub_9403E804()
   _QWORD v13[9]; // [xsp+20h] [xbp+20h] BYREF
   unsigned __int64 v14; // [xsp+68h] [xbp+68h]
 
-  sub_9403F4B8();
-  sub_94040888(v13, 0, 80);
+  sprd_fw_lock2();
+  memset(v13, 0, 80);
   v13[8] = 0;
   v13[0] = 2304770048LL;
   v0 = 0;
@@ -19955,12 +19955,12 @@ __int64 sub_9403E804()
   }
   while ( v1 != 96 );
   v14 = __PAIR64__(HIDWORD(v14), v0) | 0x3F00000000000000LL;
-  v3 = sub_9403F078(10, 257, v13);
+  v3 = tzfw_cfg_mem_fw_seg(10, 257, v13);
   v4 = v3;
   if ( (_DWORD)v3 != 0 )
   {
-    v11 = sub_94040A98(v3);
-    v7 = sub_940407DC(
+    v11 = get_current_thread(v3);
+    v7 = sprd_log(
            3,
            "%p: %s: %s: config region CP_MODEM Error(0x%x)!\n",
            v11,
@@ -19970,12 +19970,12 @@ __int64 sub_9403E804()
   }
   else
   {
-    v5 = sub_9403ED58(2, 74, 3, 1);
+    v5 = tzfw_cfg_slv_fw(2, 74, 3, 1);
     v4 = v5;
     if ( (_DWORD)v5 != 0 )
     {
-      v9 = sub_94040A98(v5);
-      v7 = sub_940407DC(
+      v9 = get_current_thread(v5);
+      v7 = sprd_log(
              3,
              "%p: %s: %s: config SLV_FW_AON SLV_ID_SM4_IRAM1 Error(0x%x)!\n",
              v9,
@@ -19985,12 +19985,12 @@ __int64 sub_9403E804()
     }
     else
     {
-      v6 = sub_9403ED58(2, 73, 3, 1);
+      v6 = tzfw_cfg_slv_fw(2, 73, 3, 1);
       v4 = v6;
       if ( (_DWORD)v6 != 0 )
       {
-        v12 = sub_94040A98(v6);
-        v7 = sub_940407DC(
+        v12 = get_current_thread(v6);
+        v7 = sprd_log(
                3,
                "%p: %s: %s: config SLV_FW_AON SLV_ID_SM4_IRAM2 Error(0x%x)!\n",
                v12,
@@ -20000,12 +20000,12 @@ __int64 sub_9403E804()
       }
       else
       {
-        v7 = sub_9403ED58(2, 72, 3, 1);
+        v7 = tzfw_cfg_slv_fw(2, 72, 3, 1);
         v4 = v7;
         if ( (_DWORD)v7 != 0 )
         {
-          v8 = sub_94040A98(v7);
-          v7 = sub_940407DC(
+          v8 = get_current_thread(v7);
+          v7 = sprd_log(
                  3,
                  "%p: %s: %s: config SLV_FW_AON SLV_ID_SM4_IRAM3 Error(0x%x)!\n",
                  v8,
@@ -20016,12 +20016,12 @@ __int64 sub_9403E804()
       }
     }
   }
-  sub_9403F4C0(v7);
+  sprd_fw_unlock(v7);
   return v4;
 }
 
-/* ===== sub_9403E984 @ 0x9403E984 size 352 ===== */
-__int64 __fastcall sub_9403E984(__int64 a1, _QWORD *a2, _QWORD *a3, _DWORD *a4, _QWORD *a5, _DWORD *a6)
+/* ===== tzfw_get_ap_cfg_addr @ 0x9403E984 size 352 ===== */
+__int64 __fastcall tzfw_get_ap_cfg_addr(__int64 a1, _QWORD *a2, _QWORD *a3, _DWORD *a4, _QWORD *a5, _DWORD *a6)
 {
   const void *v6; // x0
   __int64 result; // x0
@@ -20063,16 +20063,16 @@ __int64 __fastcall sub_9403E984(__int64 a1, _QWORD *a2, _QWORD *a3, _DWORD *a4, 
       break;
     default:
       v8 = a1;
-      v6 = (const void *)sub_94040A98(a1);
-      sub_940407DC(3, "%p: %s: %s: bad fw_id:%d\n", v6, "SPRD_FW", "tzfw_get_ap_cfg_addr", v8);
+      v6 = (const void *)get_current_thread(a1);
+      sprd_log(3, "%p: %s: %s: bad fw_id:%d\n", v6, "SPRD_FW", "tzfw_get_ap_cfg_addr", v8);
       result = 4294901761LL;
       break;
   }
   return result;
 }
 
-/* ===== sub_9403EAE4 @ 0x9403EAE4 size 264 ===== */
-__int64 __fastcall sub_9403EAE4(__int64 a1)
+/* ===== tzfw_save_ap_cfg @ 0x9403EAE4 size 264 ===== */
+__int64 __fastcall tzfw_save_ap_cfg(__int64 a1)
 {
   __int64 v1; // x0
   unsigned int v2; // w19
@@ -20091,12 +20091,12 @@ __int64 __fastcall sub_9403EAE4(__int64 a1)
   _DWORD *v16; // [xsp+30h] [xbp+30h] BYREF
   int *v17; // [xsp+38h] [xbp+38h] BYREF
 
-  v1 = sub_9403E984(a1, &v15, &v16, &v13, &v17, &v14);
+  v1 = tzfw_get_ap_cfg_addr(a1, &v15, &v16, &v13, &v17, &v14);
   v2 = v1;
   if ( (_DWORD)v1 != 0 )
   {
-    v12 = (const void *)sub_94040A98(v1);
-    sub_940407DC(3, "%p: %s: %s: tzfw_get_ap_cfg_addr Error(%d)\n", v12, "SPRD_FW", "tzfw_save_ap_cfg", v2);
+    v12 = (const void *)get_current_thread(v1);
+    sprd_log(3, "%p: %s: %s: tzfw_get_ap_cfg_addr Error(%d)\n", v12, "SPRD_FW", "tzfw_save_ap_cfg", v2);
     return v2;
   }
   else
@@ -20130,8 +20130,8 @@ __int64 __fastcall sub_9403EAE4(__int64 a1)
   }
 }
 
-/* ===== sub_9403EBEC @ 0x9403EBEC size 364 ===== */
-__int64 __fastcall sub_9403EBEC(__int64 a1)
+/* ===== tzfw_restore_ap_cfg @ 0x9403EBEC size 364 ===== */
+__int64 __fastcall tzfw_restore_ap_cfg(__int64 a1)
 {
   int v1; // w20
   __int64 v2; // x0
@@ -20155,12 +20155,12 @@ __int64 __fastcall sub_9403EBEC(__int64 a1)
   _DWORD *v21; // [xsp+38h] [xbp+38h] BYREF
 
   v1 = a1;
-  v2 = sub_9403E984(a1, &v19, &v20, &v17, &v21, &v18);
+  v2 = tzfw_get_ap_cfg_addr(a1, &v19, &v20, &v17, &v21, &v18);
   v3 = v2;
   if ( (_DWORD)v2 != 0 )
   {
-    v8 = (const void *)sub_94040A98(v2);
-    sub_940407DC(3, "%p: %s: %s: tzfw_get_ap_cfg_addr Error(%d)\n", v8, "SPRD_FW", "tzfw_restore_ap_cfg", v3);
+    v8 = (const void *)get_current_thread(v2);
+    sprd_log(3, "%p: %s: %s: tzfw_get_ap_cfg_addr Error(%d)\n", v8, "SPRD_FW", "tzfw_restore_ap_cfg", v3);
     return v3;
   }
   else
@@ -20204,15 +20204,15 @@ __int64 __fastcall sub_9403EBEC(__int64 a1)
     }
     else
     {
-      v6 = (const void *)sub_94040A98(v19);
-      sub_940407DC(3, "%p: %s: %s: no data to restore for fw_id(%d)\n", v6, "SPRD_FW", "tzfw_restore_ap_cfg", v1);
+      v6 = (const void *)get_current_thread(v19);
+      sprd_log(3, "%p: %s: %s: no data to restore for fw_id(%d)\n", v6, "SPRD_FW", "tzfw_restore_ap_cfg", v1);
       return 0;
     }
   }
 }
 
-/* ===== sub_9403ED58 @ 0x9403ED58 size 420 ===== */
-__int64 __fastcall sub_9403ED58(__int64 a1, int a2, char a3, char a4)
+/* ===== tzfw_cfg_slv_fw @ 0x9403ED58 size 420 ===== */
+__int64 __fastcall tzfw_cfg_slv_fw(__int64 a1, int a2, char a3, char a4)
 {
   int v5; // w19
   int v6; // w1
@@ -20238,8 +20238,8 @@ __int64 __fastcall sub_9403ED58(__int64 a1, int a2, char a3, char a4)
       *(_DWORD *)(v13 + 56) = *(_DWORD *)(v13 + 56) & v14 | ((a4 & 3) << v12);
       return 0;
     }
-    v16 = sub_94040A98(a1);
-    sub_940407DC(3, "%p: %s: %s: bad SLV_FW_AON slv_id:%d\n", v16, "SPRD_FW", "tzfw_cfg_slv_fw", (unsigned int)a2);
+    v16 = get_current_thread(a1);
+    sprd_log(3, "%p: %s: %s: bad SLV_FW_AON slv_id:%d\n", v16, "SPRD_FW", "tzfw_cfg_slv_fw", (unsigned int)a2);
     return 4294901764LL;
   }
   if ( (_DWORD)a1 == 3 )
@@ -20255,18 +20255,18 @@ __int64 __fastcall sub_9403ED58(__int64 a1, int a2, char a3, char a4)
       *(_DWORD *)(v9 + 28716) = *(_DWORD *)(v9 + 28716) & v8 | ((a4 & 3) << v7);
       return 0;
     }
-    v15 = sub_94040A98(a1);
-    sub_940407DC(3, "%p: %s: %s: bad SLV_FW_AP slv_id:%d\n", v15, "SPRD_FW", "tzfw_cfg_slv_fw", (unsigned int)v5);
+    v15 = get_current_thread(a1);
+    sprd_log(3, "%p: %s: %s: bad SLV_FW_AP slv_id:%d\n", v15, "SPRD_FW", "tzfw_cfg_slv_fw", (unsigned int)v5);
     return 4294901764LL;
   }
   v17 = a1;
-  v11 = (const void *)sub_94040A98(a1);
-  sub_940407DC(3, "%p: %s: %s: bad fw_id:%d\n", v11, "SPRD_FW", "tzfw_cfg_slv_fw", v17);
+  v11 = (const void *)get_current_thread(a1);
+  sprd_log(3, "%p: %s: %s: bad fw_id:%d\n", v11, "SPRD_FW", "tzfw_cfg_slv_fw", v17);
   return 4294901761LL;
 }
 
-/* ===== sub_9403EEFC @ 0x9403EEFC size 380 ===== */
-__int64 __fastcall sub_9403EEFC(__int64 a1, __int64 *a2)
+/* ===== tzfw_cfg_mem_fw_pub_seg @ 0x9403EEFC size 380 ===== */
+__int64 __fastcall tzfw_cfg_mem_fw_pub_seg(__int64 a1, __int64 *a2)
 {
   int v2; // w20
   __int64 result; // x0
@@ -20278,13 +20278,13 @@ __int64 __fastcall sub_9403EEFC(__int64 a1, __int64 *a2)
   v2 = a1 - 256;
   if ( (unsigned int)(a1 - 256) > 7 )
   {
-    v8 = (const void *)sub_94040A98(a1);
-    sub_940407DC(3, "%p: %s: %s: MEM_FW_PUB: seg_id: %d is invalid!\n", v8, "SPRD_FW", "tzfw_cfg_mem_fw_pub_seg", v2);
+    v8 = (const void *)get_current_thread(a1);
+    sprd_log(3, "%p: %s: %s: MEM_FW_PUB: seg_id: %d is invalid!\n", v8, "SPRD_FW", "tzfw_cfg_mem_fw_pub_seg", v2);
     return 4294901764LL;
   }
   else
   {
-    sub_94040880(80LL * v2 - 536461264, a2, 80);
+    memcpy(80LL * v2 - 536461264, a2, 80);
     result = 0;
     if ( v2 != 0 )
     {
@@ -20323,22 +20323,22 @@ __int64 __fastcall sub_9403EEFC(__int64 a1, __int64 *a2)
   return result;
 }
 
-/* ===== sub_9403F078 @ 0x9403F078 size 96 ===== */
-__int64 __fastcall sub_9403F078(__int64 a1, unsigned int a2, __int64 *a3)
+/* ===== tzfw_cfg_mem_fw_seg @ 0x9403F078 size 96 ===== */
+__int64 __fastcall tzfw_cfg_mem_fw_seg(__int64 a1, unsigned int a2, __int64 *a3)
 {
   const void *v4; // x0
   int v5; // [xsp+18h] [xbp+18h]
 
   if ( (_DWORD)a1 == 10 )
-    return sub_9403EEFC(a2, a3);
+    return tzfw_cfg_mem_fw_pub_seg(a2, a3);
   v5 = a1;
-  v4 = (const void *)sub_94040A98(a1);
-  sub_940407DC(3, "%p: %s: %s: bad fw_id:%d\n", v4, "SPRD_FW", "tzfw_cfg_mem_fw_seg", v5);
+  v4 = (const void *)get_current_thread(a1);
+  sprd_log(3, "%p: %s: %s: bad fw_id:%d\n", v4, "SPRD_FW", "tzfw_cfg_mem_fw_seg", v5);
   return 4294901761LL;
 }
 
-/* ===== sub_9403F0D8 @ 0x9403F0D8 size 312 ===== */
-__int64 __fastcall sub_9403F0D8(int a1, unsigned __int64 a2)
+/* ===== tzfw_cfg_dft_addr @ 0x9403F0D8 size 312 ===== */
+__int64 __fastcall tzfw_cfg_dft_addr(int a1, unsigned __int64 a2)
 {
   unsigned int v3; // w0
   const void *v4; // x0
@@ -20350,8 +20350,8 @@ __int64 __fastcall sub_9403F0D8(int a1, unsigned __int64 a2)
 
   if ( (a2 & 0xFFF) != 0 )
   {
-    v8 = (const void *)sub_94040A98(a2 & 0xFFF);
-    sub_940407DC(3, "%p: %s: %s: dft_phy_addr is not aligned to 4K!\n", v8, "SPRD_FW", "tzfw_cfg_dft_addr");
+    v8 = (const void *)get_current_thread(a2 & 0xFFF);
+    sprd_log(3, "%p: %s: %s: dft_phy_addr is not aligned to 4K!\n", v8, "SPRD_FW", "tzfw_cfg_dft_addr");
     return 4294901767LL;
   }
   else
@@ -20394,8 +20394,8 @@ __int64 __fastcall sub_9403F0D8(int a1, unsigned __int64 a2)
         v6 = (unsigned int)(a1 - 2);
 LABEL_3:
         v9 = a1;
-        v4 = (const void *)sub_94040A98(v6);
-        sub_940407DC(3, "%p: %s: %s: bad fw_id:%d\n", v4, "SPRD_FW", "tzfw_cfg_dft_addr", v9);
+        v4 = (const void *)get_current_thread(v6);
+        sprd_log(3, "%p: %s: %s: bad fw_id:%d\n", v4, "SPRD_FW", "tzfw_cfg_dft_addr", v9);
         result = 4294901761LL;
         break;
     }
@@ -20403,8 +20403,8 @@ LABEL_3:
   return result;
 }
 
-/* ===== sub_9403F210 @ 0x9403F210 size 680 ===== */
-__int64 sub_9403F210()
+/* ===== tzfw_build_table @ 0x9403F210 size 680 ===== */
+__int64 tzfw_build_table()
 {
   _DWORD *v0; // x10
   int v1; // w9
@@ -20492,41 +20492,41 @@ __int64 sub_9403F210()
   return 0;
 }
 
-/* ===== sub_9403F4B8 @ 0x9403F4B8 size 8 ===== */
-__int64 sub_9403F4B8()
+/* ===== sprd_fw_lock2 @ 0x9403F4B8 size 8 ===== */
+__int64 sprd_fw_lock2()
 {
-  return sub_94034308(24);
+  return clk_enable(24);
 }
 
-/* ===== sub_9403F4C0 @ 0x9403F4C0 size 8 ===== */
-__int64 sub_9403F4C0()
+/* ===== sprd_fw_unlock @ 0x9403F4C0 size 8 ===== */
+__int64 sprd_fw_unlock()
 {
-  return sub_940343A8(24);
+  return clk_disable(24);
 }
 
-/* ===== sub_9403F4C8 @ 0x9403F4C8 size 168 ===== */
+/* ===== tzfw_init @ 0x9403F4C8 size 168 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_9403F4C8(void *a1, __int64 a2)
+__int64 __fastcall tzfw_init(void *a1, __int64 a2)
 {
   __int64 v2; // x0
   const void *v3; // x0
 
   off_94067B40 = a1;
   qword_94067B30 = a2;
-  sub_94040888(-536461312, 0, 688);
-  v2 = sub_94040894(1144);
+  memset(-536461312, 0, 688);
+  v2 = malloc(1144);
   qword_94067B38 = v2;
   if ( v2 != 0 )
-    return sub_94040888(v2, 0, 1144);
-  v3 = (const void *)sub_94040A98(0);
-  sub_940407DC(3, "%p: %s: %s: can NOT malloc memory for fw!\n", v3, "SPRD_FW", "tzfw_init");
-  sub_940407A4(1);
-  return sub_94040888(0, 0, 1144);
+    return memset(v2, 0, 1144);
+  v3 = (const void *)get_current_thread(0);
+  sprd_log(3, "%p: %s: %s: can NOT malloc memory for fw!\n", v3, "SPRD_FW", "tzfw_init");
+  assert_fail(1);
+  return memset(0, 0, 1144);
 }
 
-/* ===== sub_9403F570 @ 0x9403F570 size 456 ===== */
+/* ===== GPIO_Init @ 0x9403F570 size 456 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 sub_9403F570()
+__int64 GPIO_Init()
 {
   __int64 v0; // x0
   int v1; // w4
@@ -20534,18 +20534,18 @@ __int64 sub_9403F570()
   __int64 v3; // x3
   _DWORD v5[6]; // [xsp+48h] [xbp+48h] BYREF
 
-  sub_940407DC(2, "%s:Init GPIO !\n", "GPIO_Init");
-  v0 = sub_94034308(9);
-  v1 = sub_9403FF34(v0);
+  sprd_log(2, "%s:Init GPIO !\n", "GPIO_Init");
+  v0 = clk_enable(9);
+  v1 = gpio_mem_map(v0);
   if ( v1 != 0 )
   {
-    sub_940407DC(2, "%s:%s: mem map failed %d\n", "GPIO_Init", "GPIO_Init", v1);
+    sprd_log(2, "%s:%s: mem map failed %d\n", "GPIO_Init", "GPIO_Init", v1);
     return 0xFFFFFFFFLL;
   }
   else
   {
     v2 = 0;
-    sub_9403F9B4(MEMORY[0xFFFFFFFFE0047DC8]);
+    GPIO_PHY_SetBaseAddr(MEMORY[0xFFFFFFFFE0047DC8]);
     dword_94067B64 = 255;
     dword_94067BA4 = 255;
     dword_94067BE4 = 255;
@@ -20556,56 +20556,56 @@ __int64 sub_9403F570()
     dword_94067D24 = 255;
     dword_94067D64 = 255;
     dword_94067DA4 = 255;
-    sub_9404078C(95, sub_9403F7D8, 0);
-    sub_94040788(0x5Fu);
+    irq_register(95, gpio_irq_handler, 0);
+    irq_enable(0x5Fu);
     do
     {
       while ( 1 )
       {
-        sub_9403F8A8(v2, v5);
-        if ( (v5[0] & 0xFFFFFFFD) == 0 && (unsigned int)sub_9403FA98(v5) != 0 && v2 != 0 )
+        GPIO_PHY_GetBaseInfo(v2, v5);
+        if ( (v5[0] & 0xFFFFFFFD) == 0 && (unsigned int)GPIO_PHY_GetIntMask(v5) != 0 && v2 != 0 )
           break;
         if ( ++v2 == 16 )
           return 0;
       }
       v3 = v2++;
-      sub_940407DC(2, "%s:GPIO_Init GPIO_%lu interrupt has not been registed!\n", "GPIO_Init", v3);
-      sub_9403FC28(v5);
+      sprd_log(2, "%s:GPIO_Init GPIO_%lu interrupt has not been registed!\n", "GPIO_Init", v3);
+      GPIO_PHY_ClearIntMask(v5);
     }
     while ( v2 != 16 );
     return 0;
   }
 }
 
-/* ===== sub_9403F738 @ 0x9403F738 size 72 ===== */
-__int64 sub_9403F738()
+/* ===== sprd_pal_gpio_init @ 0x9403F738 size 72 ===== */
+__int64 sprd_pal_gpio_init()
 {
-  if ( (unsigned int)sub_9403F570() != 0 )
-    return sub_940407DC(2, "%s:sprd_gpio_init failed[0x%x]\n", "sprd_pal_gpio_init");
+  if ( (unsigned int)GPIO_Init() != 0 )
+    return sprd_log(2, "%s:sprd_gpio_init failed[0x%x]\n", "sprd_pal_gpio_init");
   else
-    return sub_940407DC(2, "%s:sprd_gpio_init successful\n", "sprd_pal_gpio_init");
+    return sprd_log(2, "%s:sprd_gpio_init successful\n", "sprd_pal_gpio_init");
 }
 
-/* ===== sub_9403F780 @ 0x9403F780 size 44 ===== */
-__int64 __fastcall sub_9403F780(__int64 a1)
+/* ===== gpio_enable_irq @ 0x9403F780 size 44 ===== */
+__int64 __fastcall gpio_enable_irq(__int64 a1)
 {
   _BYTE v2[24]; // [xsp+28h] [xbp+28h] BYREF
 
-  sub_9403F8A8(a1, v2);
-  return sub_9403FB60(v2);
+  GPIO_PHY_GetBaseInfo(a1, v2);
+  return GPIO_PHY_SetIntMask(v2);
 }
 
-/* ===== sub_9403F7AC @ 0x9403F7AC size 44 ===== */
-__int64 __fastcall sub_9403F7AC(__int64 a1)
+/* ===== gpio_disable_irq @ 0x9403F7AC size 44 ===== */
+__int64 __fastcall gpio_disable_irq(__int64 a1)
 {
   _BYTE v2[24]; // [xsp+28h] [xbp+28h] BYREF
 
-  sub_9403F8A8(a1, v2);
-  return sub_9403FC28(v2);
+  GPIO_PHY_GetBaseInfo(a1, v2);
+  return GPIO_PHY_ClearIntMask(v2);
 }
 
-/* ===== sub_9403F7D8 @ 0x9403F7D8 size 188 ===== */
-__int64 sub_9403F7D8()
+/* ===== gpio_irq_handler @ 0x9403F7D8 size 188 ===== */
+__int64 gpio_irq_handler()
 {
   unsigned int v0; // w20
   int *i; // x19
@@ -20619,11 +20619,11 @@ __int64 sub_9403F7D8()
   {
     if ( *i != 255 )
     {
-      sub_9403F8A8((unsigned int)*i, v6);
-      if ( (unsigned int)sub_9403FCE8(v6) != 0 )
+      GPIO_PHY_GetBaseInfo((unsigned int)*i, v6);
+      if ( (unsigned int)GPIO_PHY_GetIntState(v6) != 0 )
       {
-        sub_9403FD9C(v6);
-        sub_9403F7AC((unsigned int)*i);
+        GPIO_PHY_ClearIntStatus(v6);
+        gpio_disable_irq((unsigned int)*i);
         if ( i[8] != 0 )
           break;
       }
@@ -20633,22 +20633,22 @@ __int64 sub_9403F7D8()
   }
   v2 = &qword_94067B48[8 * (unsigned __int64)v0];
   v3 = (void (__fastcall *)(_QWORD, _QWORD))v2[4];
-  v4 = sub_9403FA0C(v6);
+  v4 = GPIO_PHY_GetGpioData(v6);
   v3(v0, v4);
-  sub_9403FF04(v6);
-  sub_9403F780(*((unsigned int *)v2 + 7));
+  GPIO_PHY_EnableGPIDetect(v6);
+  gpio_enable_irq(*((unsigned int *)v2 + 7));
   return 1;
 }
 
-/* ===== sub_9403F894 @ 0x9403F894 size 20 ===== */
-__int64 *__fastcall sub_9403F894(_DWORD *a1)
+/* ===== gpio_get_base_info @ 0x9403F894 size 20 ===== */
+__int64 *__fastcall gpio_get_base_info(_DWORD *a1)
 {
   *a1 = 1;
   return &qword_9405C748;
 }
 
-/* ===== sub_9403F8A8 @ 0x9403F8A8 size 268 ===== */
-__int64 __fastcall sub_9403F8A8(unsigned int a1, __int64 a2)
+/* ===== GPIO_PHY_GetBaseInfo @ 0x9403F8A8 size 268 ===== */
+__int64 __fastcall GPIO_PHY_GetBaseInfo(unsigned int a1, __int64 a2)
 {
   __int64 *v4; // x20
   unsigned int v5; // w3
@@ -20660,7 +20660,7 @@ __int64 __fastcall sub_9403F8A8(unsigned int a1, __int64 a2)
   unsigned int v11; // [xsp+4Ch] [xbp+4Ch] BYREF
 
   v11 = 0;
-  v4 = sub_9403F894(&v11);
+  v4 = gpio_get_base_info(&v11);
   v5 = a1 & 0xF;
   *(_WORD *)(a2 + 16) = a1 & 0xF;
   v6 = MEMORY[0xFFFFFFFFE0047DC8] + ((unsigned __int64)((a1 >> 4) & 0x1FFFFFF) << 7);
@@ -20678,7 +20678,7 @@ LABEL_6:
     while ( 1 )
     {
       ++v8;
-      sub_940407DC(2, "%s:GPIO_PHY_GetBaseInfo gpio_%lu can not be used\n", "GPIO_PHY_GetBaseInfo", a1);
+      sprd_log(2, "%s:GPIO_PHY_GetBaseInfo gpio_%lu can not be used\n", "GPIO_PHY_GetBaseInfo", a1);
       v9 = &v4[2 * v8];
       if ( v11 <= v8 )
         goto LABEL_6;
@@ -20698,22 +20698,22 @@ LABEL_8:
   return result;
 }
 
-/* ===== sub_9403F9B4 @ 0x9403F9B4 size 88 ===== */
-__int64 *__fastcall sub_9403F9B4(__int64 a1)
+/* ===== GPIO_PHY_SetBaseAddr @ 0x9403F9B4 size 88 ===== */
+__int64 *__fastcall GPIO_PHY_SetBaseAddr(__int64 a1)
 {
   __int64 *result; // x0
   int v3; // [xsp+2Ch] [xbp+2Ch] BYREF
 
   v3 = 0;
-  result = sub_9403F894(&v3);
+  result = gpio_get_base_info(&v3);
   *result = a1;
   if ( a1 == 0 )
-    return (__int64 *)sub_940407DC(2, "%s:can not get base addr!!!\n", "GPIO_PHY_SetBaseAddr");
+    return (__int64 *)sprd_log(2, "%s:can not get base addr!!!\n", "GPIO_PHY_SetBaseAddr");
   return result;
 }
 
-/* ===== sub_9403FA0C @ 0x9403FA0C size 140 ===== */
-bool __fastcall sub_9403FA0C(__int64 a1)
+/* ===== GPIO_PHY_GetGpioData @ 0x9403FA0C size 140 ===== */
+bool __fastcall GPIO_PHY_GetGpioData(__int64 a1)
 {
   unsigned int v2; // w0
   _DWORD *v3; // x20
@@ -20724,15 +20724,15 @@ bool __fastcall sub_9403FA0C(__int64 a1)
     return ((1 << *(_WORD *)(a1 + 16)) & *v3) != 0;
   if ( v2 != 3 )
   {
-    sub_940407DC(2, "%s:_GPIO_GetGpioDataRegAddr error\n", "_GPIO_GetGpioDataRegAddr");
+    sprd_log(2, "%s:_GPIO_GetGpioDataRegAddr error\n", "_GPIO_GetGpioDataRegAddr");
     return ((1 << *(_WORD *)(a1 + 16)) & *v3) != 0;
   }
-  sub_940407DC(2, "%s:_GPIO_GetGpioDataRegAddr GPIO_ID Invalid\n", "_GPIO_GetGpioDataRegAddr");
+  sprd_log(2, "%s:_GPIO_GetGpioDataRegAddr GPIO_ID Invalid\n", "_GPIO_GetGpioDataRegAddr");
   return false;
 }
 
-/* ===== sub_9403FA98 @ 0x9403FA98 size 200 ===== */
-bool __fastcall sub_9403FA98(__int64 a1)
+/* ===== GPIO_PHY_GetIntMask @ 0x9403FA98 size 200 ===== */
+bool __fastcall GPIO_PHY_GetIntMask(__int64 a1)
 {
   __int64 v2; // x20
   __int64 v3; // x0
@@ -20746,15 +20746,15 @@ bool __fastcall sub_9403FA98(__int64 a1)
       v3 = 24;
       goto LABEL_3;
     case 1:
-      sub_940407DC(2, "%s:_GPIO_GetGpioIntMaskAddr gpo\n", "_GPIO_GetGpioIntMaskAddr");
+      sprd_log(2, "%s:_GPIO_GetGpioIntMaskAddr gpo\n", "_GPIO_GetGpioIntMaskAddr");
       result = false;
       break;
     case 3:
-      sub_940407DC(2, "%s:_GPIO_GetGpioIntMaskAddr GPIO_ID Invalid\n", "_GPIO_GetGpioIntMaskAddr");
+      sprd_log(2, "%s:_GPIO_GetGpioIntMaskAddr GPIO_ID Invalid\n", "_GPIO_GetGpioIntMaskAddr");
       result = false;
       break;
     default:
-      sub_940407DC(2, "%s:_GPIO_GetGpioIntMaskAddr error\n", "_GPIO_GetGpioIntMaskAddr");
+      sprd_log(2, "%s:_GPIO_GetGpioIntMaskAddr error\n", "_GPIO_GetGpioIntMaskAddr");
       v3 = 0;
 LABEL_3:
       result = (*(_DWORD *)(v2 + v3) & (1 << *(_WORD *)(a1 + 16))) != 0;
@@ -20763,8 +20763,8 @@ LABEL_3:
   return result;
 }
 
-/* ===== sub_9403FB60 @ 0x9403FB60 size 200 ===== */
-__int64 __fastcall sub_9403FB60(__int64 a1)
+/* ===== GPIO_PHY_SetIntMask @ 0x9403FB60 size 200 ===== */
+__int64 __fastcall GPIO_PHY_SetIntMask(__int64 a1)
 {
   __int64 v2; // x20
   __int64 v3; // x2
@@ -20778,13 +20778,13 @@ __int64 __fastcall sub_9403FB60(__int64 a1)
       v3 = 24;
       goto LABEL_3;
     case 1:
-      result = sub_940407DC(2, "%s:_GPIO_GetGpioIntMaskAddr gpo\n", "_GPIO_GetGpioIntMaskAddr");
+      result = sprd_log(2, "%s:_GPIO_GetGpioIntMaskAddr gpo\n", "_GPIO_GetGpioIntMaskAddr");
       break;
     case 3:
-      result = sub_940407DC(2, "%s:_GPIO_GetGpioIntMaskAddr GPIO_ID Invalid\n", "_GPIO_GetGpioIntMaskAddr");
+      result = sprd_log(2, "%s:_GPIO_GetGpioIntMaskAddr GPIO_ID Invalid\n", "_GPIO_GetGpioIntMaskAddr");
       break;
     default:
-      sub_940407DC(2, "%s:_GPIO_GetGpioIntMaskAddr error\n", "_GPIO_GetGpioIntMaskAddr");
+      sprd_log(2, "%s:_GPIO_GetGpioIntMaskAddr error\n", "_GPIO_GetGpioIntMaskAddr");
       v3 = 0;
 LABEL_3:
       result = *(_DWORD *)(v2 + v3) & ~(unsigned int)(1LL << *(_WORD *)(a1 + 16)) | (1 << *(_WORD *)(a1 + 16));
@@ -20794,8 +20794,8 @@ LABEL_3:
   return result;
 }
 
-/* ===== sub_9403FC28 @ 0x9403FC28 size 192 ===== */
-__int64 __fastcall sub_9403FC28(__int64 a1)
+/* ===== GPIO_PHY_ClearIntMask @ 0x9403FC28 size 192 ===== */
+__int64 __fastcall GPIO_PHY_ClearIntMask(__int64 a1)
 {
   __int64 v2; // x20
   __int64 v3; // x1
@@ -20809,13 +20809,13 @@ __int64 __fastcall sub_9403FC28(__int64 a1)
       v3 = 24;
       goto LABEL_3;
     case 1:
-      result = sub_940407DC(2, "%s:_GPIO_GetGpioIntMaskAddr gpo\n", "_GPIO_GetGpioIntMaskAddr");
+      result = sprd_log(2, "%s:_GPIO_GetGpioIntMaskAddr gpo\n", "_GPIO_GetGpioIntMaskAddr");
       break;
     case 3:
-      result = sub_940407DC(2, "%s:_GPIO_GetGpioIntMaskAddr GPIO_ID Invalid\n", "_GPIO_GetGpioIntMaskAddr");
+      result = sprd_log(2, "%s:_GPIO_GetGpioIntMaskAddr GPIO_ID Invalid\n", "_GPIO_GetGpioIntMaskAddr");
       break;
     default:
-      sub_940407DC(2, "%s:_GPIO_GetGpioIntMaskAddr error\n", "_GPIO_GetGpioIntMaskAddr");
+      sprd_log(2, "%s:_GPIO_GetGpioIntMaskAddr error\n", "_GPIO_GetGpioIntMaskAddr");
       v3 = 0;
 LABEL_3:
       result = *(_DWORD *)(v2 + v3) & ~(unsigned int)(1LL << *(_WORD *)(a1 + 16));
@@ -20825,8 +20825,8 @@ LABEL_3:
   return result;
 }
 
-/* ===== sub_9403FCE8 @ 0x9403FCE8 size 180 ===== */
-bool __fastcall sub_9403FCE8(__int64 a1)
+/* ===== GPIO_PHY_GetIntState @ 0x9403FCE8 size 180 ===== */
+bool __fastcall GPIO_PHY_GetIntState(__int64 a1)
 {
   _DWORD *v2; // x20
   _BOOL8 result; // x0
@@ -20842,11 +20842,11 @@ bool __fastcall sub_9403FCE8(__int64 a1)
       result = false;
       break;
     case 3:
-      sub_940407DC(2, "%s:GPIO_PHY_GetIntState GPIO_ID Invalid\n", "GPIO_PHY_GetIntState");
+      sprd_log(2, "%s:GPIO_PHY_GetIntState GPIO_ID Invalid\n", "GPIO_PHY_GetIntState");
       result = false;
       break;
     default:
-      sub_940407DC(2, "%s:GPIO_PHY_GetIntState error\n", "GPIO_PHY_GetIntState");
+      sprd_log(2, "%s:GPIO_PHY_GetIntState error\n", "GPIO_PHY_GetIntState");
 LABEL_3:
       result = (*v2 & (1 << *(_WORD *)(a1 + 16))) != 0;
       break;
@@ -20854,8 +20854,8 @@ LABEL_3:
   return result;
 }
 
-/* ===== sub_9403FD9C @ 0x9403FD9C size 164 ===== */
-__int64 __fastcall sub_9403FD9C(unsigned int *a1)
+/* ===== GPIO_PHY_ClearIntStatus @ 0x9403FD9C size 164 ===== */
+__int64 __fastcall GPIO_PHY_ClearIntStatus(unsigned int *a1)
 {
   unsigned int v2; // w0
   _DWORD *v3; // x20
@@ -20875,10 +20875,10 @@ __int64 __fastcall sub_9403FD9C(unsigned int *a1)
     case 1LL:
       return result;
     case 3LL:
-      result = sub_940407DC(2, "%s:GPIO_PHY_ClearIntStatus GPIO_ID Invalid\n", "GPIO_PHY_ClearIntStatus");
+      result = sprd_log(2, "%s:GPIO_PHY_ClearIntStatus GPIO_ID Invalid\n", "GPIO_PHY_ClearIntStatus");
       break;
     default:
-      sub_940407DC(2, "%s:GPIO_PHY_ClearIntStatus error\n", "GPIO_PHY_ClearIntStatus");
+      sprd_log(2, "%s:GPIO_PHY_ClearIntStatus error\n", "GPIO_PHY_ClearIntStatus");
 LABEL_3:
       result = *v3 & ~(unsigned int)(1LL << *((_WORD *)a1 + 8)) | (1 << *((_WORD *)a1 + 8));
       *v3 = result;
@@ -20887,8 +20887,8 @@ LABEL_3:
   return result;
 }
 
-/* ===== sub_9403FE40 @ 0x9403FE40 size 196 ===== */
-__int64 __fastcall sub_9403FE40(__int64 a1)
+/* ===== GPIO_PHY_TrigGPIDetect @ 0x9403FE40 size 196 ===== */
+__int64 __fastcall GPIO_PHY_TrigGPIDetect(__int64 a1)
 {
   _DWORD *v2; // x20
   __int64 result; // x0
@@ -20901,13 +20901,13 @@ __int64 __fastcall sub_9403FE40(__int64 a1)
       goto LABEL_3;
     case 1:
     case 2:
-      result = sub_940407DC(2, "%s:GPIO_PHY_TrigGPIDetect can not belong to GPO", "GPIO_PHY_TrigGPIDetect");
+      result = sprd_log(2, "%s:GPIO_PHY_TrigGPIDetect can not belong to GPO", "GPIO_PHY_TrigGPIDetect");
       break;
     case 3:
-      result = sub_940407DC(2, "%s:GPIO_PHY_TrigGPIDetect GPIO_ID Invalid\n", "GPIO_PHY_TrigGPIDetect");
+      result = sprd_log(2, "%s:GPIO_PHY_TrigGPIDetect GPIO_ID Invalid\n", "GPIO_PHY_TrigGPIDetect");
       break;
     default:
-      sub_940407DC(2, "%s:GPIO_PHY_TrigGPIDetect error\n", "GPIO_PHY_TrigGPIDetect");
+      sprd_log(2, "%s:GPIO_PHY_TrigGPIDetect error\n", "GPIO_PHY_TrigGPIDetect");
 LABEL_3:
       result = *v2 & ~(unsigned int)(1LL << *(_WORD *)(a1 + 16)) | (1 << *(_WORD *)(a1 + 16));
       *v2 = result;
@@ -20916,43 +20916,43 @@ LABEL_3:
   return result;
 }
 
-/* ===== sub_9403FF04 @ 0x9403FF04 size 48 ===== */
-_DWORD *__fastcall sub_9403FF04(_DWORD *result)
+/* ===== GPIO_PHY_EnableGPIDetect @ 0x9403FF04 size 48 ===== */
+_DWORD *__fastcall GPIO_PHY_EnableGPIDetect(_DWORD *result)
 {
   if ( *result == 0 )
-    return (_DWORD *)sub_9403FE40((__int64)result);
+    return (_DWORD *)GPIO_PHY_TrigGPIDetect((__int64)result);
   if ( *result > 2u )
-    return (_DWORD *)sub_940407DC(2, "%s:GPIO_PHY_EnableGPIDetect error\n", "GPIO_PHY_EnableGPIDetect");
+    return (_DWORD *)sprd_log(2, "%s:GPIO_PHY_EnableGPIDetect error\n", "GPIO_PHY_EnableGPIDetect");
   return result;
 }
 
-/* ===== sub_9403FF34 @ 0x9403FF34 size 96 ===== */
-__int64 sub_9403FF34()
+/* ===== gpio_mem_map @ 0x9403FF34 size 96 ===== */
+__int64 gpio_mem_map()
 {
   int v0; // w4
   __int64 result; // x0
 
-  v0 = sub_940408CC("gpio", 839254016, 4096, 2, -536576568);
+  v0 = sprd_iomap("gpio", 839254016, 4096, 2, -536576568);
   result = 0;
   if ( v0 != 0 )
   {
-    sub_940407DC(2, "%s:%s: mem map failed %d\n", "gpio_mem_map", "gpio_mem_map", v0);
+    sprd_log(2, "%s:%s: mem map failed %d\n", "gpio_mem_map", "gpio_mem_map", v0);
     return 0xFFFFFFFFLL;
   }
   return result;
 }
 
-/* ===== sub_9403FF94 @ 0x9403FF94 size 116 ===== */
-__int64 sub_9403FF94()
+/* ===== sprd_hwspinlock_init @ 0x9403FF94 size 116 ===== */
+__int64 sprd_hwspinlock_init()
 {
-  if ( (unsigned int)sub_940408CC("hwspinlock", 855638016, 4096, 2, &qword_94067DD0) != 0 )
-    return sub_940407DC(2, "%s: mem map failed %d\n");
+  if ( (unsigned int)sprd_iomap("hwspinlock", 855638016, 4096, 2, &qword_94067DD0) != 0 )
+    return sprd_log(2, "%s: mem map failed %d\n");
   *MEMORY[0xFFFFFFFFE0061250] |= 0x400000u;
-  return sub_940407DC(2, "sprd hwspinlock is ok!\n");
+  return sprd_log(2, "sprd hwspinlock is ok!\n");
 }
 
-/* ===== sub_94040008 @ 0x94040008 size 44 ===== */
-__int64 __fastcall sub_94040008(char a1)
+/* ===== delay_loop @ 0x94040008 size 44 ===== */
+__int64 __fastcall delay_loop(char a1)
 {
   __int64 result; // x0
   __int64 v2; // [xsp+8h] [xbp-8h]
@@ -20964,8 +20964,8 @@ __int64 __fastcall sub_94040008(char a1)
   return result;
 }
 
-/* ===== sub_94040034 @ 0x94040034 size 1420 ===== */
-__int64 __fastcall sub_94040034(__int64 a1, unsigned __int8 *a2, unsigned int a3)
+/* ===== sprd_i2c_transfer @ 0x94040034 size 1420 ===== */
+__int64 __fastcall sprd_i2c_transfer(__int64 a1, unsigned __int8 *a2, unsigned int a3)
 {
   unsigned __int8 *v4; // x1
   unsigned __int8 *v5; // x24
@@ -20989,7 +20989,7 @@ __int64 __fastcall sub_94040034(__int64 a1, unsigned __int8 *a2, unsigned int a3
   __int64 v25; // [xsp+78h] [xbp+78h]
   unsigned int v27; // [xsp+84h] [xbp+84h]
 
-  sub_94034308(*(_DWORD *)(a1 + 56));
+  clk_enable(*(_DWORD *)(a1 + 56));
   if ( a3 != 0 )
   {
     v27 = a3 - 1;
@@ -21156,7 +21156,7 @@ LABEL_5:
             if ( (v7[5] & 8) == 0 )
             {
               for ( i = 1000; i != 0; --i )
-                sub_94040008(1);
+                delay_loop(1);
             }
           }
           goto LABEL_48;
@@ -21174,7 +21174,7 @@ LABEL_5:
           v22 = 1000;
           while ( 1 )
           {
-            sub_94040008(200);
+            delay_loop(200);
             if ( (*v21 & 0x14) != 0 )
               break;
             if ( --v22 == -1 )
@@ -21186,14 +21186,14 @@ LABEL_5:
             goto LABEL_57;
           }
 LABEL_79:
-          sub_940407DC(2, "Timed out in wait_for_data_ready: status=%04x\n");
-          sub_940407DC(2, "I2C_CTL \t= 0x%x\n", *v7);
-          sub_940407DC(2, "I2C_ADDR_CFG \t= 0x%x\n", v7[1]);
-          sub_940407DC(2, "I2C_COUNT = 0x%x\n", *v10);
-          sub_940407DC(2, "I2C_STATUS = 0x%x\n", *v21);
-          sub_940407DC(2, "ADDR_DVD0 = 0x%x\n", v7[8]);
-          sub_940407DC(2, "ADDR_DVD1 = 0x%x\n", v7[9]);
-          sub_940407DC(2, "ADDR_STA0_DVD = 0x%x\n", v7[10]);
+          sprd_log(2, "Timed out in wait_for_data_ready: status=%04x\n");
+          sprd_log(2, "I2C_CTL \t= 0x%x\n", *v7);
+          sprd_log(2, "I2C_ADDR_CFG \t= 0x%x\n", v7[1]);
+          sprd_log(2, "I2C_COUNT = 0x%x\n", *v10);
+          sprd_log(2, "I2C_STATUS = 0x%x\n", *v21);
+          sprd_log(2, "ADDR_DVD0 = 0x%x\n", v7[8]);
+          sprd_log(2, "ADDR_DVD1 = 0x%x\n", v7[9]);
+          sprd_log(2, "ADDR_STA0_DVD = 0x%x\n", v7[10]);
           *v7 &= ~1u;
 LABEL_57:
           if ( v20 > 15 )
@@ -21277,12 +21277,12 @@ LABEL_48:
       }
     }
   }
-  sub_940343A8(*(_DWORD *)(a1 + 56));
+  clk_disable(*(_DWORD *)(a1 + 56));
   return a3;
 }
 
-/* ===== sub_940405C0 @ 0x940405C0 size 456 ===== */
-__int64 sub_940405C0()
+/* ===== sprd_i2c_bus_init @ 0x940405C0 size 456 ===== */
+__int64 sprd_i2c_bus_init()
 {
   int v0; // w19
   __int64 v1; // x24
@@ -21306,17 +21306,17 @@ __int64 sub_940405C0()
     *(_DWORD *)(v1 - 40) = v0;
     *(_DWORD *)(v1 - 32) = 0;
     *(_QWORD *)(v1 - 24) = qword_9405C758;
-    v4 = sub_940408CC(v3, v2, 4096, 2, v1);
+    v4 = sprd_iomap(v3, v2, 4096, 2, v1);
     if ( v4 != 0 )
     {
-      result = sub_940407DC(2, "%s: mem map failed %d\n", "sprd_i2c_bus_init", v4);
+      result = sprd_log(2, "%s: mem map failed %d\n", "sprd_i2c_bus_init", v4);
     }
     else
     {
-      sub_94034308(*(_DWORD *)(v1 + 8));
+      clk_enable(*(_DWORD *)(v1 + 8));
       v5 = *(_DWORD **)v1;
       **(_DWORD **)v1 = **(_DWORD **)v1 & 0xFFF00EBB | 0x82100;
-      sub_940407DC(2, "i2c%d, freq=%d\n", *(_DWORD *)(v1 - 40), *(_DWORD *)(v1 + 12));
+      sprd_log(2, "i2c%d, freq=%d\n", *(_DWORD *)(v1 - 40), *(_DWORD *)(v1 + 12));
       v6 = *(_DWORD *)(v1 + 12);
       v7 = *(_DWORD **)v1;
       v8 = 0x18CBA80u / (4 * v6) - 1;
@@ -21335,8 +21335,8 @@ __int64 sub_940405C0()
       v5[11] = 1;
       v5[5] &= ~4u;
       *v5 |= 4u;
-      sub_940343A8(*(_DWORD *)(v1 + 8));
-      result = sub_940407DC(2, "%s is ok!\n", *(const char **)(v1 - 16));
+      clk_disable(*(_DWORD *)(v1 + 8));
+      result = sprd_log(2, "%s is ok!\n", *(const char **)(v1 - 16));
     }
     ++v0;
     v1 += 72;
@@ -21345,22 +21345,22 @@ __int64 sub_940405C0()
   return result;
 }
 
-/* ===== sub_94040788 @ 0x94040788 size 4 ===== */
+/* ===== irq_enable @ 0x94040788 size 4 ===== */
 // attributes: thunk
-__int64 __fastcall sub_94040788(unsigned int a1)
+__int64 __fastcall irq_enable(unsigned int a1)
 {
-  return sub_94023FB4(a1);
+  return gic_enable_irq(a1);
 }
 
-/* ===== sub_9404078C @ 0x9404078C size 24 ===== */
-__int64 __fastcall sub_9404078C(unsigned int a1, __int64 a2, __int64 a3)
+/* ===== irq_register @ 0x9404078C size 24 ===== */
+__int64 __fastcall irq_register(unsigned int a1, __int64 a2, __int64 a3)
 {
-  sub_94023C34(a1, a2, a3);
+  register_int_handler(a1, a2, a3);
   return 0;
 }
 
-/* ===== sub_940407A4 @ 0x940407A4 size 56 ===== */
-__int64 __fastcall sub_940407A4(__int64 result)
+/* ===== assert_fail @ 0x940407A4 size 56 ===== */
+__int64 __fastcall assert_fail(__int64 result)
 {
   __int64 v1; // x30
   __int64 v2; // x0
@@ -21368,19 +21368,19 @@ __int64 __fastcall sub_940407A4(__int64 result)
 
   if ( (_DWORD)result == 0 )
   {
-    v2 = sub_9404B508(
+    v2 = panic(
            v1,
            "ASSERT FAILED at (%s:%d): %s\n",
            "external/lk/platform/sprd/pal/src/sprd_pal_debug.c",
            31,
            "x");
-    return sub_940407DC(v2, v3);
+    return sprd_log(v2, v3);
   }
   return result;
 }
 
-/* ===== sub_940407DC @ 0x940407DC size 148 ===== */
-__int64 sub_940407DC(
+/* ===== sprd_log @ 0x940407DC size 148 ===== */
+__int64 sprd_log(
         unsigned int a1,
         const char *a2,
         double a3,
@@ -21407,70 +21407,70 @@ __int64 sub_940407DC(
   if ( v10 <= MEMORY[0xFFFFFFFFE003CB98] )
   {
     va_copy(va1, va);
-    return sub_9404B41C(a2, va1);
+    return log_vprintf(a2, va1);
   }
   return result;
 }
 
-/* ===== sub_94040870 @ 0x94040870 size 8 ===== */
-__int64 __fastcall sub_94040870(__int64 a1, __int64 a2, unsigned int a3)
+/* ===== memcmp @ 0x94040870 size 8 ===== */
+__int64 __fastcall memcmp(__int64 a1, __int64 a2, unsigned int a3)
 {
-  return sub_9404CC24(a1, a2, a3);
+  return memcmp(a1, a2, a3);
 }
 
-/* ===== sub_94040878 @ 0x94040878 size 4 ===== */
+/* ===== strcmp @ 0x94040878 size 4 ===== */
 // attributes: thunk
-__int64 __fastcall sub_94040878(__int64 a1, __int64 a2)
+__int64 __fastcall strcmp(__int64 a1, __int64 a2)
 {
-  return sub_9404CED8(a1, a2);
+  return strcmp(a1, a2);
 }
 
-/* ===== sub_9404087C @ 0x9404087C size 4 ===== */
+/* ===== rtc_read @ 0x9404087C size 4 ===== */
 // attributes: thunk
-__int64 sub_9404087C()
+__int64 rtc_read()
 {
-  return sub_9404D0E4();
+  return strstr();
 }
 
-/* ===== sub_94040880 @ 0x94040880 size 8 ===== */
-__int64 __fastcall sub_94040880(__int64 a1, __int64 a2, unsigned int a3)
+/* ===== memcpy @ 0x94040880 size 8 ===== */
+__int64 __fastcall memcpy(__int64 a1, __int64 a2, unsigned int a3)
 {
-  return sub_9404CC78(a1, a2, a3);
+  return memcpy(a1, a2, a3);
 }
 
-/* ===== sub_94040888 @ 0x94040888 size 12 ===== */
-__int64 __fastcall sub_94040888(__int64 a1, unsigned __int8 a2, unsigned int a3)
+/* ===== memset @ 0x94040888 size 12 ===== */
+__int64 __fastcall memset(__int64 a1, unsigned __int8 a2, unsigned int a3)
 {
-  return sub_9404CDC4(a1, a2, a3);
+  return memset(a1, a2, a3);
 }
 
-/* ===== sub_94040894 @ 0x94040894 size 8 ===== */
-__int64 __fastcall sub_94040894(unsigned int a1)
+/* ===== malloc @ 0x94040894 size 8 ===== */
+__int64 __fastcall malloc(unsigned int a1)
 {
-  return sub_9404CBC4(a1);
+  return malloc(a1);
 }
 
-/* ===== sub_9404089C @ 0x9404089C size 16 ===== */
-__int64 __fastcall sub_9404089C(unsigned int a1, unsigned int a2)
+/* ===== memalign @ 0x9404089C size 16 ===== */
+__int64 __fastcall memalign(unsigned int a1, unsigned int a2)
 {
-  return sub_9404CBCC(a2, a1);
+  return memalign(a2, a1);
 }
 
-/* ===== sub_940408AC @ 0x940408AC size 4 ===== */
+/* ===== free @ 0x940408AC size 4 ===== */
 // attributes: thunk
-__int64 __fastcall sub_940408AC(__int64 a1)
+__int64 __fastcall free(__int64 a1)
 {
-  return sub_9404CC20(a1);
+  return free(a1);
 }
 
-/* ===== sub_940408B0 @ 0x940408B0 size 8 ===== */
-__int64 __fastcall sub_940408B0(__int64 a1, unsigned int a2)
+/* ===== dcache_clean @ 0x940408B0 size 8 ===== */
+__int64 __fastcall dcache_clean(__int64 a1, unsigned int a2)
 {
-  return sub_940223FC(a1, a2);
+  return dcache_clean_range(a1, a2);
 }
 
-/* ===== sub_940408B8 @ 0x940408B8 size 8 ===== */
-__int64 __fastcall sub_940408B8(__int64 result, unsigned int a2)
+/* ===== dcache_clean2 @ 0x940408B8 size 8 ===== */
+__int64 __fastcall dcache_clean2(__int64 result, unsigned int a2)
 {
   unsigned __int64 v2; // x3
 
@@ -21485,33 +21485,33 @@ __int64 __fastcall sub_940408B8(__int64 result, unsigned int a2)
   return result;
 }
 
-/* ===== sub_940408C0 @ 0x940408C0 size 8 ===== */
-__int64 __fastcall sub_940408C0(__int64 a1, unsigned int a2)
+/* ===== dcache_invalidate @ 0x940408C0 size 8 ===== */
+__int64 __fastcall dcache_invalidate(__int64 a1, unsigned int a2)
 {
-  return sub_9402241C(a1, a2);
+  return dcache_invalidate_range(a1, a2);
 }
 
-/* ===== sub_940408C8 @ 0x940408C8 size 4 ===== */
+/* ===== virt_to_phys @ 0x940408C8 size 4 ===== */
 // attributes: thunk
-__int64 __fastcall sub_940408C8(__int64 a1)
+__int64 __fastcall virt_to_phys(__int64 a1)
 {
-  return sub_9404A248(a1);
+  return pmm_phys_to_virt(a1);
 }
 
-/* ===== sub_940408CC @ 0x940408CC size 40 ===== */
-__int64 __fastcall sub_940408CC(__int64 a1, __int64 a2, unsigned int a3, unsigned int a4, __int64 a5)
+/* ===== sprd_iomap @ 0x940408CC size 40 ===== */
+__int64 __fastcall sprd_iomap(__int64 a1, __int64 a2, unsigned int a3, unsigned int a4, __int64 a5)
 {
-  return sub_9404A878(-536460256, a1, a3, a5, 12, a2, 0, a4);
+  return vmm_map(-536460256, a1, a3, a5, 12, a2, 0, a4);
 }
 
-/* ===== sub_940408F4 @ 0x940408F4 size 16 ===== */
-__int64 __fastcall sub_940408F4(__int64 a1)
+/* ===== sprd_iounmap @ 0x940408F4 size 16 ===== */
+__int64 __fastcall sprd_iounmap(__int64 a1)
 {
-  return sub_9404ABDC(-536460256, a1);
+  return vmm_free_region(-536460256, a1);
 }
 
-/* ===== sub_94040904 @ 0x94040904 size 56 ===== */
-__int64 __fastcall sub_94040904(
+/* ===== sprd_dma_alloc @ 0x94040904 size 56 ===== */
+__int64 __fastcall sprd_dma_alloc(
         __int64 a1,
         __int64 a2,
         __int64 a3,
@@ -21519,37 +21519,37 @@ __int64 __fastcall sub_94040904(
         unsigned int a5,
         unsigned int a6)
 {
-  return sub_9404AA04(-536460256, a1, a2, a3, a4, a5, a6);
+  return vmm_alloc_physical(-536460256, a1, a2, a3, a4, a5, a6);
 }
 
-/* ===== sub_9404093C @ 0x9404093C size 48 ===== */
-__int64 sub_9404093C()
+/* ===== sprd_mutex_create @ 0x9404093C size 48 ===== */
+__int64 sprd_mutex_create()
 {
   __int64 v0; // x0
   __int64 v1; // x19
 
-  v0 = sub_9404CBC4(56);
+  v0 = malloc(56);
   v1 = v0;
   if ( v0 != 0 )
-    sub_940251C4(v0);
+    mutex_init(v0);
   return v1;
 }
 
-/* ===== sub_9404096C @ 0x9404096C size 8 ===== */
-__int64 __fastcall sub_9404096C(__int64 a1)
+/* ===== sprd_mutex_lock @ 0x9404096C size 8 ===== */
+__int64 __fastcall sprd_mutex_lock(__int64 a1)
 {
-  return sub_940251F8(a1, 0xFFFFFFFFLL);
+  return mutex_acquire_timeout(a1, 0xFFFFFFFFLL);
 }
 
-/* ===== sub_94040974 @ 0x94040974 size 4 ===== */
+/* ===== sprd_mutex_unlock @ 0x94040974 size 4 ===== */
 // attributes: thunk
-__int64 __fastcall sub_94040974(__int64 a1)
+__int64 __fastcall sprd_mutex_unlock(__int64 a1)
 {
-  return sub_9402530C(a1);
+  return mutex_release(a1);
 }
 
-/* ===== sub_94040978 @ 0x94040978 size 64 ===== */
-unsigned __int64 *__fastcall sub_94040978(unsigned __int64 *result, int *a2, int a3)
+/* ===== sprd_spin_lock_irqsave @ 0x94040978 size 64 ===== */
+unsigned __int64 *__fastcall sprd_spin_lock_irqsave(unsigned __int64 *result, int *a2, int a3)
 {
   int v3; // w3
 
@@ -21569,19 +21569,19 @@ unsigned __int64 *__fastcall sub_94040978(unsigned __int64 *result, int *a2, int
   {
     __asm { MSR             DAIFSet, #1 }
     *a2 = v3 | 2;
-    return sub_940223B4(result);
+    return spin_lock(result);
   }
 LABEL_4:
   *a2 = v3;
-  return sub_940223B4(result);
+  return spin_lock(result);
 }
 
-/* ===== sub_940409B8 @ 0x940409B8 size 64 ===== */
-unsigned __int64 *__fastcall sub_940409B8(unsigned __int64 *a1, char a2, int a3)
+/* ===== sprd_spin_unlock_irqrestore @ 0x940409B8 size 64 ===== */
+unsigned __int64 *__fastcall sprd_spin_unlock_irqrestore(unsigned __int64 *a1, char a2, int a3)
 {
   unsigned __int64 *result; // x0
 
-  result = sub_940223D4(a1);
+  result = spin_unlock(a1);
   if ( a3 < 0 && (a2 & 2) != 0 )
     __asm { MSR             DAIFClr, #1 }
   if ( (a3 & 0x40000000) != 0 && (a2 & 1) != 0 )
@@ -21589,69 +21589,69 @@ unsigned __int64 *__fastcall sub_940409B8(unsigned __int64 *a1, char a2, int a3)
   return result;
 }
 
-/* ===== sub_940409F8 @ 0x940409F8 size 60 ===== */
-__int64 __fastcall sub_940409F8(int a1)
+/* ===== sprd_semaphore_create @ 0x940409F8 size 60 ===== */
+__int64 __fastcall sprd_semaphore_create(int a1)
 {
   __int64 v1; // x0
   __int64 v2; // x19
 
-  v1 = sub_9404CBC4(40);
+  v1 = malloc(40);
   v2 = v1;
   if ( v1 != 0 )
-    sub_94028150(v1, a1);
+    semaphore_init(v1, a1);
   return v2;
 }
 
-/* ===== sub_94040A34 @ 0x94040A34 size 64 ===== */
-__int64 __fastcall sub_94040A34(__int64 a1)
+/* ===== sprd_semaphore_destroy @ 0x94040A34 size 64 ===== */
+__int64 __fastcall sprd_semaphore_destroy(__int64 a1)
 {
   if ( a1 == 0 )
     return 1;
-  sub_94028180(a1);
-  sub_9404CC20(a1);
+  semaphore_destroy(a1);
+  free(a1);
   return 0;
 }
 
-/* ===== sub_94040A74 @ 0x94040A74 size 8 ===== */
-__int64 __fastcall sub_94040A74(__int64 a1)
+/* ===== sprd_semaphore_wait @ 0x94040A74 size 8 ===== */
+__int64 __fastcall sprd_semaphore_wait(__int64 a1)
 {
-  return sub_940282F8(a1, 0xFFFFFFFFLL);
+  return semaphore_wait(a1, 0xFFFFFFFFLL);
 }
 
-/* ===== sub_94040A7C @ 0x94040A7C size 12 ===== */
-__int64 __fastcall sub_94040A7C(__int64 a1, int a2)
+/* ===== sprd_semaphore_post @ 0x94040A7C size 12 ===== */
+__int64 __fastcall sprd_semaphore_post(__int64 a1, int a2)
 {
-  return sub_94028204(a1, a2 != 0);
+  return semaphore_post(a1, a2 != 0);
 }
 
-/* ===== sub_94040A88 @ 0x94040A88 size 4 ===== */
+/* ===== thread_sleep_ms @ 0x94040A88 size 4 ===== */
 // attributes: thunk
-unsigned __int64 *__fastcall sub_94040A88(unsigned int a1)
+unsigned __int64 *__fastcall thread_sleep_ms(unsigned int a1)
 {
-  return sub_940263B8(a1);
+  return thread_sleep(a1);
 }
 
-/* ===== sub_94040A8C @ 0x94040A8C size 8 ===== */
-__int64 __fastcall sub_94040A8C(__int64 a1, __int64 a2, __int64 a3, unsigned int a4, unsigned int a5)
+/* ===== sprd_thread_create @ 0x94040A8C size 8 ===== */
+__int64 __fastcall sprd_thread_create(__int64 a1, __int64 a2, __int64 a3, unsigned int a4, unsigned int a5)
 {
-  return sub_940268B8(a1, a2, a3, a4, a5);
+  return thread_create_simple(a1, a2, a3, a4, a5);
 }
 
-/* ===== sub_94040A94 @ 0x94040A94 size 4 ===== */
+/* ===== sprd_thread_resume @ 0x94040A94 size 4 ===== */
 // attributes: thunk
-unsigned __int64 *__fastcall sub_94040A94(_DWORD *a1)
+unsigned __int64 *__fastcall sprd_thread_resume(_DWORD *a1)
 {
-  return sub_940260B0(a1);
+  return thread_resume_full(a1);
 }
 
-/* ===== sub_94040A98 @ 0x94040A98 size 8 ===== */
-unsigned __int64 sub_94040A98()
+/* ===== get_current_thread @ 0x94040A98 size 8 ===== */
+unsigned __int64 get_current_thread()
 {
   return _ReadStatusReg(TPIDR_EL1);
 }
 
-/* ===== sub_94040AA0 @ 0x94040AA0 size 36 ===== */
-unsigned __int64 sub_94040AA0()
+/* ===== arch_curr_cpu_num @ 0x94040AA0 size 36 ===== */
+unsigned __int64 arch_curr_cpu_num()
 {
   unsigned __int64 StatusReg; // x1
 
@@ -21661,25 +21661,25 @@ unsigned __int64 sub_94040AA0()
   return (unsigned __int8)StatusReg | (4 * ((StatusReg >> 8) & 0xF));
 }
 
-/* ===== sub_94040AC4 @ 0x94040AC4 size 20 ===== */
-__int64 __fastcall sub_94040AC4(__int64 a1)
+/* ===== strlen @ 0x94040AC4 size 20 ===== */
+__int64 __fastcall strlen(__int64 a1)
 {
-  return sub_9404CFF4(a1);
+  return strlen(a1);
 }
 
-/* ===== sub_94040AD8 @ 0x94040AD8 size 76 ===== */
-__int64 sub_94040AD8()
+/* ===== rpmb_handler_register @ 0x94040AD8 size 76 ===== */
+__int64 rpmb_handler_register()
 {
   __int64 result; // x0
 
-  result = sub_9402D420(9u, (__int64)qword_9405C8C8);
+  result = trusty_install_handler(9u, (__int64)qword_9405C8C8);
   if ( (_DWORD)result != 0 && MEMORY[0xFFFFFFFFE003CB98] > 1 )
-    return sub_9404B2FC("can not install sprd_rpmb_op in handler: %d\n", result);
+    return log_printf("can not install sprd_rpmb_op in handler: %d\n", result);
   return result;
 }
 
-/* ===== sub_94040B24 @ 0x94040B24 size 184 ===== */
-__int64 __fastcall sub_94040B24(__int64 a1, int a2, unsigned int a3)
+/* ===== sys_get_rpmb_size @ 0x94040B24 size 184 ===== */
+__int64 __fastcall sys_get_rpmb_size(__int64 a1, int a2, unsigned int a3)
 {
   unsigned int v3; // w19
 
@@ -21689,7 +21689,7 @@ __int64 __fastcall sub_94040B24(__int64 a1, int a2, unsigned int a3)
   {
     if ( a2 != 1 )
       return (unsigned int)-24;
-    sub_9404D224(a3, &dword_9405C8E0, 4);
+    copy_to_user(a3, &dword_9405C8E0, 4);
     return 4;
   }
   else
@@ -21697,14 +21697,14 @@ __int64 __fastcall sub_94040B24(__int64 a1, int a2, unsigned int a3)
     v3 = -1;
     if ( MEMORY[0xFFFFFFFFE003CB98] <= 1 )
       return v3;
-    sub_9404B2FC("uboot don't set rpmb size, return error\n", &qword_94067DD8);
+    log_printf("uboot don't set rpmb size, return error\n", &qword_94067DD8);
     return 0xFFFFFFFFLL;
   }
 }
 
-/* ===== sub_94040BDC @ 0x94040BDC size 264 ===== */
+/* ===== process_rpmb_size_smc @ 0x94040BDC size 264 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_94040BDC(__int64 a1)
+__int64 __fastcall process_rpmb_size_smc(__int64 a1)
 {
   unsigned int v1; // w21
   int v2; // w19
@@ -21716,11 +21716,11 @@ __int64 __fastcall sub_94040BDC(__int64 a1)
 
   v1 = *(_DWORD *)(a1 + 8);
   v7 = nullptr;
-  v2 = sub_9404A878(-536460256, "sprdrpmbsize", 4096, &v7, 12, v1, 0, 48);
+  v2 = vmm_map(-536460256, "sprdrpmbsize", 4096, &v7, 12, v1, 0, 48);
   if ( v2 != 0 )
   {
     if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-      sub_9404B2FC("can not map phy 0x%x , ret:%d\n", v1, v2);
+      log_printf("can not map phy 0x%x , ret:%d\n", v1, v2);
     return v2;
   }
   else
@@ -21730,24 +21730,24 @@ __int64 __fastcall sub_94040BDC(__int64 a1)
     qword_94067DD8 = *v7;
     if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
     {
-      sub_9404B2FC((const char *)&loc_94054BA8, v5);
+      log_printf((const char *)&loc_94054BA8, v5);
       v4 = v7;
     }
-    v6 = sub_9404ABDC(-536460256, v4);
+    v6 = vmm_free_region(-536460256, v4);
     result = 0;
     if ( v6 != 0 )
     {
       if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-        sub_9404B2FC("can not unmap virt addr, ret:%d\n", v6);
+        log_printf("can not unmap virt addr, ret:%d\n", v6);
       return v6;
     }
   }
   return result;
 }
 
-/* ===== sub_94040CE4 @ 0x94040CE4 size 264 ===== */
+/* ===== process_rpmb_key_smc @ 0x94040CE4 size 264 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_94040CE4(__int64 a1)
+__int64 __fastcall process_rpmb_key_smc(__int64 a1)
 {
   unsigned int v1; // w21
   int v2; // w19
@@ -21759,11 +21759,11 @@ __int64 __fastcall sub_94040CE4(__int64 a1)
 
   v1 = *(_DWORD *)(a1 + 8);
   v7 = nullptr;
-  v2 = sub_9404A878(-536460256, "sprdisrpmbkey", 4096, &v7, 12, v1, 0, 48);
+  v2 = vmm_map(-536460256, "sprdisrpmbkey", 4096, &v7, 12, v1, 0, 48);
   if ( v2 != 0 )
   {
     if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-      sub_9404B2FC("can not map phy 0x%x , ret:%d\n", v1, v2);
+      log_printf("can not map phy 0x%x , ret:%d\n", v1, v2);
     return v2;
   }
   else
@@ -21773,40 +21773,40 @@ __int64 __fastcall sub_94040CE4(__int64 a1)
     dword_9405C8E0 = *v7;
     if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
     {
-      sub_9404B2FC("is written rpmb key %d\n", v5);
+      log_printf("is written rpmb key %d\n", v5);
       v4 = v7;
     }
-    v6 = sub_9404ABDC(-536460256, v4);
+    v6 = vmm_free_region(-536460256, v4);
     result = 0;
     if ( v6 != 0 )
     {
       if ( MEMORY[0xFFFFFFFFE003CB98] > 1 )
-        sub_9404B2FC("can not unmap virt addr, ret:%d\n", v6);
+        log_printf("can not unmap virt addr, ret:%d\n", v6);
       return v6;
     }
   }
   return result;
 }
 
-/* ===== sub_94040DEC @ 0x94040DEC size 68 ===== */
-unsigned __int64 sub_94040DEC()
+/* ===== sprd_timer_get_counter @ 0x94040DEC size 68 ===== */
+unsigned __int64 sprd_timer_get_counter()
 {
   return 1000 * (0xFFFF00000000LL - *(_QWORD *)(MEMORY[0xFFFFFFFFE0047DE0] + 24LL)) / 0x21uLL;
 }
 
-/* ===== sub_94040E30 @ 0x94040E30 size 204 ===== */
-__int64 sub_94040E30()
+/* ===== sprd_timer_secure_init @ 0x94040E30 size 204 ===== */
+__int64 sprd_timer_secure_init()
 {
   _DWORD *v0; // x0
   __int64 result; // x0
 
   if ( MEMORY[0xFFFFFFFFE0047DE8] != 0
-    || (_DWORD)(result = sub_940408CC((__int64)"sprd_timer_secure", 839188480, 0x10000u, 2u, -536576536)) == 0 )
+    || (_DWORD)(result = sprd_iomap((__int64)"sprd_timer_secure", 839188480, 0x10000u, 2u, -536576536)) == 0 )
   {
     v0 = (_DWORD *)MEMORY[0xFFFFFFFFE0047DE0];
     if ( MEMORY[0xFFFFFFFFE0047DE0] == 0 )
     {
-      result = sub_940408CC((__int64)"sprd_timer_secure", 838991872, 0x10000u, 2u, -536576544);
+      result = sprd_iomap((__int64)"sprd_timer_secure", 838991872, 0x10000u, 2u, -536576544);
       if ( (_DWORD)result != 0 )
         return result;
       v0 = (_DWORD *)MEMORY[0xFFFFFFFFE0047DE0];
@@ -21822,20 +21822,20 @@ __int64 sub_94040E30()
   return result;
 }
 
-/* ===== sub_94040EFC @ 0x94040EFC size 48 ===== */
-__int64 __fastcall sub_94040EFC(double a1, double a2, double a3, double a4, double a5, double a6, double a7, double a8)
+/* ===== secboot_data_init @ 0x94040EFC size 48 ===== */
+__int64 __fastcall secboot_data_init(double a1, double a2, double a3, double a4, double a5, double a6, double a7, double a8)
 {
   __int64 result; // x0
 
   result = -536576248;
   if ( MEMORY[0xFFFFFFFFE0047F08] != 0 )
-    return sub_940407DC(2u, "SECUREBOOTDataVal is not NULL.\n", a1, a2, a3, a4, a5, a6, a7, a8);
+    return sprd_log(2u, "SECUREBOOTDataVal is not NULL.\n", a1, a2, a3, a4, a5, a6, a7, a8);
   MEMORY[0xFFFFFFFFE0047F08] = -536460568;
   return result;
 }
 
-/* ===== sub_94040F2C @ 0x94040F2C size 240 ===== */
-__int64 __fastcall sub_94040F2C(double a1, double a2, double a3, double a4, double a5, double a6, double a7, double a8)
+/* ===== sprd_kbc_init @ 0x94040F2C size 240 ===== */
+__int64 __fastcall sprd_kbc_init(double a1, double a2, double a3, double a4, double a5, double a6, double a7, double a8)
 {
   double v8; // d0
   double v9; // d1
@@ -21874,15 +21874,15 @@ __int64 __fastcall sub_94040F2C(double a1, double a2, double a3, double a4, doub
   unsigned int v42; // w0
   const char *v43; // x1
 
-  sub_940407DC(2u, "sprd_kbc_init() enter.\n", a1, a2, a3, a4, a5, a6, a7, a8);
-  sub_940407DC(2u, "map size = %d \n", v8, v9, v10, v11, v12, v13, v14, v15, 0x10000);
-  sub_940407DC(2u, "CTL_BASE_AON_APB = %p \n", v16, v17, v18, v19, v20, v21, v22, v23, 1076756480);
-  v24 = sub_940408CC((__int64)"sprdsec", 1076559872, 0x10000u, 2u, (__int64)&qword_94067DF0);
+  sprd_log(2u, "sprd_kbc_init() enter.\n", a1, a2, a3, a4, a5, a6, a7, a8);
+  sprd_log(2u, "map size = %d \n", v8, v9, v10, v11, v12, v13, v14, v15, 0x10000);
+  sprd_log(2u, "CTL_BASE_AON_APB = %p \n", v16, v17, v18, v19, v20, v21, v22, v23, 1076756480);
+  v24 = sprd_iomap((__int64)"sprdsec", 1076559872, 0x10000u, 2u, (__int64)&qword_94067DF0);
   v33 = v24;
   if ( v24 != 0
-    || (sub_940407DC(2u, "pmu_vaddr = %p \n", v25, v26, v27, v28, v29, v30, v31, v32, 0),
-        sub_940407DC(2u, "CTL_BASE_PMU_APB = %p \n", v34, v35, v36, v37, v38, v39, v40, v41, 1076559872),
-        v42 = sub_940408CC((__int64)"sprdsec", 1076756480, 0x10000u, 2u, (__int64)&qword_94067DF8),
+    || (sprd_log(2u, "pmu_vaddr = %p \n", v25, v26, v27, v28, v29, v30, v31, v32, 0),
+        sprd_log(2u, "CTL_BASE_PMU_APB = %p \n", v34, v35, v36, v37, v38, v39, v40, v41, 1076559872),
+        v42 = sprd_iomap((__int64)"sprdsec", 1076756480, 0x10000u, 2u, (__int64)&qword_94067DF8),
         v33 = v42,
         v42 != 0) )
   {
@@ -21893,11 +21893,11 @@ __int64 __fastcall sub_94040F2C(double a1, double a2, double a3, double a4, doub
     v33 = 0;
     v43 = "aon_vaddr = %p \n";
   }
-  return sub_940407DC(2u, v43, v25, v26, v27, v28, v29, v30, v31, v32, v33);
+  return sprd_log(2u, v43, v25, v26, v27, v28, v29, v30, v31, v32, v33);
 }
 
-/* ===== sub_9404101C @ 0x9404101C size 204 ===== */
-__int64 __fastcall sub_9404101C(
+/* ===== sprd_dump_hex @ 0x9404101C size 204 ===== */
+__int64 __fastcall sprd_dump_hex(
         __int64 a1,
         __int64 a2,
         int a3,
@@ -21931,7 +21931,7 @@ __int64 __fastcall sub_9404101C(
   double v31; // d6
   double v32; // d7
 
-  sub_940407DC(2u, "%s", a4, a5, a6, a7, a8, a9, a10, a11, a1);
+  sprd_log(2u, "%s", a4, a5, a6, a7, a8, a9, a10, a11, a1);
   if ( a3 > 0 )
   {
     v21 = (unsigned int)(a3 - 1) + 1LL;
@@ -21941,21 +21941,21 @@ __int64 __fastcall sub_9404101C(
       while ( (v22 & 0xF) != 0 )
       {
         v23 = *(unsigned __int8 *)(a2 + v22++);
-        sub_940407DC(2u, " %02x", v13, v14, v15, v16, v17, v18, v19, v20, v23);
+        sprd_log(2u, " %02x", v13, v14, v15, v16, v17, v18, v19, v20, v23);
         if ( v22 == v21 )
-          return sub_940407DC(2u, "\n", v13, v14, v15, v16, v17, v18, v19, v20);
+          return sprd_log(2u, "\n", v13, v14, v15, v16, v17, v18, v19, v20);
       }
-      sub_940407DC(2u, "\n%04x", v13, v14, v15, v16, v17, v18, v19, v20, (unsigned int)v22);
+      sprd_log(2u, "\n%04x", v13, v14, v15, v16, v17, v18, v19, v20, (unsigned int)v22);
       v24 = *(unsigned __int8 *)(a2 + v22++);
-      sub_940407DC(2u, " %02x", v25, v26, v27, v28, v29, v30, v31, v32, v24);
+      sprd_log(2u, " %02x", v25, v26, v27, v28, v29, v30, v31, v32, v24);
     }
     while ( v22 != v21 );
   }
-  return sub_940407DC(2u, "\n", v13, v14, v15, v16, v17, v18, v19, v20);
+  return sprd_log(2u, "\n", v13, v14, v15, v16, v17, v18, v19, v20);
 }
 
-/* ===== sub_940410E8 @ 0x940410E8 size 368 ===== */
-__int64 __fastcall sub_940410E8(
+/* ===== process_save_hubkey_smc @ 0x940410E8 size 368 ===== */
+__int64 __fastcall process_save_hubkey_smc(
         __int64 a1,
         double a2,
         double a3,
@@ -22004,17 +22004,17 @@ __int64 __fastcall sub_940410E8(
   v10 = *(unsigned int *)(a1 + 12);
   v41 = nullptr;
   v40 = 0;
-  sub_940407DC(2u, "from uboot smc...addr:0x%x len:0x%x\n", a2, a3, a4, a5, a6, a7, a8, a9, v9, v10);
-  v11 = sub_940408CC((__int64)"sprdsec", v9, 0x1000u, 0x30u, (__int64)&v41);
+  sprd_log(2u, "from uboot smc...addr:0x%x len:0x%x\n", a2, a3, a4, a5, a6, a7, a8, a9, v9, v10);
+  v11 = sprd_iomap((__int64)"sprdsec", v9, 0x1000u, 0x30u, (__int64)&v41);
   if ( v11 != 0 )
   {
-    sub_940407DC(2u, "can not map phy addr 1 , ret:%d\n", v12, v13, v14, v15, v16, v17, v18, v19, v11);
+    sprd_log(2u, "can not map phy addr 1 , ret:%d\n", v12, v13, v14, v15, v16, v17, v18, v19, v11);
     return (int)v11;
   }
   else
   {
     v20 = v41[1];
-    sub_940407DC(
+    sprd_log(
       2u,
       "from uboot smc...addr:0x%x len:0x%x\n",
       v12,
@@ -22027,20 +22027,20 @@ __int64 __fastcall sub_940410E8(
       v19,
       *v41,
       (unsigned int)v20);
-    v21 = sub_940408CC((__int64)"sprdsec", *v41, ((unsigned int)v20 & 0xFFFFF000) + 4096, 0x30u, (__int64)&v40);
+    v21 = sprd_iomap((__int64)"sprdsec", *v41, ((unsigned int)v20 & 0xFFFFF000) + 4096, 0x30u, (__int64)&v40);
     if ( v21 != 0 )
     {
-      sub_940407DC(2u, "can not map phy addr 2 , ret:%d\n", v22, v23, v24, v25, v26, v27, v28, v29, v21);
+      sprd_log(2u, "can not map phy addr 2 , ret:%d\n", v22, v23, v24, v25, v26, v27, v28, v29, v21);
       return (int)v21;
     }
     else
     {
-      sub_940407DC(2u, "##before process_ns_save_hubkey##### \n", v22, v23, v24, v25, v26, v27, v28, v29);
-      sub_940427A4(v40);
-      v30 = sub_940408F4((__int64)v41);
-      if ( v30 != 0 || (v30 = sub_940408F4(v40), result = 0, v30 != 0) )
+      sprd_log(2u, "##before process_ns_save_hubkey##### \n", v22, v23, v24, v25, v26, v27, v28, v29);
+      process_save_pubkey_smc(v40);
+      v30 = sprd_iounmap((__int64)v41);
+      if ( v30 != 0 || (v30 = sprd_iounmap(v40), result = 0, v30 != 0) )
       {
-        sub_940407DC(2u, "can not unmap virt addr, ret:%d\n", v31, v32, v33, v34, v35, v36, v37, v38, v30);
+        sprd_log(2u, "can not unmap virt addr, ret:%d\n", v31, v32, v33, v34, v35, v36, v37, v38, v30);
         return (int)v30;
       }
     }
@@ -22048,8 +22048,8 @@ __int64 __fastcall sub_940410E8(
   return result;
 }
 
-/* ===== sub_94041258 @ 0x94041258 size 532 ===== */
-__int64 __fastcall sub_94041258(
+/* ===== process_verify_img_smc @ 0x94041258 size 532 ===== */
+__int64 __fastcall process_verify_img_smc(
         __int64 a1,
         double a2,
         double a3,
@@ -22123,9 +22123,9 @@ __int64 __fastcall sub_94041258(
   v68 = nullptr;
   v66 = 0;
   v67 = 0;
-  sub_94040EFC(a2, a3, a4, a5, a6, a7, a8, a9);
+  secboot_data_init(a2, a3, a4, a5, a6, a7, a8, a9);
   v9 = *(_DWORD *)(a1 + 8);
-  sub_940407DC(
+  sprd_log(
     2u,
     "from uboot smc...addr:0x%x len:0x%x\n",
     v10,
@@ -22138,16 +22138,16 @@ __int64 __fastcall sub_94041258(
     v17,
     v9,
     *(unsigned int *)(a1 + 12));
-  v18 = sub_940408CC((__int64)"sprdsec", v9, 0x1000u, 0x30u, (__int64)&v68);
+  v18 = sprd_iomap((__int64)"sprdsec", v9, 0x1000u, 0x30u, (__int64)&v68);
   if ( v18 != 0 )
   {
-    sub_940407DC(2u, "can not map phy addr 1 , ret:%d\n", v19, v20, v21, v22, v23, v24, v25, v26, v18);
+    sprd_log(2u, "can not map phy addr 1 , ret:%d\n", v19, v20, v21, v22, v23, v24, v25, v26, v18);
     return (int)v18;
   }
   else
   {
     v27 = v68[1];
-    sub_940407DC(
+    sprd_log(
       2u,
       "from uboot smc...addr:0x%x len:0x%x\n",
       v19,
@@ -22160,15 +22160,15 @@ __int64 __fastcall sub_94041258(
       v26,
       *v68,
       (unsigned int)v27);
-    v28 = sub_940408CC((__int64)"sprdsec", *v68, ((unsigned int)v27 & 0xFFFFF000) + 4096, 0x30u, (__int64)&v66);
+    v28 = sprd_iomap((__int64)"sprdsec", *v68, ((unsigned int)v27 & 0xFFFFF000) + 4096, 0x30u, (__int64)&v66);
     if ( v28 != 0 )
     {
-      sub_940407DC(2u, "can not map phy addr 2 , ret:%d\n", v29, v30, v31, v32, v33, v34, v35, v36, v28);
+      sprd_log(2u, "can not map phy addr 2 , ret:%d\n", v29, v30, v31, v32, v33, v34, v35, v36, v28);
       return (int)v28;
     }
     else
     {
-      sub_940407DC(
+      sprd_log(
         2u,
         "from uboot smc...addr:0x%x len:0x%x flag:0x%x\n",
         v29,
@@ -22182,21 +22182,21 @@ __int64 __fastcall sub_94041258(
         v68[2],
         *((unsigned int *)v68 + 6),
         v68[4]);
-      v37 = sub_940408CC((__int64)"sprdsec", v68[2], 0x1000u, 0x30u, (__int64)&v67);
+      v37 = sprd_iomap((__int64)"sprdsec", v68[2], 0x1000u, 0x30u, (__int64)&v67);
       if ( v37 != 0 )
       {
-        sub_940407DC(2u, "can not map phy addr 3 , ret:%d\n", v38, v39, v40, v41, v42, v43, v44, v45, v37);
+        sprd_log(2u, "can not map phy addr 3 , ret:%d\n", v38, v39, v40, v41, v42, v43, v44, v45, v37);
         return (int)v37;
       }
       else
       {
-        sub_940407DC(2u, (const char *)&loc_94054DA8, v38, v39, v40, v41, v42, v43, v44, v45);
-        v46 = sub_9404236C(v67, v66);
-        sub_940407DC(2u, "sprd_verify_img , ret:%d\n", v47, v48, v49, v50, v51, v52, v53, v54, v46);
-        v55 = sub_940408F4((__int64)v68);
-        if ( v55 != 0 || (v55 = sub_940408F4(v66)) != 0 || (v55 = sub_940408F4(v67), result = 0, v55 != 0) )
+        sprd_log(2u, (const char *)&loc_94054DA8, v38, v39, v40, v41, v42, v43, v44, v45);
+        v46 = sprd_verify_img(v67, v66);
+        sprd_log(2u, "sprd_verify_img , ret:%d\n", v47, v48, v49, v50, v51, v52, v53, v54, v46);
+        v55 = sprd_iounmap((__int64)v68);
+        if ( v55 != 0 || (v55 = sprd_iounmap(v66)) != 0 || (v55 = sprd_iounmap(v67), result = 0, v55 != 0) )
         {
-          sub_940407DC(2u, "can not unmap virt addr, ret:%d\n", v56, v57, v58, v59, v60, v61, v62, v63, v55);
+          sprd_log(2u, "can not unmap virt addr, ret:%d\n", v56, v57, v58, v59, v60, v61, v62, v63, v55);
           return (int)v55;
         }
       }
@@ -22205,8 +22205,8 @@ __int64 __fastcall sub_94041258(
   return result;
 }
 
-/* ===== sub_9404146C @ 0x9404146C size 464 ===== */
-__int64 __fastcall sub_9404146C(
+/* ===== kbc_image_verify @ 0x9404146C size 464 ===== */
+__int64 __fastcall kbc_image_verify(
         __int64 a1,
         double a2,
         double a3,
@@ -22273,20 +22273,20 @@ __int64 __fastcall sub_9404146C(
   __int64 v64; // [xsp+58h] [xbp+58h] BYREF
 
   v64 = 0;
-  sub_940407DC(2u, "kbc_image_verify() enter.\n", a2, a3, a4, a5, a6, a7, a8, a9);
+  sprd_log(2u, "kbc_image_verify() enter.\n", a2, a3, a4, a5, a6, a7, a8, a9);
   v10 = a1 + 112;
   v11 = 0;
-  sub_9404101C((__int64)"pubkhash:", MEMORY[0xFFFFFFFFE0047F08] + 32LL, 32, v12, v13, v14, v15, v16, v17, v18, v19);
+  sprd_dump_hex((__int64)"pubkhash:", MEMORY[0xFFFFFFFFE0047F08] + 32LL, 32, v12, v13, v14, v15, v16, v17, v18, v19);
   while ( 1 )
   {
     if ( *(_QWORD *)(v10 - 112) == 0 )
     {
-      sub_940407DC(2u, "invalid image [%d]\n", v20, v21, v22, v23, v24, v25, v26, v27, v11);
+      sprd_log(2u, "invalid image [%d]\n", v20, v21, v22, v23, v24, v25, v26, v27, v11);
       if ( v11 == 3 )
         goto LABEL_5;
       goto LABEL_4;
     }
-    sub_940407DC(
+    sprd_log(
       2u,
       (const char *)&loc_94054E30,
       v20,
@@ -22299,7 +22299,7 @@ __int64 __fastcall sub_9404146C(
       v27,
       *(_QWORD *)(v10 - 112),
       *(unsigned int *)(v10 - 100));
-    v38 = sub_940408CC(
+    v38 = sprd_iomap(
             (__int64)"sprdsec",
             *(_QWORD *)(v10 - 112),
             (*(_DWORD *)(v10 - 100) & 0xFFFFF000) + 4096,
@@ -22307,11 +22307,11 @@ __int64 __fastcall sub_9404146C(
             (__int64)&v64);
     if ( v38 != 0 )
     {
-      sub_940407DC(2u, "can not map, ret = %d \n", v39, v40, v41, v42, v43, v44, v45, v46, v38);
+      sprd_log(2u, "can not map, ret = %d \n", v39, v40, v41, v42, v43, v44, v45, v46, v38);
       return (int)v38;
     }
-    sub_940407DC(2u, "after map:pAddr = %p\n", v39, v40, v41, v42, v43, v44, v45, v46, v64);
-    sub_940407DC(
+    sprd_log(2u, "after map:pAddr = %p\n", v39, v40, v41, v42, v43, v44, v45, v46, v64);
+    sprd_log(
       2u,
       "after map:pAddr = %p, img_len = 0x%x\n",
       v47,
@@ -22324,17 +22324,17 @@ __int64 __fastcall sub_9404146C(
       v54,
       v64,
       *(unsigned int *)(v10 - 104));
-    sub_9404263C(MEMORY[0xFFFFFFFFE0047F08] + 32LL, v64, *(unsigned int *)(v10 - 104));
-    sub_940407DC(2u, (const char *)&loc_94054EA0, v55, v56, v57, v58, v59, v60, v61, v62, v64);
-    v63 = sub_940408F4(v64);
+    sprd_verify_img_kbc(MEMORY[0xFFFFFFFFE0047F08] + 32LL, v64, *(unsigned int *)(v10 - 104));
+    sprd_log(2u, (const char *)&loc_94054EA0, v55, v56, v57, v58, v59, v60, v61, v62, v64);
+    v63 = sprd_iounmap(v64);
     if ( v63 != 0 )
       break;
     if ( v11 == 3 )
     {
 LABEL_5:
-      sub_940407DC(2u, "secboot_verify return success\n", v20, v21, v22, v23, v24, v25, v26, v27);
-      v36 = sub_940407DC(2u, "will update version\n", v28, v29, v30, v31, v32, v33, v34, v35);
-      sub_94041A38(v36);
+      sprd_log(2u, "secboot_verify return success\n", v20, v21, v22, v23, v24, v25, v26, v27);
+      v36 = sprd_log(2u, "will update version\n", v28, v29, v30, v31, v32, v33, v34, v35);
+      update_sec_version(v36);
       return 0;
     }
 LABEL_4:
@@ -22343,12 +22343,12 @@ LABEL_4:
     if ( v11 == 4 )
       goto LABEL_5;
   }
-  sub_940407DC(2u, "can not unmap virt addr, ret = %d \n", v20, v21, v22, v23, v24, v25, v26, v27, v63);
+  sprd_log(2u, "can not unmap virt addr, ret = %d \n", v20, v21, v22, v23, v24, v25, v26, v27, v63);
   return (int)v63;
 }
 
-/* ===== sub_9404163C @ 0x9404163C size 108 ===== */
-__int64 __fastcall sub_9404163C(
+/* ===== kbc_set_bit @ 0x9404163C size 108 ===== */
+__int64 __fastcall kbc_set_bit(
         unsigned int *a1,
         char a2,
         double a3,
@@ -22377,14 +22377,14 @@ __int64 __fastcall sub_9404163C(
   double v26; // d6
   double v27; // d7
 
-  sub_940407DC(2u, "reg_addr = %p\n", a3, a4, a5, a6, a7, a8, a9, a10, a1);
-  sub_940407DC(2u, (const char *)sub_94054F40, v12, v13, v14, v15, v16, v17, v18, v19, *a1);
+  sprd_log(2u, "reg_addr = %p\n", a3, a4, a5, a6, a7, a8, a9, a10, a1);
+  sprd_log(2u, (const char *)kbc_set_bit_log, v12, v13, v14, v15, v16, v17, v18, v19, *a1);
   *a1 |= 1 << a2;
-  return sub_940407DC(2u, (const char *)sub_94054F58, v20, v21, v22, v23, v24, v25, v26, v27, *a1);
+  return sprd_log(2u, (const char *)kbc_set_bit_log2, v20, v21, v22, v23, v24, v25, v26, v27, *a1);
 }
 
-/* ===== sub_940416A8 @ 0x940416A8 size 108 ===== */
-__int64 __fastcall sub_940416A8(
+/* ===== kbc_clear_bit @ 0x940416A8 size 108 ===== */
+__int64 __fastcall kbc_clear_bit(
         unsigned int *a1,
         char a2,
         double a3,
@@ -22413,14 +22413,14 @@ __int64 __fastcall sub_940416A8(
   double v26; // d6
   double v27; // d7
 
-  sub_940407DC(2u, "reg_addr = %p\n", a3, a4, a5, a6, a7, a8, a9, a10, a1);
-  sub_940407DC(2u, (const char *)sub_94054F40, v12, v13, v14, v15, v16, v17, v18, v19, *a1);
+  sprd_log(2u, "reg_addr = %p\n", a3, a4, a5, a6, a7, a8, a9, a10, a1);
+  sprd_log(2u, (const char *)kbc_set_bit_log, v12, v13, v14, v15, v16, v17, v18, v19, *a1);
   *a1 &= ~(1 << a2);
-  return sub_940407DC(2u, (const char *)sub_94054F58, v20, v21, v22, v23, v24, v25, v26, v27, *a1);
+  return sprd_log(2u, (const char *)kbc_set_bit_log2, v20, v21, v22, v23, v24, v25, v26, v27, *a1);
 }
 
-/* ===== sub_94041714 @ 0x94041714 size 140 ===== */
-__int64 __fastcall sub_94041714(double a1, double a2, double a3, double a4, double a5, double a6, double a7, double a8)
+/* ===== kbc_start_cp @ 0x94041714 size 140 ===== */
+__int64 __fastcall kbc_start_cp(double a1, double a2, double a3, double a4, double a5, double a6, double a7, double a8)
 {
   double v8; // d0
   double v9; // d1
@@ -22463,16 +22463,16 @@ __int64 __fastcall sub_94041714(double a1, double a2, double a3, double a4, doub
   double v46; // d6
   double v47; // d7
 
-  sub_940407DC(2u, "kbc_start_cp() enter \n", a1, a2, a3, a4, a5, a6, a7, a8);
-  sub_940416A8((unsigned int *)0x48, 25, v8, v9, v10, v11, v12, v13, v14, v15);
-  sub_940416A8((unsigned int *)0xCC, 18, v16, v17, v18, v19, v20, v21, v22, v23);
-  sub_940416A8((unsigned int *)0x284, 10, v24, v25, v26, v27, v28, v29, v30, v31);
-  sub_940416A8((unsigned int *)0xB0, 1, v32, v33, v34, v35, v36, v37, v38, v39);
-  return sub_940407DC(2u, "kbc_start_cp() enter \n", v40, v41, v42, v43, v44, v45, v46, v47);
+  sprd_log(2u, "kbc_start_cp() enter \n", a1, a2, a3, a4, a5, a6, a7, a8);
+  kbc_clear_bit((unsigned int *)0x48, 25, v8, v9, v10, v11, v12, v13, v14, v15);
+  kbc_clear_bit((unsigned int *)0xCC, 18, v16, v17, v18, v19, v20, v21, v22, v23);
+  kbc_clear_bit((unsigned int *)0x284, 10, v24, v25, v26, v27, v28, v29, v30, v31);
+  kbc_clear_bit((unsigned int *)0xB0, 1, v32, v33, v34, v35, v36, v37, v38, v39);
+  return sprd_log(2u, "kbc_start_cp() enter \n", v40, v41, v42, v43, v44, v45, v46, v47);
 }
 
-/* ===== sub_940417A0 @ 0x940417A0 size 140 ===== */
-__int64 __fastcall sub_940417A0(double a1, double a2, double a3, double a4, double a5, double a6, double a7, double a8)
+/* ===== kbc_stop_cp @ 0x940417A0 size 140 ===== */
+__int64 __fastcall kbc_stop_cp(double a1, double a2, double a3, double a4, double a5, double a6, double a7, double a8)
 {
   double v8; // d0
   double v9; // d1
@@ -22515,16 +22515,16 @@ __int64 __fastcall sub_940417A0(double a1, double a2, double a3, double a4, doub
   double v46; // d6
   double v47; // d7
 
-  sub_940407DC(2u, "kbc_stop_cp() enter \n", a1, a2, a3, a4, a5, a6, a7, a8);
-  sub_9404163C((unsigned int *)0x284, 10, v8, v9, v10, v11, v12, v13, v14, v15);
-  sub_9404163C((unsigned int *)0xB0, 1, v16, v17, v18, v19, v20, v21, v22, v23);
-  sub_9404163C((unsigned int *)0xCC, 18, v24, v25, v26, v27, v28, v29, v30, v31);
-  sub_9404163C((unsigned int *)0x48, 25, v32, v33, v34, v35, v36, v37, v38, v39);
-  return sub_940407DC(2u, "kbc_stop_cp() leave \n", v40, v41, v42, v43, v44, v45, v46, v47);
+  sprd_log(2u, "kbc_stop_cp() enter \n", a1, a2, a3, a4, a5, a6, a7, a8);
+  kbc_set_bit((unsigned int *)0x284, 10, v8, v9, v10, v11, v12, v13, v14, v15);
+  kbc_set_bit((unsigned int *)0xB0, 1, v16, v17, v18, v19, v20, v21, v22, v23);
+  kbc_set_bit((unsigned int *)0xCC, 18, v24, v25, v26, v27, v28, v29, v30, v31);
+  kbc_set_bit((unsigned int *)0x48, 25, v32, v33, v34, v35, v36, v37, v38, v39);
+  return sprd_log(2u, "kbc_stop_cp() leave \n", v40, v41, v42, v43, v44, v45, v46, v47);
 }
 
-/* ===== sub_9404182C @ 0x9404182C size 156 ===== */
-__int64 __fastcall sub_9404182C(__int64 a1)
+/* ===== process_get_lcs_smc @ 0x9404182C size 156 ===== */
+__int64 __fastcall process_get_lcs_smc(__int64 a1)
 {
   __int64 v1; // x1
   int v2; // w0
@@ -22550,11 +22550,11 @@ __int64 __fastcall sub_9404182C(__int64 a1)
 
   v1 = *(unsigned int *)(a1 + 8);
   v22 = nullptr;
-  v2 = sub_940408CC((__int64)"fastboot", v1, 0x1000u, 0x30u, (__int64)&v22);
+  v2 = sprd_iomap((__int64)"fastboot", v1, 0x1000u, 0x30u, (__int64)&v22);
   v11 = v2;
   if ( v2 != 0 )
   {
-    sub_940407DC(
+    sprd_log(
       2u,
       "process_sip_call, case FUNCTYPE_GET_LCS can not map phy addr error:%ld\n",
       v3,
@@ -22570,8 +22570,8 @@ __int64 __fastcall sub_9404182C(__int64 a1)
   else
   {
     v12 = v22;
-    v11 = (unsigned int)sub_9403CA20(v22);
-    sub_940407DC(
+    v11 = (unsigned int)efuse_get_lcs(v22);
+    sprd_log(
       2u,
       "process_sip_call, case FUNCTYPE_GET_LCS res:%ld, tmp is %d\n",
       v13,
@@ -22584,13 +22584,13 @@ __int64 __fastcall sub_9404182C(__int64 a1)
       v20,
       v11,
       *v12);
-    sub_940408F4((__int64)v22);
+    sprd_iounmap((__int64)v22);
   }
   return v11;
 }
 
-/* ===== sub_940418C8 @ 0x940418C8 size 148 ===== */
-__int64 __fastcall sub_940418C8(__int64 a1)
+/* ===== process_get_socid_smc @ 0x940418C8 size 148 ===== */
+__int64 __fastcall process_get_socid_smc(__int64 a1)
 {
   __int64 v1; // x1
   int v2; // w0
@@ -22615,11 +22615,11 @@ __int64 __fastcall sub_940418C8(__int64 a1)
 
   v1 = *(unsigned int *)(a1 + 8);
   v21 = 0;
-  v2 = sub_940408CC((__int64)"fastboot", v1, 0x1000u, 0x30u, (__int64)&v21);
+  v2 = sprd_iomap((__int64)"fastboot", v1, 0x1000u, 0x30u, (__int64)&v21);
   v11 = v2;
   if ( v2 != 0 )
   {
-    sub_940407DC(
+    sprd_log(
       2u,
       "process_sip_call, case FUNCTYPE_GET_LCS can not map phy addr error:%ld\n",
       v3,
@@ -22634,8 +22634,8 @@ __int64 __fastcall sub_940418C8(__int64 a1)
   }
   else
   {
-    v11 = (int)sub_94037A1C(v21);
-    sub_940407DC(
+    v11 = (int)sprd_socid_get(v21);
+    sprd_log(
       2u,
       "process_sip_call, case FUNCTYPE_GET_SOCID, res is:%ld\n",
       v12,
@@ -22647,13 +22647,13 @@ __int64 __fastcall sub_940418C8(__int64 a1)
       v18,
       v19,
       v11);
-    sub_940408F4(v21);
+    sprd_iounmap(v21);
   }
   return v11;
 }
 
-/* ===== sub_9404195C @ 0x9404195C size 56 ===== */
-__int64 sub_9404195C()
+/* ===== process_set_rma_smc @ 0x9404195C size 56 ===== */
+__int64 process_set_rma_smc()
 {
   __int64 v0; // x19
   double v1; // d0
@@ -22665,13 +22665,13 @@ __int64 sub_9404195C()
   double v7; // d6
   double v8; // d7
 
-  v0 = (unsigned int)sub_9403CA04();
-  sub_940407DC(2u, "process_sip_call, case FUNCTYPE_SET_RMA, res is:%ld\n", v1, v2, v3, v4, v5, v6, v7, v8, v0);
+  v0 = (unsigned int)efuse_read_lock_status();
+  sprd_log(2u, "process_sip_call, case FUNCTYPE_SET_RMA, res is:%ld\n", v1, v2, v3, v4, v5, v6, v7, v8, v0);
   return v0;
 }
 
-/* ===== sub_94041994 @ 0x94041994 size 164 ===== */
-__int64 __fastcall sub_94041994(
+/* ===== cal_sha256 @ 0x94041994 size 164 ===== */
+__int64 __fastcall cal_sha256(
         __int64 a1,
         unsigned int a2,
         __int64 a3,
@@ -22709,17 +22709,17 @@ __int64 __fastcall sub_94041994(
   double v37; // d6
   double v38; // d7
 
-  sub_940407DC(1u, "%s(): ", a4, a5, a6, a7, a8, a9, a10, a11, "cal_sha256");
-  sub_940407DC(1u, "enter cal_sha256 \r\n", v14, v15, v16, v17, v18, v19, v20, v21);
+  sprd_log(1u, "%s(): ", a4, a5, a6, a7, a8, a9, a10, a11, "cal_sha256");
+  sprd_log(1u, "enter cal_sha256 \r\n", v14, v15, v16, v17, v18, v19, v20, v21);
   if ( a1 != 0 && a3 != 0 )
-    return sub_94037850(a1, a2, a3);
-  sub_940407DC(1u, "%s(): ", v22, v23, v24, v25, v26, v27, v28, v29, "cal_sha256");
-  return sub_940407DC(1u, "\r\tthe pointer is error,pls check it\n", v31, v32, v33, v34, v35, v36, v37, v38);
+    return sha256_csum_wd(a1, a2, a3);
+  sprd_log(1u, "%s(): ", v22, v23, v24, v25, v26, v27, v28, v29, "cal_sha256");
+  return sprd_log(1u, "\r\tthe pointer is error,pls check it\n", v31, v32, v33, v34, v35, v36, v37, v38);
 }
 
-/* ===== sub_94041A38 @ 0x94041A38 size 604 ===== */
+/* ===== update_sec_version @ 0x94041A38 size 604 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_94041A38(double a1, double a2, double a3, double a4, double a5, double a6, double a7, double a8)
+__int64 __fastcall update_sec_version(double a1, double a2, double a3, double a4, double a5, double a6, double a7, double a8)
 {
   double v8; // d0
   double v9; // d1
@@ -22806,13 +22806,13 @@ __int64 __fastcall sub_94041A38(double a1, double a2, double a3, double a4, doub
   double v91; // d7
   const char *v92; // x1
 
-  sub_940407DC(1u, "%s(): ", a1, a2, a3, a4, a5, a6, a7, a8, "update_sec_version");
-  sub_940407DC(1u, (const char *)&loc_94055108, v8, v9, v10, v11, v12, v13, v14, v15);
-  sub_940407DC(1u, "%s(): ", v16, v17, v18, v19, v20, v21, v22, v23, "update_sec_version");
-  sub_940407DC(1u, "reset index \r\n", v24, v25, v26, v27, v28, v29, v30, v31);
+  sprd_log(1u, "%s(): ", a1, a2, a3, a4, a5, a6, a7, a8, "update_sec_version");
+  sprd_log(1u, (const char *)&loc_94055108, v8, v9, v10, v11, v12, v13, v14, v15);
+  sprd_log(1u, "%s(): ", v16, v17, v18, v19, v20, v21, v22, v23, "update_sec_version");
+  sprd_log(1u, "reset index \r\n", v24, v25, v26, v27, v28, v29, v30, v31);
   dword_94067E00 = 0;
-  sub_940407DC(1u, "%s(): ", v32, v33, v34, v35, v36, v37, v38, v39, "update_sec_version");
-  sub_940407DC(
+  sprd_log(1u, "%s(): ", v32, v33, v34, v35, v36, v37, v38, v39, "update_sec_version");
+  sprd_log(
     1u,
     "num = %d \r\n",
     v40,
@@ -22846,34 +22846,34 @@ __int64 __fastcall sub_94041A38(double a1, double a2, double a3, double a4, doub
              || v58 == *(_DWORD *)(MEMORY[0xFFFFFFFFE0047F08] + 136LL)
              && (v56 == 9 || v58 == *(_DWORD *)(MEMORY[0xFFFFFFFFE0047F08] + 144LL))))))))) )
     {
-      sub_940407DC(1u, "%s(): ", v48, v49, v50, v51, v52, v53, v54, v55, "update_sec_version");
-      sub_940407DC(1u, "nosecure_update_version = %d \r\n", v59, v60, v61, v62, v63, v64, v65, v66, v57);
+      sprd_log(1u, "%s(): ", v48, v49, v50, v51, v52, v53, v54, v55, "update_sec_version");
+      sprd_log(1u, "nosecure_update_version = %d \r\n", v59, v60, v61, v62, v63, v64, v65, v66, v57);
       if ( v57 > 0xFFFF )
       {
-        sub_940407DC(1u, "%s(): ", v67, v68, v69, v70, v71, v72, v73, v74, "update_sec_version");
-        sub_940407DC(1u, (const char *)&loc_94055188, v75, v76, v77, v78, v79, v80, v81, v82);
-        return sub_9403C8DC(1, v57);
+        sprd_log(1u, "%s(): ", v67, v68, v69, v70, v71, v72, v73, v74, "update_sec_version");
+        sprd_log(1u, (const char *)&loc_94055188, v75, v76, v77, v78, v79, v80, v81, v82);
+        return efuse_write_version(1, v57);
       }
-      sub_940407DC(1u, "%s(): ", v67, v68, v69, v70, v71, v72, v73, v74, "update_sec_version");
+      sprd_log(1u, "%s(): ", v67, v68, v69, v70, v71, v72, v73, v74, "update_sec_version");
       v92 = "no need to update \r\n";
     }
     else
     {
-      sub_940407DC(1u, "%s(): ", v48, v49, v50, v51, v52, v53, v54, v55, "update_sec_version");
+      sprd_log(1u, "%s(): ", v48, v49, v50, v51, v52, v53, v54, v55, "update_sec_version");
       v92 = "\r\rollback version not unified\n";
     }
   }
   else
   {
-    sub_940407DC(1u, "%s(): ", v48, v49, v50, v51, v52, v53, v54, v55, "update_sec_version");
+    sprd_log(1u, "%s(): ", v48, v49, v50, v51, v52, v53, v54, v55, "update_sec_version");
     v92 = "version num is 0 ! \r\n";
   }
-  return sub_940407DC(1u, v92, v84, v85, v86, v87, v88, v89, v90, v91);
+  return sprd_log(1u, v92, v84, v85, v86, v87, v88, v89, v90, v91);
 }
 
-/* ===== sub_94041C94 @ 0x94041C94 size 604 ===== */
+/* ===== sprd_anti_rollback @ 0x94041C94 size 604 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_94041C94(
+__int64 __fastcall sprd_anti_rollback(
         unsigned int a1,
         unsigned int a2,
         double a3,
@@ -22991,16 +22991,16 @@ __int64 __fastcall sub_94041C94(
   double v116; // d6
   double v117; // d7
 
-  sub_940407DC(1u, "%s(): ", a3, a4, a5, a6, a7, a8, a9, a10, "sprd_anti_rollback");
-  sub_940407DC(1u, "image type = %d\n", v12, v13, v14, v15, v16, v17, v18, v19, a1);
+  sprd_log(1u, "%s(): ", a3, a4, a5, a6, a7, a8, a9, a10, "sprd_anti_rollback");
+  sprd_log(1u, "image type = %d\n", v12, v13, v14, v15, v16, v17, v18, v19, a1);
   if ( a1 == 1 )
   {
-    sub_9403C82C(0, &dword_9405C8E8);
-    sub_940407DC(1u, "%s(): ", v102, v103, v104, v105, v106, v107, v108, v109, "sprd_anti_rollback");
-    sub_940407DC(1u, "read efuse version: 0X%x\n", v110, v111, v112, v113, v114, v115, v116, v117, 4660);
+    efuse_read_version(0, &dword_9405C8E8);
+    sprd_log(1u, "%s(): ", v102, v103, v104, v105, v106, v107, v108, v109, "sprd_anti_rollback");
+    sprd_log(1u, "read efuse version: 0X%x\n", v110, v111, v112, v113, v114, v115, v116, v117, 4660);
     v36 = 1;
-    sub_940407DC(1u, "%s(): ", v46, v47, v48, v49, v50, v51, v52, v53, "sprd_anti_rollback");
-    sub_940407DC(
+    sprd_log(1u, "%s(): ", v46, v47, v48, v49, v50, v51, v52, v53, "sprd_anti_rollback");
+    sprd_log(
       1u,
       "Trusted_rollback_version = 0X%x  certversion = 0X%x\n",
       v54,
@@ -23015,29 +23015,29 @@ __int64 __fastcall sub_94041C94(
       a2);
     if ( a2 < 0x1234 )
     {
-      sub_940407DC(1u, "%s(): ", v62, v63, v64, v65, v66, v67, v68, v69, "sprd_anti_rollback");
+      sprd_log(1u, "%s(): ", v62, v63, v64, v65, v66, v67, v68, v69, "sprd_anti_rollback");
       v36 = 0;
-      sub_940407DC(1u, "SEC ANTI_ROLLBACK ERR version = 0X%x\n", v70, v71, v72, v73, v74, v75, v76, v77, a2);
+      sprd_log(1u, "SEC ANTI_ROLLBACK ERR version = 0X%x\n", v70, v71, v72, v73, v74, v75, v76, v77, a2);
     }
     return v36;
   }
   if ( a1 == 0 )
   {
-    sub_9403C82C(1, &dword_9405C8E4);
-    sub_940407DC(1u, "%s(): ", v86, v87, v88, v89, v90, v91, v92, v93, "sprd_anti_rollback");
-    sub_940407DC(1u, "version efuse: %d\n", v94, v95, v96, v97, v98, v99, v100, v101, 0xFFFF);
-    sub_940407DC(1u, "%s(): ", v28, v29, v30, v31, v32, v33, v34, v35, "sprd_anti_rollback");
+    efuse_read_version(1, &dword_9405C8E4);
+    sprd_log(1u, "%s(): ", v86, v87, v88, v89, v90, v91, v92, v93, "sprd_anti_rollback");
+    sprd_log(1u, "version efuse: %d\n", v94, v95, v96, v97, v98, v99, v100, v101, 0xFFFF);
+    sprd_log(1u, "%s(): ", v28, v29, v30, v31, v32, v33, v34, v35, "sprd_anti_rollback");
     v36 = 0;
-    sub_940407DC(1u, "NOSEC ANTI_ROLLBACK ERR version = %x\n", v37, v38, v39, v40, v41, v42, v43, v44, a2);
+    sprd_log(1u, "NOSEC ANTI_ROLLBACK ERR version = %x\n", v37, v38, v39, v40, v41, v42, v43, v44, a2);
     return v36;
   }
-  sub_940407DC(1u, "%s(): ", v20, v21, v22, v23, v24, v25, v26, v27, "sprd_anti_rollback");
-  sub_940407DC(1u, "certtype mismatch!! \r\n", v78, v79, v80, v81, v82, v83, v84, v85);
+  sprd_log(1u, "%s(): ", v20, v21, v22, v23, v24, v25, v26, v27, "sprd_anti_rollback");
+  sprd_log(1u, "certtype mismatch!! \r\n", v78, v79, v80, v81, v82, v83, v84, v85);
   return 0;
 }
 
-/* ===== sub_94041EF0 @ 0x94041EF0 size 740 ===== */
-__int64 __fastcall sub_94041EF0(
+/* ===== sprd_verify_cert @ 0x94041EF0 size 740 ===== */
+__int64 __fastcall sprd_verify_cert(
         __int64 a1,
         __int64 a2,
         unsigned __int8 *a3,
@@ -23192,26 +23192,26 @@ __int64 __fastcall sub_94041EF0(
   _BYTE v154[32]; // [xsp+60h] [xbp+60h] BYREF
 
   v14 = *a3;
-  sub_940407DC(1u, "%s(): ", a4, a5, a6, a7, a8, a9, a10, a11, "sprd_verify_cert");
-  sub_940407DC(1u, "#####cert type: %d #######\n", v15, v16, v17, v18, v19, v20, v21, v22, v14);
+  sprd_log(1u, "%s(): ", a4, a5, a6, a7, a8, a9, a10, a11, "sprd_verify_cert");
+  sprd_log(1u, "#####cert type: %d #######\n", v15, v16, v17, v18, v19, v20, v21, v22, v14);
   if ( v14 <= 1 )
   {
     if ( v14 == 1 )
     {
-      sub_94041994((__int64)(a3 + 4), 0x108u, (__int64)v154, v23, v24, v25, v26, v27, v28, v29, v30);
-      if ( (unsigned int)sub_94042870(a2, a3 + 268, 32) != 0 || (unsigned int)sub_94042870(a1, v154, 32) != 0 )
+      cal_sha256((__int64)(a3 + 4), 0x108u, (__int64)v154, v23, v24, v25, v26, v27, v28, v29, v30);
+      if ( (unsigned int)memcmp_simple(a2, a3 + 268, 32) != 0 || (unsigned int)memcmp_simple(a1, v154, 32) != 0 )
       {
         v31 = 0;
-        sub_940407DC(1u, "%s(): ", v98, v99, v100, v101, v102, v103, v104, v105, "sprd_verify_cert");
-        sub_940407DC(1u, "cmp hash of pubk diffent\r\n", v106, v107, v108, v109, v110, v111, v112, v113);
+        sprd_log(1u, "%s(): ", v98, v99, v100, v101, v102, v103, v104, v105, "sprd_verify_cert");
+        sprd_log(1u, "cmp hash of pubk diffent\r\n", v106, v107, v108, v109, v110, v111, v112, v113);
         return v31;
       }
-      sub_94037940((__int64)(a3 + 8), (__int64)(a3 + 12), *((_DWORD *)a3 + 1), (__int64)(a3 + 340), -536576504);
-      if ( (unsigned int)sub_94042870(a3 + 268, -536576504, 72) == 0 )
+      RSA_PubDec((__int64)(a3 + 8), (__int64)(a3 + 12), *((_DWORD *)a3 + 1), (__int64)(a3 + 340), -536576504);
+      if ( (unsigned int)memcmp_simple(a3 + 268, -536576504, 72) == 0 )
       {
-        sub_940407DC(1u, "%s(): ", v74, v75, v76, v77, v78, v79, v80, v81, "sprd_verify_cert");
-        sub_940407DC(1u, "\nRSA verify Success\n", v138, v139, v140, v141, v142, v143, v144, v145);
-        return (unsigned int)sub_94041C94(
+        sprd_log(1u, "%s(): ", v74, v75, v76, v77, v78, v79, v80, v81, "sprd_verify_cert");
+        sprd_log(1u, "\nRSA verify Success\n", v138, v139, v140, v141, v142, v143, v144, v145);
+        return (unsigned int)sprd_anti_rollback(
                                *((_DWORD *)a3 + 83),
                                *((_DWORD *)a3 + 84),
                                v146,
@@ -23226,31 +23226,31 @@ __int64 __fastcall sub_94041EF0(
     }
     else
     {
-      sub_94041994((__int64)(a3 + 4), 0x108u, (__int64)v154, v23, v24, v25, v26, v27, v28, v29, v30);
-      v31 = sub_94042870(a2, a3 + 268, 32);
+      cal_sha256((__int64)(a3 + 4), 0x108u, (__int64)v154, v23, v24, v25, v26, v27, v28, v29, v30);
+      v31 = memcmp_simple(a2, a3 + 268, 32);
       if ( v31 != 0 )
       {
         v31 = 0;
-        sub_940407DC(1u, "%s(): ", v41, v42, v43, v44, v45, v46, v47, v48, "sprd_verify_cert");
-        sub_940407DC(1u, "cmp hash data diffent\r\n", v114, v115, v116, v117, v118, v119, v120, v121);
+        sprd_log(1u, "%s(): ", v41, v42, v43, v44, v45, v46, v47, v48, "sprd_verify_cert");
+        sprd_log(1u, "cmp hash data diffent\r\n", v114, v115, v116, v117, v118, v119, v120, v121);
         return v31;
       }
-      sub_940407DC(1u, "%s(): ", v41, v42, v43, v44, v45, v46, v47, v48, "sprd_verify_cert");
-      sub_940407DC(1u, "cmp hash data SUCCESS\r\n", v49, v50, v51, v52, v53, v54, v55, v56);
-      if ( (unsigned int)sub_94042870(a1, v154, 32) != 0 )
+      sprd_log(1u, "%s(): ", v41, v42, v43, v44, v45, v46, v47, v48, "sprd_verify_cert");
+      sprd_log(1u, "cmp hash data SUCCESS\r\n", v49, v50, v51, v52, v53, v54, v55, v56);
+      if ( (unsigned int)memcmp_simple(a1, v154, 32) != 0 )
       {
-        sub_940407DC(1u, "%s(): ", v57, v58, v59, v60, v61, v62, v63, v64, "sprd_verify_cert");
-        sub_940407DC(1u, "cmp hash key diffent\r\n", v122, v123, v124, v125, v126, v127, v128, v129);
+        sprd_log(1u, "%s(): ", v57, v58, v59, v60, v61, v62, v63, v64, "sprd_verify_cert");
+        sprd_log(1u, "cmp hash key diffent\r\n", v122, v123, v124, v125, v126, v127, v128, v129);
         return v31;
       }
-      sub_940407DC(1u, "%s(): ", v57, v58, v59, v60, v61, v62, v63, v64, "sprd_verify_cert");
-      sub_940407DC(1u, "cmp hash key SUCCESS\r\n", v65, v66, v67, v68, v69, v70, v71, v72);
-      v73 = sub_94037940((__int64)(a3 + 8), (__int64)(a3 + 12), *((_DWORD *)a3 + 1), (__int64)(a3 + 308), -536576504);
-      if ( (unsigned int)sub_94042870(a3 + 268, -536576504, v73) == 0 )
+      sprd_log(1u, "%s(): ", v57, v58, v59, v60, v61, v62, v63, v64, "sprd_verify_cert");
+      sprd_log(1u, "cmp hash key SUCCESS\r\n", v65, v66, v67, v68, v69, v70, v71, v72);
+      v73 = RSA_PubDec((__int64)(a3 + 8), (__int64)(a3 + 12), *((_DWORD *)a3 + 1), (__int64)(a3 + 308), -536576504);
+      if ( (unsigned int)memcmp_simple(a3 + 268, -536576504, v73) == 0 )
       {
-        sub_940407DC(1u, "%s(): ", v74, v75, v76, v77, v78, v79, v80, v81, "sprd_verify_cert");
-        sub_940407DC(1u, "\nRSA verify Success\n", v82, v83, v84, v85, v86, v87, v88, v89);
-        return (unsigned int)sub_94041C94(
+        sprd_log(1u, "%s(): ", v74, v75, v76, v77, v78, v79, v80, v81, "sprd_verify_cert");
+        sprd_log(1u, "\nRSA verify Success\n", v82, v83, v84, v85, v86, v87, v88, v89);
+        return (unsigned int)sprd_anti_rollback(
                                *((_DWORD *)a3 + 75),
                                *((_DWORD *)a3 + 76),
                                v90,
@@ -23264,18 +23264,18 @@ __int64 __fastcall sub_94041EF0(
       }
     }
     v31 = 0;
-    sub_940407DC(1u, "%s(): ", v74, v75, v76, v77, v78, v79, v80, v81, "sprd_verify_cert");
-    sub_940407DC(1u, "\nRSA verify err\n", v130, v131, v132, v133, v134, v135, v136, v137);
+    sprd_log(1u, "%s(): ", v74, v75, v76, v77, v78, v79, v80, v81, "sprd_verify_cert");
+    sprd_log(1u, "\nRSA verify err\n", v130, v131, v132, v133, v134, v135, v136, v137);
     return v31;
   }
   v31 = 0;
-  sub_940407DC(1u, "%s(): ", v23, v24, v25, v26, v27, v28, v29, v30, "sprd_verify_cert");
-  sub_940407DC(1u, "invalid cert type %d!!", v32, v33, v34, v35, v36, v37, v38, v39, v14);
+  sprd_log(1u, "%s(): ", v23, v24, v25, v26, v27, v28, v29, v30, "sprd_verify_cert");
+  sprd_log(1u, "invalid cert type %d!!", v32, v33, v34, v35, v36, v37, v38, v39, v14);
   return v31;
 }
 
-/* ===== sub_940421D4 @ 0x940421D4 size 108 ===== */
-__int64 __fastcall sub_940421D4(
+/* ===== sprd_get_sechdr_addr @ 0x940421D4 size 108 ===== */
+__int64 __fastcall sprd_get_sechdr_addr(
         __int64 a1,
         double a2,
         double a3,
@@ -23297,13 +23297,13 @@ __int64 __fastcall sub_940421D4(
 
   if ( a1 != 0 )
     return a1 + *(unsigned int *)(a1 + 48) + 512LL;
-  sub_940407DC(1u, "%s(): ", a2, a3, a4, a5, a6, a7, a8, a9, "sprd_get_sechdr_addr");
-  sub_940407DC(1u, "\r\t input of get_sechdr_Addr err\n", v10, v11, v12, v13, v14, v15, v16, v17);
+  sprd_log(1u, "%s(): ", a2, a3, a4, a5, a6, a7, a8, a9, "sprd_get_sechdr_addr");
+  sprd_log(1u, "\r\t input of get_sechdr_Addr err\n", v10, v11, v12, v13, v14, v15, v16, v17);
   return MEMORY[0x30] + 512LL;
 }
 
-/* ===== sub_94042240 @ 0x94042240 size 40 ===== */
-__int64 __fastcall sub_94042240(
+/* ===== sprd_get_img_addr @ 0x94042240 size 40 ===== */
+__int64 __fastcall sprd_get_img_addr(
         __int64 a1,
         double a2,
         double a3,
@@ -23314,11 +23314,11 @@ __int64 __fastcall sub_94042240(
         double a8,
         double a9)
 {
-  return a1 + *(_QWORD *)(sub_940421D4(a1, a2, a3, a4, a5, a6, a7, a8, a9) + 24);
+  return a1 + *(_QWORD *)(sprd_get_sechdr_addr(a1, a2, a3, a4, a5, a6, a7, a8, a9) + 24);
 }
 
-/* ===== sub_94042268 @ 0x94042268 size 40 ===== */
-__int64 __fastcall sub_94042268(
+/* ===== sprd_get_cert_addr @ 0x94042268 size 40 ===== */
+__int64 __fastcall sprd_get_cert_addr(
         __int64 a1,
         double a2,
         double a3,
@@ -23329,39 +23329,39 @@ __int64 __fastcall sub_94042268(
         double a8,
         double a9)
 {
-  return a1 + *(_QWORD *)(sub_940421D4(a1, a2, a3, a4, a5, a6, a7, a8, a9) + 40);
+  return a1 + *(_QWORD *)(sprd_get_sechdr_addr(a1, a2, a3, a4, a5, a6, a7, a8, a9) + 40);
 }
 
-/* ===== sub_94042290 @ 0x94042290 size 16 ===== */
-__int64 __fastcall sub_94042290(__int64 a1, unsigned int a2)
+/* ===== sprd_get_img_end @ 0x94042290 size 16 ===== */
+__int64 __fastcall sprd_get_img_end(__int64 a1, unsigned int a2)
 {
   return a1 + a2 + 96LL;
 }
 
-/* ===== sub_940422A0 @ 0x940422A0 size 124 ===== */
+/* ===== sprd_save_img_hash @ 0x940422A0 size 124 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_940422A0(__int64 a1)
+__int64 __fastcall sprd_save_img_hash(__int64 a1)
 {
-  sub_94042848(MEMORY[0xFFFFFFFFE0047F08] + 32LL, a1, 32);
+  memcpy_simple(MEMORY[0xFFFFFFFFE0047F08] + 32LL, a1, 32);
   dword_94067E04 = 1;
   return 1;
 }
 
-/* ===== sub_9404231C @ 0x9404231C size 80 ===== */
-__int64 __fastcall sub_9404231C(__int64 a1)
+/* ===== sprd_verify_efuse_hash @ 0x9404231C size 80 ===== */
+__int64 __fastcall sprd_verify_efuse_hash(__int64 a1)
 {
   int v3; // [xsp+2Ch] [xbp+2Ch] BYREF
 
   v3 = 0;
-  sub_9403CC50(&v3);
+  efuse_is_secure(&v3);
   if ( v3 != 0 )
-    return sub_9403CC40(a1);
+    return efuse_read_ns_blocks(a1);
   else
-    return sub_9403CC30(a1);
+    return efuse_read_secure_blocks(a1);
 }
 
-/* ===== sub_9404236C @ 0x9404236C size 720 ===== */
-__int64 __fastcall sub_9404236C(
+/* ===== sprd_verify_img @ 0x9404236C size 720 ===== */
+__int64 __fastcall sprd_verify_img(
         __int64 a1,
         __int64 a2,
         double a3,
@@ -23489,12 +23489,12 @@ __int64 __fastcall sub_9404236C(
   __int64 v125; // [xsp+D8h] [xbp+D8h] BYREF
   _QWORD v126[2]; // [xsp+E0h] [xbp+E0h] BYREF
 
-  v12 = sub_940421D4(a2, a3, a4, a5, a6, a7, a8, a9, a10);
-  v21 = sub_94042240(a2, v13, v14, v15, v16, v17, v18, v19, v20);
-  if ( (unsigned int)sub_94042870(v21, "SCI1", 5) == 0 )
+  v12 = sprd_get_sechdr_addr(a2, a3, a4, a5, a6, a7, a8, a9, a10);
+  v21 = sprd_get_img_addr(a2, v13, v14, v15, v16, v17, v18, v19, v20);
+  if ( (unsigned int)memcmp_simple(v21, "SCI1", 5) == 0 )
   {
-    sub_940407DC(1u, "%s(): ", v22, v23, v24, v25, v26, v27, v28, v29, "sprd_verify_img");
-    sub_940407DC(1u, "the image is new packed modem image\n", v30, v31, v32, v33, v34, v35, v36, v37);
+    sprd_log(1u, "%s(): ", v22, v23, v24, v25, v26, v27, v28, v29, "sprd_verify_img");
+    sprd_log(1u, "the image is new packed modem image\n", v30, v31, v32, v33, v34, v35, v36, v37);
     v119 = 0;
     v120[0] = 0;
     v120[1] = 0;
@@ -23507,8 +23507,8 @@ __int64 __fastcall sub_9404236C(
     v125 = 0;
     v126[0] = 0;
     v126[1] = 0;
-    sub_94042848(&v119, v21, 96);
-    if ( (unsigned int)sub_94042870(&v119, "SCI1", 5) == 0 )
+    memcpy_simple(&v119, v21, 96);
+    if ( (unsigned int)memcmp_simple(&v119, "SCI1", 5) == 0 )
     {
       v46 = WORD2(v120[0]);
       if ( BYTE4(v120[0]) == 1 )
@@ -23543,13 +23543,13 @@ __int64 __fastcall sub_9404236C(
                   {
                     v48 = 0;
                     v49 = 0;
-                    sub_940407DC(1u, "%s(): ", v38, v39, v40, v41, v42, v43, v44, v45, "get_modem_info");
+                    sprd_log(1u, "%s(): ", v38, v39, v40, v41, v42, v43, v44, v45, "get_modem_info");
                     v50 = 0;
-                    sub_940407DC(1u, "no MODEM exe found in SCI header!", v51, v52, v53, v54, v55, v56, v57, v58);
+                    sprd_log(1u, "no MODEM exe found in SCI header!", v51, v52, v53, v54, v55, v56, v57, v58);
 LABEL_11:
                     v21 += v48;
-                    sub_940407DC(1u, "%s(): ", v38, v39, v40, v41, v42, v43, v44, v45, "sprd_verify_img");
-                    sub_940407DC(1u, "modem offset: %d, length: %d\n", v59, v60, v61, v62, v63, v64, v65, v66, v50, v49);
+                    sprd_log(1u, "%s(): ", v38, v39, v40, v41, v42, v43, v44, v45, "sprd_verify_img");
+                    sprd_log(1u, "modem offset: %d, length: %d\n", v59, v60, v61, v62, v63, v64, v65, v66, v50, v49);
                     goto LABEL_12;
                   }
                 }
@@ -23567,29 +23567,29 @@ LABEL_11:
     }
     v48 = 0;
     v49 = 0;
-    sub_940407DC(1u, "%s(): ", v38, v39, v40, v41, v42, v43, v44, v45, "get_modem_info");
+    sprd_log(1u, "%s(): ", v38, v39, v40, v41, v42, v43, v44, v45, "get_modem_info");
     v50 = 0;
-    sub_940407DC(1u, "old image format!\n", v109, v110, v111, v112, v113, v114, v115, v116);
+    sprd_log(1u, "old image format!\n", v109, v110, v111, v112, v113, v114, v115, v116);
     goto LABEL_11;
   }
 LABEL_12:
   v117 = 0;
-  sub_94042820(&v119, 255, 32);
-  sub_940422A0(a1);
-  sub_94041994(v21, *(_DWORD *)(v12 + 16), (__int64)v118, v67, v68, v69, v70, v71, v72, v73, v74);
-  v83 = (unsigned __int8 *)sub_94042268(a2, v75, v76, v77, v78, v79, v80, v81, v82);
-  if ( (unsigned int)sub_94042870(a1, &v119, 32) == 0 )
+  memset_simple(&v119, 255, 32);
+  sprd_save_img_hash(a1);
+  cal_sha256(v21, *(_DWORD *)(v12 + 16), (__int64)v118, v67, v68, v69, v70, v71, v72, v73, v74);
+  v83 = (unsigned __int8 *)sprd_get_cert_addr(a2, v75, v76, v77, v78, v79, v80, v81, v82);
+  if ( (unsigned int)memcmp_simple(a1, &v119, 32) == 0 )
   {
-    sub_9403CA20(&v117);
+    efuse_get_lcs(&v117);
     if ( v117 != 5 )
     {
-      sub_940407DC(1u, "%s(): ", v92, v93, v94, v95, v96, v97, v98, v99, "sprd_verify_img");
-      sub_940407DC(1u, "not secure lcs\n", v100, v101, v102, v103, v104, v105, v106, v107);
+      sprd_log(1u, "%s(): ", v92, v93, v94, v95, v96, v97, v98, v99, "sprd_verify_img");
+      sprd_log(1u, "not secure lcs\n", v100, v101, v102, v103, v104, v105, v106, v107);
       return 1;
     }
-    sub_9404231C(a1);
+    sprd_verify_efuse_hash(a1);
   }
-  result = sub_94041EF0(a1, (__int64)v118, v83, v84, v85, v86, v87, v88, v89, v90, v91);
+  result = sprd_verify_cert(a1, (__int64)v118, v83, v84, v85, v86, v87, v88, v89, v90, v91);
   if ( (_DWORD)result == 0 )
   {
     while ( 1 )
@@ -23598,8 +23598,8 @@ LABEL_12:
   return result;
 }
 
-/* ===== sub_9404263C @ 0x9404263C size 316 ===== */
-__int64 __fastcall sub_9404263C(
+/* ===== sprd_verify_img_kbc @ 0x9404263C size 316 ===== */
+__int64 __fastcall sprd_verify_img_kbc(
         __int64 a1,
         __int64 a2,
         unsigned int a3,
@@ -23704,8 +23704,8 @@ __int64 __fastcall sub_9404263C(
   double v103; // d7
   _BYTE v104[32]; // [xsp+40h] [xbp+40h] BYREF
 
-  sub_940407DC(1u, "%s(): ", a4, a5, a6, a7, a8, a9, a10, a11, "sprd_verify_img_kbc");
-  sub_940407DC(
+  sprd_log(1u, "%s(): ", a4, a5, a6, a7, a8, a9, a10, a11, "sprd_verify_img_kbc");
+  sprd_log(
     1u,
     "sprd_verify_img_kbc enter imgbuf = %p imgSize = 0x%x \r\n",
     v14,
@@ -23718,28 +23718,28 @@ __int64 __fastcall sub_9404263C(
     v21,
     a2,
     a3);
-  sub_94042820(v104, 255, 32);
-  sub_940407DC(1u, "%s(): ", v22, v23, v24, v25, v26, v27, v28, v29, "sprd_verify_img_kbc");
-  sub_940407DC(1u, "call cal_sha256() imgSize = 0x%x\r\n", v30, v31, v32, v33, v34, v35, v36, v37, a3);
-  sub_94041994(a2, a3, (__int64)v104, v38, v39, v40, v41, v42, v43, v44, v45);
-  sub_940407DC(1u, "%s(): ", v46, v47, v48, v49, v50, v51, v52, v53, "sprd_verify_img_kbc");
-  sub_940407DC(1u, (const char *)&loc_940554F8, v54, v55, v56, v57, v58, v59, v60, v61);
-  v62 = (unsigned __int8 *)sub_94042290(a2, a3);
-  sub_940407DC(1u, "%s(): ", v63, v64, v65, v66, v67, v68, v69, v70, "sprd_verify_img_kbc");
-  sub_940407DC(1u, (const char *)&loc_94055520, v71, v72, v73, v74, v75, v76, v77, v78);
-  result = sub_94041EF0(a1, (__int64)v104, v62, v79, v80, v81, v82, v83, v84, v85, v86);
+  memset_simple(v104, 255, 32);
+  sprd_log(1u, "%s(): ", v22, v23, v24, v25, v26, v27, v28, v29, "sprd_verify_img_kbc");
+  sprd_log(1u, "call cal_sha256() imgSize = 0x%x\r\n", v30, v31, v32, v33, v34, v35, v36, v37, a3);
+  cal_sha256(a2, a3, (__int64)v104, v38, v39, v40, v41, v42, v43, v44, v45);
+  sprd_log(1u, "%s(): ", v46, v47, v48, v49, v50, v51, v52, v53, "sprd_verify_img_kbc");
+  sprd_log(1u, (const char *)&loc_940554F8, v54, v55, v56, v57, v58, v59, v60, v61);
+  v62 = (unsigned __int8 *)sprd_get_img_end(a2, a3);
+  sprd_log(1u, "%s(): ", v63, v64, v65, v66, v67, v68, v69, v70, "sprd_verify_img_kbc");
+  sprd_log(1u, (const char *)&loc_94055520, v71, v72, v73, v74, v75, v76, v77, v78);
+  result = sprd_verify_cert(a1, (__int64)v104, v62, v79, v80, v81, v82, v83, v84, v85, v86);
   if ( (_DWORD)result == 0 )
   {
-    sub_940407DC(1u, "%s(): ", v88, v89, v90, v91, v92, v93, v94, v95, "sprd_verify_img_kbc");
-    sub_940407DC(1u, "sprd_verify_cert() failed , enter while(1) \r\n", v96, v97, v98, v99, v100, v101, v102, v103);
+    sprd_log(1u, "%s(): ", v88, v89, v90, v91, v92, v93, v94, v95, "sprd_verify_img_kbc");
+    sprd_log(1u, "sprd_verify_cert() failed , enter while(1) \r\n", v96, v97, v98, v99, v100, v101, v102, v103);
     while ( 1 )
       ;
   }
   return result;
 }
 
-/* ===== sub_94042778 @ 0x94042778 size 44 ===== */
-__int64 __fastcall sub_94042778(
+/* ===== sprd_get_pubkey @ 0x94042778 size 44 ===== */
+__int64 __fastcall sprd_get_pubkey(
         __int64 a1,
         __int64 a2,
         double a3,
@@ -23753,12 +23753,12 @@ __int64 __fastcall sub_94042778(
 {
   __int64 v11; // x0
 
-  v11 = sub_94042268(a1, a3, a4, a5, a6, a7, a8, a9, a10);
-  return sub_94042848(a2, v11 + 4, 264);
+  v11 = sprd_get_cert_addr(a1, a3, a4, a5, a6, a7, a8, a9, a10);
+  return memcpy_simple(a2, v11 + 4, 264);
 }
 
-/* ===== sub_940427A4 @ 0x940427A4 size 124 ===== */
-__int64 __fastcall sub_940427A4(__int64 a1)
+/* ===== process_save_pubkey_smc @ 0x940427A4 size 124 ===== */
+__int64 __fastcall process_save_pubkey_smc(__int64 a1)
 {
   double v2; // d0
   double v3; // d1
@@ -23779,15 +23779,15 @@ __int64 __fastcall sub_940427A4(__int64 a1)
   _BYTE v19[32]; // [xsp+38h] [xbp+38h] BYREF
   _BYTE v20[264]; // [xsp+58h] [xbp+58h] BYREF
 
-  sub_9404CDC4(v20, 0, 264);
+  memset(v20, 0, 264);
   memset(v19, 0, sizeof(v19));
-  sub_94042778(a1, (__int64)v20, v2, v3, v4, v5, v6, v7, v8, v9);
-  sub_94041994((__int64)v20, 0x108u, (__int64)v19, v10, v11, v12, v13, v14, v15, v16, v17);
-  return sub_94042848(MEMORY[0xFFFFFFFFE0047F08], v19, 32);
+  sprd_get_pubkey(a1, (__int64)v20, v2, v3, v4, v5, v6, v7, v8, v9);
+  cal_sha256((__int64)v20, 0x108u, (__int64)v19, v10, v11, v12, v13, v14, v15, v16, v17);
+  return memcpy_simple(MEMORY[0xFFFFFFFFE0047F08], v19, 32);
 }
 
-/* ===== sub_94042820 @ 0x94042820 size 40 ===== */
-_BYTE *__fastcall sub_94042820(_BYTE *result, char a2, int a3)
+/* ===== memset_simple @ 0x94042820 size 40 ===== */
+_BYTE *__fastcall memset_simple(_BYTE *result, char a2, int a3)
 {
   __int64 v3; // x3
   _BYTE *v4; // x2
@@ -23805,8 +23805,8 @@ _BYTE *__fastcall sub_94042820(_BYTE *result, char a2, int a3)
   return result;
 }
 
-/* ===== sub_94042848 @ 0x94042848 size 40 ===== */
-__int64 __fastcall sub_94042848(__int64 result, __int64 a2, int a3)
+/* ===== memcpy_simple @ 0x94042848 size 40 ===== */
+__int64 __fastcall memcpy_simple(__int64 result, __int64 a2, int a3)
 {
   __int64 v3; // x4
   __int64 v4; // x2
@@ -23827,8 +23827,8 @@ __int64 __fastcall sub_94042848(__int64 result, __int64 a2, int a3)
   return result;
 }
 
-/* ===== sub_94042870 @ 0x94042870 size 92 ===== */
-__int64 __fastcall sub_94042870(unsigned __int8 *a1, unsigned __int8 *a2, int a3)
+/* ===== memcmp_simple @ 0x94042870 size 92 ===== */
+__int64 __fastcall memcmp_simple(unsigned __int8 *a1, unsigned __int8 *a2, int a3)
 {
   unsigned __int8 *v3; // x3
   __int64 result; // x0
@@ -23856,8 +23856,8 @@ __int64 __fastcall sub_94042870(unsigned __int8 *a1, unsigned __int8 *a2, int a3
   return result;
 }
 
-/* ===== sub_940428CC @ 0x940428CC size 64 ===== */
-__int64 __fastcall sub_940428CC(double a1, double a2, double a3, double a4, double a5, double a6, double a7, double a8)
+/* ===== kbc_verify_init @ 0x940428CC size 64 ===== */
+__int64 __fastcall kbc_verify_init(double a1, double a2, double a3, double a4, double a5, double a6, double a7, double a8)
 {
   __int64 result; // x0
   double v9; // d0
@@ -23869,10 +23869,10 @@ __int64 __fastcall sub_940428CC(double a1, double a2, double a3, double a4, doub
   double v15; // d6
   double v16; // d7
 
-  sub_94040F2C(a1, a2, a3, a4, a5, a6, a7, a8);
-  result = sub_9402D420(5u, (__int64)qword_9405C8F0);
+  sprd_kbc_init(a1, a2, a3, a4, a5, a6, a7, a8);
+  result = trusty_install_handler(5u, (__int64)qword_9405C8F0);
   if ( (_DWORD)result != 0 )
-    return sub_940407DC(
+    return sprd_log(
              2u,
              "failed to install kbc_verify_ops handler: %d\n",
              v9,
@@ -23887,8 +23887,8 @@ __int64 __fastcall sub_940428CC(double a1, double a2, double a3, double a4, doub
   return result;
 }
 
-/* ===== sub_9404290C @ 0x9404290C size 120 ===== */
-__int64 __fastcall sub_9404290C(
+/* ===== dump_table @ 0x9404290C size 120 ===== */
+__int64 __fastcall dump_table(
         __int64 *a1,
         double a2,
         double a3,
@@ -23921,11 +23921,11 @@ __int64 __fastcall sub_9404290C(
     v13 = *((unsigned int *)v9 + 3);
     v14 = *v9;
     v9 += 14;
-    sub_940407DC(2u, "dump_table() len = %x maplen = %x addr = %llx \n", a2, a3, a4, a5, a6, a7, a8, a9, v12, v13, v14);
+    sprd_log(2u, "dump_table() len = %x maplen = %x addr = %llx \n", a2, a3, a4, a5, a6, a7, a8, a9, v12, v13, v14);
   }
   while ( v9 != v11 );
-  sub_940407DC(2u, "dump_table() flag = %d \n", a2, a3, a4, a5, a6, a7, a8, a9, *((unsigned __int16 *)a1 + 224));
-  return sub_940407DC(
+  sprd_log(2u, "dump_table() flag = %d \n", a2, a3, a4, a5, a6, a7, a8, a9, *((unsigned __int16 *)a1 + 224));
+  return sprd_log(
            2u,
            "dump_table() is_packed = %d \n",
            v15,
@@ -23939,8 +23939,8 @@ __int64 __fastcall sub_9404290C(
            *((unsigned __int16 *)a1 + 225));
 }
 
-/* ===== sub_94042984 @ 0x94042984 size 396 ===== */
-__int64 __fastcall sub_94042984(
+/* ===== kbc_verify_ops @ 0x94042984 size 396 ===== */
+__int64 __fastcall kbc_verify_ops(
         double a1,
         double a2,
         double a3,
@@ -24015,43 +24015,43 @@ __int64 __fastcall sub_94042984(
   switch ( a10 )
   {
     case 0:
-      sub_940407DC(2u, "enter SEC_KBC_STOP_CP\n", a1, a2, a3, a4, a5, a6, a7, a8);
-      sub_940417A0(v52, v53, v54, v55, v56, v57, v58, v59);
+      sprd_log(2u, "enter SEC_KBC_STOP_CP\n", a1, a2, a3, a4, a5, a6, a7, a8);
+      kbc_stop_cp(v52, v53, v54, v55, v56, v57, v58, v59);
       result = 0;
       break;
     case 1:
-      sub_940407DC(2u, "enter SEC_KBC_VERIFY_ALL\n", a1, a2, a3, a4, a5, a6, a7, a8);
-      if ( (unsigned int)sub_9404D244(v69, a11, 456) != 0 )
+      sprd_log(2u, "enter SEC_KBC_VERIFY_ALL\n", a1, a2, a3, a4, a5, a6, a7, a8);
+      if ( (unsigned int)copy_from_user(v69, a11, 456) != 0 )
         goto LABEL_11;
-      sub_9404290C(v69, v12, v13, v14, v15, v16, v17, v18, v19);
-      sub_940407DC(2u, (const char *)&loc_94055668, v20, v21, v22, v23, v24, v25, v26, v27);
-      sub_9404146C((__int64)v69, v28, v29, v30, v31, v32, v33, v34, v35);
-      sub_940407DC(2u, "verify succ,will update version\n", v36, v37, v38, v39, v40, v41, v42, v43);
+      dump_table(v69, v12, v13, v14, v15, v16, v17, v18, v19);
+      sprd_log(2u, (const char *)&loc_94055668, v20, v21, v22, v23, v24, v25, v26, v27);
+      kbc_image_verify((__int64)v69, v28, v29, v30, v31, v32, v33, v34, v35);
+      sprd_log(2u, "verify succ,will update version\n", v36, v37, v38, v39, v40, v41, v42, v43);
       result = 0;
       break;
     case 2:
-      sub_940407DC(2u, "enter SEC_KBC_START_CP\n", a1, a2, a3, a4, a5, a6, a7, a8);
-      sub_94041714(v60, v61, v62, v63, v64, v65, v66, v67);
+      sprd_log(2u, "enter SEC_KBC_START_CP\n", a1, a2, a3, a4, a5, a6, a7, a8);
+      kbc_start_cp(v60, v61, v62, v63, v64, v65, v66, v67);
       result = 0;
       break;
     case 3:
-      sub_940407DC(2u, "enter SEC_KBC_VERIFY_ALL_V2\n", a1, a2, a3, a4, a5, a6, a7, a8);
-      if ( (unsigned int)sub_9404D244(v69, a11, 456) != 0 )
+      sprd_log(2u, "enter SEC_KBC_VERIFY_ALL_V2\n", a1, a2, a3, a4, a5, a6, a7, a8);
+      if ( (unsigned int)copy_from_user(v69, a11, 456) != 0 )
       {
 LABEL_11:
-        sub_940407DC(2u, "copy_from_user failed!! \n", v12, v13, v14, v15, v16, v17, v18, v19);
+        sprd_log(2u, "copy_from_user failed!! \n", v12, v13, v14, v15, v16, v17, v18, v19);
         result = 4294967288LL;
       }
       else
       {
-        sub_9404290C(v69, v12, v13, v14, v15, v16, v17, v18, v19);
-        result = sub_94048EEC(v69);
+        dump_table(v69, v12, v13, v14, v15, v16, v17, v18, v19);
+        result = kbc_image_verify_v2(v69);
       }
       break;
     case 4:
-      sub_940407DC(2u, "enter SEC_KBC_GET_VERSION\n", a1, a2, a3, a4, a5, a6, a7, a8);
-      sub_9404D224(a11, -536460624, 56);
-      sub_940407DC(2u, (const char *)&loc_94055710, v44, v45, v46, v47, v48, v49, v50, v51);
+      sprd_log(2u, "enter SEC_KBC_GET_VERSION\n", a1, a2, a3, a4, a5, a6, a7, a8);
+      copy_to_user(a11, -536460624, 56);
+      sprd_log(2u, (const char *)&loc_94055710, v44, v45, v46, v47, v48, v49, v50, v51);
       MEMORY[0xFFFFFFFFE00642E4] = 0;
       result = 0;
       break;
@@ -24062,8 +24062,8 @@ LABEL_11:
   return result;
 }
 
-/* ===== sub_94042B10 @ 0x94042B10 size 276 ===== */
-__int64 __fastcall sub_94042B10(__int64 a1, __int64 a2)
+/* ===== avb_chain_partition_validate @ 0x94042B10 size 276 ===== */
+__int64 __fastcall avb_chain_partition_validate(__int64 a1, __int64 a2)
 {
   __int64 result; // x0
   double v5; // d0
@@ -24093,52 +24093,52 @@ __int64 __fastcall sub_94042B10(__int64 a1, __int64 a2)
   double v29; // d7
   unsigned __int64 v30; // [xsp+28h] [xbp+28h] BYREF
 
-  sub_940463E0(a2, a1, 92);
-  result = sub_94042CC8(a1, a2);
+  memcpy(a2, a1, 92);
+  result = avb_desc_header_validate(a1, a2);
   if ( (_DWORD)result != 0 )
   {
     if ( *(_QWORD *)a2 == 4 )
     {
-      *(_DWORD *)(a2 + 16) = sub_94046434(*(unsigned int *)(a2 + 16));
-      *(_DWORD *)(a2 + 20) = sub_94046434(*(unsigned int *)(a2 + 20));
-      *(_DWORD *)(a2 + 24) = sub_94046434(*(unsigned int *)(a2 + 24));
+      *(_DWORD *)(a2 + 16) = be32_to_cpu(*(unsigned int *)(a2 + 16));
+      *(_DWORD *)(a2 + 20) = be32_to_cpu(*(unsigned int *)(a2 + 20));
+      *(_DWORD *)(a2 + 24) = be32_to_cpu(*(unsigned int *)(a2 + 24));
       if ( *(_DWORD *)(a2 + 16) != 0 )
       {
         v21 = *(unsigned int *)(a2 + 20);
         v30 = 76;
-        if ( (unsigned int)sub_940464DC(&v30, v21) != 0
-          && (unsigned int)sub_940464DC(&v30, *(unsigned int *)(a2 + 24)) != 0 )
+        if ( (unsigned int)add_overflow(&v30, v21) != 0
+          && (unsigned int)add_overflow(&v30, *(unsigned int *)(a2 + 24)) != 0 )
         {
           result = 1;
           if ( *(_QWORD *)(a2 + 8) < v30 )
           {
-            sub_940407DC(0, "Descriptor payload size overflow.\n", v22, v23, v24, v25, v26, v27, v28, v29);
+            sprd_log(0, "Descriptor payload size overflow.\n", v22, v23, v24, v25, v26, v27, v28, v29);
             return 0;
           }
         }
         else
         {
-          sub_940407DC(0, "Overflow while adding up sizes.\n", v22, v23, v24, v25, v26, v27, v28, v29);
+          sprd_log(0, "Overflow while adding up sizes.\n", v22, v23, v24, v25, v26, v27, v28, v29);
           return 0;
         }
       }
       else
       {
-        sub_940407DC(0, "Invalid rollback index location value.\n", v13, v14, v15, v16, v17, v18, v19, v20);
+        sprd_log(0, "Invalid rollback index location value.\n", v13, v14, v15, v16, v17, v18, v19, v20);
         return 0;
       }
     }
     else
     {
-      sub_940407DC(0, "Invalid tag for chain partition descriptor.\n", v5, v6, v7, v8, v9, v10, v11, v12);
+      sprd_log(0, "Invalid tag for chain partition descriptor.\n", v5, v6, v7, v8, v9, v10, v11, v12);
       return 0;
     }
   }
   return result;
 }
 
-/* ===== sub_94042C24 @ 0x94042C24 size 44 ===== */
-__int64 *__fastcall sub_94042C24(unsigned int a1)
+/* ===== avb_get_algorithm @ 0x94042C24 size 44 ===== */
+__int64 *__fastcall avb_get_algorithm(unsigned int a1)
 {
   if ( a1 > 6 )
     return nullptr;
@@ -24146,24 +24146,24 @@ __int64 *__fastcall sub_94042C24(unsigned int a1)
     return &qword_9405C908[3 * a1];
 }
 
-/* ===== sub_94042C50 @ 0x94042C50 size 72 ===== */
-__int64 __fastcall sub_94042C50(__int64 a1, unsigned int *a2)
+/* ===== avb_hash_desc_validate @ 0x94042C50 size 72 ===== */
+__int64 __fastcall avb_hash_desc_validate(__int64 a1, unsigned int *a2)
 {
-  sub_940463E0(a2, a1, 8);
-  *a2 = sub_94046434(*a2);
-  a2[1] = sub_94046434(a2[1]);
+  memcpy(a2, a1, 8);
+  *a2 = be32_to_cpu(*a2);
+  a2[1] = be32_to_cpu(a2[1]);
   return 1;
 }
 
-/* ===== sub_94042C98 @ 0x94042C98 size 20 ===== */
-__int64 __fastcall sub_94042C98(__int64 a1, _QWORD *a2)
+/* ===== avb_count_descriptor @ 0x94042C98 size 20 ===== */
+__int64 __fastcall avb_count_descriptor(__int64 a1, _QWORD *a2)
 {
   ++*a2;
   return 1;
 }
 
-/* ===== sub_94042CAC @ 0x94042CAC size 28 ===== */
-__int64 __fastcall sub_94042CAC(__int64 a1, __int64 *a2)
+/* ===== avb_store_descriptor @ 0x94042CAC size 28 ===== */
+__int64 __fastcall avb_store_descriptor(__int64 a1, __int64 *a2)
 {
   __int64 v2; // x2
   __int64 v3; // x3
@@ -24175,8 +24175,8 @@ __int64 __fastcall sub_94042CAC(__int64 a1, __int64 *a2)
   return 1;
 }
 
-/* ===== sub_94042CC8 @ 0x94042CC8 size 88 ===== */
-__int64 __fastcall sub_94042CC8(_QWORD *a1, _QWORD *a2)
+/* ===== avb_desc_header_validate @ 0x94042CC8 size 88 ===== */
+__int64 __fastcall avb_desc_header_validate(_QWORD *a1, _QWORD *a2)
 {
   __int64 v4; // x0
   double v5; // d0
@@ -24190,21 +24190,21 @@ __int64 __fastcall sub_94042CC8(_QWORD *a1, _QWORD *a2)
   __int64 v13; // x1
   __int64 result; // x0
 
-  *a2 = sub_94046458(*a1);
-  v4 = sub_94046458(a1[1]);
+  *a2 = be64_to_cpu(*a1);
+  v4 = be64_to_cpu(a1[1]);
   v13 = v4 & 7;
   a2[1] = v4;
   result = 1;
   if ( v13 != 0 )
   {
-    sub_940407DC(0, "Descriptor size is not divisible by 8.\n", v5, v6, v7, v8, v9, v10, v11, v12);
+    sprd_log(0, "Descriptor size is not divisible by 8.\n", v5, v6, v7, v8, v9, v10, v11, v12);
     return 0;
   }
   return result;
 }
 
-/* ===== sub_94042D20 @ 0x94042D20 size 552 ===== */
-__int64 __fastcall sub_94042D20(
+/* ===== avb_foreach_descriptor @ 0x94042D20 size 552 ===== */
+__int64 __fastcall avb_foreach_descriptor(
         unsigned __int64 a1,
         unsigned __int64 a2,
         unsigned int (__fastcall *a3)(unsigned __int64, __int64),
@@ -24259,18 +24259,18 @@ __int64 __fastcall sub_94042D20(
     {
       if ( a2 <= 0xFF )
       {
-        sub_940407DC(0, "Length is smaller than header.\n", a5, a6, a7, a8, a9, a10, a11, a12);
+        sprd_log(0, "Length is smaller than header.\n", a5, a6, a7, a8, a9, a10, a11, a12);
         return 0;
       }
-      else if ( (unsigned int)sub_940463DC(a1, (__int64)"AVB0", 4u) != 0 )
+      else if ( (unsigned int)memcmp(a1, (__int64)"AVB0", 4u) != 0 )
       {
-        sub_940407DC(0, "Magic is incorrect.\n", v16, v17, v18, v19, v20, v21, v22, v23);
+        sprd_log(0, "Magic is incorrect.\n", v16, v17, v18, v19, v20, v21, v22, v23);
         return 0;
       }
       else
       {
         if ( (a1 & 7) != 0 )
-          sub_940407DC(
+          sprd_log(
             0,
             "assert fail: (((uintptr_t)image_data) & (AVB_ALIGNMENT_SIZE - 1)) == 0\n",
             v16,
@@ -24282,12 +24282,12 @@ __int64 __fastcall sub_94042D20(
             v22,
             v23);
         v24 = a1 + a2;
-        v25 = sub_94046458(*(_QWORD *)(a1 + 12));
-        v26 = a1 + v25 + sub_94046458(*(_QWORD *)(a1 + 96)) + 256;
-        v27 = v26 + sub_94046458(*(_QWORD *)(a1 + 104));
+        v25 = be64_to_cpu(*(_QWORD *)(a1 + 12));
+        v26 = a1 + v25 + be64_to_cpu(*(_QWORD *)(a1 + 96)) + 256;
+        v27 = v26 + be64_to_cpu(*(_QWORD *)(a1 + 104));
         if ( a1 > v26 || v24 < v26 || a1 > v27 || v24 < v27 || v26 > v27 )
         {
-          sub_940407DC(0, "Descriptors not inside passed-in data.\n", v28, v29, v30, v31, v32, v33, v34, v35);
+          sprd_log(0, "Descriptors not inside passed-in data.\n", v28, v29, v30, v31, v32, v33, v34, v35);
           return 0;
         }
         else
@@ -24298,7 +24298,7 @@ __int64 __fastcall sub_94042D20(
             while ( 1 )
             {
               if ( (v36 & 7) != 0 )
-                sub_940407DC(
+                sprd_log(
                   0,
                   "assert fail: (((uintptr_t)dh) & (AVB_ALIGNMENT_SIZE - 1)) == 0\n",
                   v28,
@@ -24309,7 +24309,7 @@ __int64 __fastcall sub_94042D20(
                   v33,
                   v34,
                   v35);
-              v38 = sub_94046458(*(_QWORD *)(v36 + 8)) + 16;
+              v38 = be64_to_cpu(*(_QWORD *)(v36 + 8)) + 16;
               v47 = v38 & 7;
               v48 = v36 + v38;
               v49 = v26 > v36 + v38;
@@ -24317,12 +24317,12 @@ __int64 __fastcall sub_94042D20(
               v36 = v48;
               if ( v47 != 0 )
               {
-                sub_940407DC(0, "Invalid descriptor length.\n", v39, v40, v41, v42, v43, v44, v45, v46);
+                sprd_log(0, "Invalid descriptor length.\n", v39, v40, v41, v42, v43, v44, v45, v46);
                 return 0;
               }
               if ( v49 || v27 < v48 )
               {
-                sub_940407DC(0, "Invalid data in descriptors array.\n", v39, v40, v41, v42, v43, v44, v45, v46);
+                sprd_log(0, "Invalid data in descriptors array.\n", v39, v40, v41, v42, v43, v44, v45, v46);
                 return 0;
               }
               if ( a3(v50, a4) == 0 )
@@ -24341,19 +24341,19 @@ __int64 __fastcall sub_94042D20(
     }
     else
     {
-      sub_940407DC(0, "foreach_func is NULL\n.", a5, a6, a7, a8, a9, a10, a11, a12);
+      sprd_log(0, "foreach_func is NULL\n.", a5, a6, a7, a8, a9, a10, a11, a12);
       return 0;
     }
   }
   else
   {
-    sub_940407DC(0, "image_data is NULL\n.", a5, a6, a7, a8, a9, a10, a11, a12);
+    sprd_log(0, "image_data is NULL\n.", a5, a6, a7, a8, a9, a10, a11, a12);
     return 0;
   }
 }
 
-/* ===== sub_94042F48 @ 0x94042F48 size 172 ===== */
-__int64 __fastcall sub_94042F48(
+/* ===== avb_get_all_descriptors @ 0x94042F48 size 172 ===== */
+__int64 __fastcall avb_get_all_descriptors(
         unsigned __int64 a1,
         unsigned __int64 a2,
         _QWORD *a3,
@@ -24387,10 +24387,10 @@ __int64 __fastcall sub_94042F48(
   __int64 v33; // [xsp+48h] [xbp+48h]
 
   v31 = 0;
-  sub_94042D20(
+  avb_foreach_descriptor(
     a1,
     a2,
-    (unsigned int (__fastcall *)(unsigned __int64, __int64))sub_94042C98,
+    (unsigned int (__fastcall *)(unsigned __int64, __int64))avb_count_descriptor,
     (__int64)&v31,
     a4,
     a5,
@@ -24401,13 +24401,13 @@ __int64 __fastcall sub_94042F48(
     a10,
     a11);
   v32 = 0;
-  v33 = sub_94046748(8 * (v31 + 1));
+  v33 = avb_calloc(8 * (v31 + 1));
   if ( v33 == 0 )
     return 0;
-  sub_94042D20(
+  avb_foreach_descriptor(
     a1,
     a2,
-    (unsigned int (__fastcall *)(unsigned __int64, __int64))sub_94042CAC,
+    (unsigned int (__fastcall *)(unsigned __int64, __int64))avb_store_descriptor,
     (__int64)&v32,
     v14,
     v15,
@@ -24418,14 +24418,14 @@ __int64 __fastcall sub_94042F48(
     v20,
     v21);
   if ( v32 != v31 )
-    sub_940407DC(0, "assert fail: data.descriptor_number == num_descriptors\n", v22, v23, v24, v25, v26, v27, v28, v29);
+    sprd_log(0, "assert fail: data.descriptor_number == num_descriptors\n", v22, v23, v24, v25, v26, v27, v28, v29);
   if ( a3 != nullptr )
     *a3 = v31;
   return v33;
 }
 
-/* ===== sub_94042FF4 @ 0x94042FF4 size 216 ===== */
-__int64 __fastcall sub_94042FF4(__int64 a1, __int64 a2)
+/* ===== avb_footer_validate @ 0x94042FF4 size 216 ===== */
+__int64 __fastcall avb_footer_validate(__int64 a1, __int64 a2)
 {
   double v3; // d0
   double v4; // d1
@@ -24436,15 +24436,15 @@ __int64 __fastcall sub_94042FF4(__int64 a1, __int64 a2)
   double v9; // d6
   double v10; // d7
 
-  sub_940463E0(a2, a1, 64);
-  *(_DWORD *)(a2 + 4) = sub_94046434(*(unsigned int *)(a2 + 4));
-  *(_DWORD *)(a2 + 8) = sub_94046434(*(unsigned int *)(a2 + 8));
-  *(_QWORD *)(a2 + 12) = sub_94046458(*(_QWORD *)(a2 + 12));
-  *(_QWORD *)(a2 + 20) = sub_94046458(*(_QWORD *)(a2 + 20));
-  *(_QWORD *)(a2 + 28) = sub_94046458(*(_QWORD *)(a2 + 28));
-  if ( (unsigned int)sub_9404649C(a2, "AVBf", 4) != 0 )
+  memcpy(a2, a1, 64);
+  *(_DWORD *)(a2 + 4) = be32_to_cpu(*(unsigned int *)(a2 + 4));
+  *(_DWORD *)(a2 + 8) = be32_to_cpu(*(unsigned int *)(a2 + 8));
+  *(_QWORD *)(a2 + 12) = be64_to_cpu(*(_QWORD *)(a2 + 12));
+  *(_QWORD *)(a2 + 20) = be64_to_cpu(*(_QWORD *)(a2 + 20));
+  *(_QWORD *)(a2 + 28) = be64_to_cpu(*(_QWORD *)(a2 + 28));
+  if ( (unsigned int)memcmp_neq(a2, "AVBf", 4) != 0 )
   {
-    sub_940407DC(0, "Footer magic is incorrect.\n", v3, v4, v5, v6, v7, v8, v9, v10);
+    sprd_log(0, "Footer magic is incorrect.\n", v3, v4, v5, v6, v7, v8, v9, v10);
     return 0;
   }
   else if ( *(_DWORD *)(a2 + 4) <= 1u )
@@ -24453,13 +24453,13 @@ __int64 __fastcall sub_94042FF4(__int64 a1, __int64 a2)
   }
   else
   {
-    sub_940407DC(0, "No support for footer version.\n", v3, v4, v5, v6, v7, v8, v9, v10);
+    sprd_log(0, "No support for footer version.\n", v3, v4, v5, v6, v7, v8, v9, v10);
     return 0;
   }
 }
 
-/* ===== sub_940430CC @ 0x940430CC size 280 ===== */
-__int64 __fastcall sub_940430CC(_QWORD *a1, __int64 a2)
+/* ===== avb_hash_desc_parse @ 0x940430CC size 280 ===== */
+__int64 __fastcall avb_hash_desc_parse(_QWORD *a1, __int64 a2)
 {
   __int64 result; // x0
   double v5; // d0
@@ -24480,45 +24480,45 @@ __int64 __fastcall sub_940430CC(_QWORD *a1, __int64 a2)
   double v20; // d7
   unsigned __int64 v21; // [xsp+28h] [xbp+28h] BYREF
 
-  sub_940463E0(a2, a1, 132);
-  result = sub_94042CC8(a1, (_QWORD *)a2);
+  memcpy(a2, a1, 132);
+  result = avb_desc_header_validate(a1, (_QWORD *)a2);
   if ( (_DWORD)result != 0 )
   {
     if ( *(_QWORD *)a2 == 2 )
     {
-      *(_QWORD *)(a2 + 16) = sub_94046458(*(_QWORD *)(a2 + 16));
-      *(_DWORD *)(a2 + 56) = sub_94046434(*(unsigned int *)(a2 + 56));
-      *(_DWORD *)(a2 + 60) = sub_94046434(*(unsigned int *)(a2 + 60));
-      *(_DWORD *)(a2 + 64) = sub_94046434(*(unsigned int *)(a2 + 64));
+      *(_QWORD *)(a2 + 16) = be64_to_cpu(*(_QWORD *)(a2 + 16));
+      *(_DWORD *)(a2 + 56) = be32_to_cpu(*(unsigned int *)(a2 + 56));
+      *(_DWORD *)(a2 + 60) = be32_to_cpu(*(unsigned int *)(a2 + 60));
+      *(_DWORD *)(a2 + 64) = be32_to_cpu(*(unsigned int *)(a2 + 64));
       v21 = 116;
-      if ( (unsigned int)sub_940464DC(&v21, *(unsigned int *)(a2 + 56)) != 0
-        && (unsigned int)sub_940464DC(&v21, *(unsigned int *)(a2 + 60)) != 0
-        && (unsigned int)sub_940464DC(&v21, *(unsigned int *)(a2 + 64)) != 0 )
+      if ( (unsigned int)add_overflow(&v21, *(unsigned int *)(a2 + 56)) != 0
+        && (unsigned int)add_overflow(&v21, *(unsigned int *)(a2 + 60)) != 0
+        && (unsigned int)add_overflow(&v21, *(unsigned int *)(a2 + 64)) != 0 )
       {
         result = 1;
         if ( *(_QWORD *)(a2 + 8) < v21 )
         {
-          sub_940407DC(0, "Descriptor payload size overflow.\n", v13, v14, v15, v16, v17, v18, v19, v20);
+          sprd_log(0, "Descriptor payload size overflow.\n", v13, v14, v15, v16, v17, v18, v19, v20);
           return 0;
         }
       }
       else
       {
-        sub_940407DC(0, "Overflow while adding up sizes.\n", v13, v14, v15, v16, v17, v18, v19, v20);
+        sprd_log(0, "Overflow while adding up sizes.\n", v13, v14, v15, v16, v17, v18, v19, v20);
         return 0;
       }
     }
     else
     {
-      sub_940407DC(0, "Invalid tag for hash descriptor.\n", v5, v6, v7, v8, v9, v10, v11, v12);
+      sprd_log(0, "Invalid tag for hash descriptor.\n", v5, v6, v7, v8, v9, v10, v11, v12);
       return 0;
     }
   }
   return result;
 }
 
-/* ===== sub_940431E4 @ 0x940431E4 size 216 ===== */
-__int64 __fastcall sub_940431E4(_QWORD *a1, __int64 a2)
+/* ===== avb_cmdline_desc_parse @ 0x940431E4 size 216 ===== */
+__int64 __fastcall avb_cmdline_desc_parse(_QWORD *a1, __int64 a2)
 {
   unsigned int v4; // w20
   double v5; // d0
@@ -24540,42 +24540,42 @@ __int64 __fastcall sub_940431E4(_QWORD *a1, __int64 a2)
   double v22; // d7
   unsigned __int64 v23; // [xsp+28h] [xbp+28h] BYREF
 
-  sub_940463E0(a2, a1, 24);
-  v4 = sub_94042CC8(a1, (_QWORD *)a2);
+  memcpy(a2, a1, 24);
+  v4 = avb_desc_header_validate(a1, (_QWORD *)a2);
   if ( v4 != 0 )
   {
     if ( *(_QWORD *)a2 == 3 )
     {
-      *(_DWORD *)(a2 + 16) = sub_94046434(*(unsigned int *)(a2 + 16));
-      v14 = sub_94046434(*(unsigned int *)(a2 + 20));
+      *(_DWORD *)(a2 + 16) = be32_to_cpu(*(unsigned int *)(a2 + 16));
+      v14 = be32_to_cpu(*(unsigned int *)(a2 + 20));
       *(_DWORD *)(a2 + 20) = v14;
       v23 = 8;
-      v4 = sub_940464DC(&v23, v14);
+      v4 = add_overflow(&v23, v14);
       if ( v4 != 0 )
       {
         v4 = 1;
         if ( *(_QWORD *)(a2 + 8) < v23 )
         {
           v4 = 0;
-          sub_940407DC(0, "Descriptor payload size overflow.\n", v15, v16, v17, v18, v19, v20, v21, v22);
+          sprd_log(0, "Descriptor payload size overflow.\n", v15, v16, v17, v18, v19, v20, v21, v22);
         }
       }
       else
       {
-        sub_940407DC(0, "Overflow while adding up sizes.\n", v15, v16, v17, v18, v19, v20, v21, v22);
+        sprd_log(0, "Overflow while adding up sizes.\n", v15, v16, v17, v18, v19, v20, v21, v22);
       }
     }
     else
     {
       v4 = 0;
-      sub_940407DC(0, "Invalid tag for kernel cmdline descriptor.\n", v5, v6, v7, v8, v9, v10, v11, v12);
+      sprd_log(0, "Invalid tag for kernel cmdline descriptor.\n", v5, v6, v7, v8, v9, v10, v11, v12);
     }
   }
   return v4;
 }
 
-/* ===== sub_940432BC @ 0x940432BC size 280 ===== */
-__int64 __fastcall sub_940432BC(__int64 result, _DWORD *a2, __int64 a3, _DWORD *a4)
+/* ===== avb_rsa_modmult @ 0x940432BC size 280 ===== */
+__int64 __fastcall avb_rsa_modmult(__int64 result, _DWORD *a2, __int64 a3, _DWORD *a4)
 {
   unsigned int v4; // w4
   unsigned int v5; // w6
@@ -24664,8 +24664,8 @@ __int64 __fastcall sub_940432BC(__int64 result, _DWORD *a2, __int64 a3, _DWORD *
   return result;
 }
 
-/* ===== sub_940433D4 @ 0x940433D4 size 384 ===== */
-__int64 __fastcall sub_940433D4(__int64 a1, __int64 a2)
+/* ===== avb_parse_rsa_key @ 0x940433D4 size 384 ===== */
+__int64 __fastcall avb_parse_rsa_key(__int64 a1, __int64 a2)
 {
   double v4; // d0
   double v5; // d1
@@ -24685,7 +24685,7 @@ __int64 __fastcall sub_940433D4(__int64 a1, __int64 a2)
   __int64 v20; // x24
   unsigned int v21[2]; // [xsp+48h] [xbp+48h] BYREF
 
-  if ( (unsigned int)sub_94042C50(a1, v21) != 0 )
+  if ( (unsigned int)avb_hash_desc_validate(a1, v21) != 0 )
   {
     if ( ((v21[0] - 2048) & 0xFFFFF7FF) == 0 || v21[0] == 0x2000 )
     {
@@ -24693,7 +24693,7 @@ __int64 __fastcall sub_940433D4(__int64 a1, __int64 a2)
       if ( a2 == v13 + 8 )
       {
         v14 = (v21[0] >> 3) + 8LL;
-        v15 = sub_94046700(v13 + 24);
+        v15 = avb_malloc(v13 + 24);
         v16 = v15;
         if ( v15 != 0 )
         {
@@ -24708,9 +24708,9 @@ __int64 __fastcall sub_940433D4(__int64 a1, __int64 a2)
             v19 = 0;
             while ( 1 )
             {
-              *(_DWORD *)(v17 + 4LL * v19) = sub_94046434(*(unsigned int *)(a1 + 4LL * ((unsigned int)v18 + ~v19) + 8));
+              *(_DWORD *)(v17 + 4LL * v19) = be32_to_cpu(*(unsigned int *)(a1 + 4LL * ((unsigned int)v18 + ~v19) + 8));
               v20 = *(_QWORD *)(v16 + 16);
-              *(_DWORD *)(v20 + 4LL * v19) = sub_94046434(*(unsigned int *)(a1 + v14 + 4LL * (*(_DWORD *)v16 - 1 - v19)));
+              *(_DWORD *)(v20 + 4LL * v19) = be32_to_cpu(*(unsigned int *)(a1 + v14 + 4LL * (*(_DWORD *)v16 - 1 - v19)));
               ++v19;
               LODWORD(v18) = *(_DWORD *)v16;
               if ( *(_DWORD *)v16 <= v19 )
@@ -24727,32 +24727,32 @@ __int64 __fastcall sub_940433D4(__int64 a1, __int64 a2)
       }
       else
       {
-        sub_940407DC(0, "Key does not match expected length.\n", v4, v5, v6, v7, v8, v9, v10, v11);
+        sprd_log(0, "Key does not match expected length.\n", v4, v5, v6, v7, v8, v9, v10, v11);
         return 0;
       }
     }
     else
     {
-      sub_940407DC(0, "Unexpected key length.\n", v4, v5, v6, v7, v8, v9, v10, v11);
+      sprd_log(0, "Unexpected key length.\n", v4, v5, v6, v7, v8, v9, v10, v11);
       return 0;
     }
   }
   else
   {
-    sub_940407DC(0, "Invalid key.\n", v4, v5, v6, v7, v8, v9, v10, v11);
+    sprd_log(0, "Invalid key.\n", v4, v5, v6, v7, v8, v9, v10, v11);
     return 0;
   }
 }
 
-/* ===== sub_94043554 @ 0x94043554 size 4 ===== */
+/* ===== avb_free_key @ 0x94043554 size 4 ===== */
 // attributes: thunk
-__int64 __fastcall sub_94043554(__int64 a1)
+__int64 __fastcall avb_free_key(__int64 a1)
 {
-  return sub_94046430(a1);
+  return free(a1);
 }
 
-/* ===== sub_94043558 @ 0x94043558 size 1120 ===== */
-__int64 __fastcall sub_94043558(
+/* ===== avb_rsa_verify_sw @ 0x94043558 size 1120 ===== */
+__int64 __fastcall avb_rsa_verify_sw(
         __int64 a1,
         __int64 a2,
         __int64 a3,
@@ -24858,20 +24858,20 @@ __int64 __fastcall sub_94043558(
 
   if ( a1 == 0 || a3 == 0 || a5 == 0 || a7 == 0 )
   {
-    sub_940407DC(0, "Invalid input.\n", a9, a10, a11, a12, a13, a14, a15, a16);
+    sprd_log(0, "Invalid input.\n", a9, a10, a11, a12, a13, a14, a15, a16);
     return 0;
   }
-  v16 = (unsigned int *)sub_940433D4(a1, a2);
+  v16 = (unsigned int *)avb_parse_rsa_key(a1, a2);
   v25 = (signed int *)v16;
   if ( v16 == nullptr )
   {
-    sub_940407DC(0, "Error parsing key.\n", v17, v18, v19, v20, v21, v22, v23, v24, a3, a4, a5, a6, a7, a8);
+    sprd_log(0, "Error parsing key.\n", v17, v18, v19, v20, v21, v22, v23, v24, a3, a4, a5, a6, a7, a8);
     return 0;
   }
   v26 = 4LL * *v16;
   if ( v26 != a4 )
   {
-    sub_940407DC(
+    sprd_log(
       0,
       "Signature length does not match key length.\n",
       v17,
@@ -24889,13 +24889,13 @@ __int64 __fastcall sub_94043558(
       a7,
       a8);
 LABEL_8:
-    sub_94043554((__int64)v25);
+    avb_free_key((__int64)v25);
     return 0;
   }
   v28 = v26 - a6;
   if ( v26 - a6 != a8 )
   {
-    sub_940407DC(
+    sprd_log(
       0,
       "Padding length does not match hash and signature lengths.\n",
       v17,
@@ -24909,17 +24909,17 @@ LABEL_8:
       a3);
     goto LABEL_8;
   }
-  v29 = sub_94046700(4LL * *v16);
+  v29 = avb_malloc(4LL * *v16);
   v39 = v29;
   if ( v29 == 0 )
   {
-    sub_940407DC(0, "Error allocating memory.\n", v31, v32, v33, v34, v35, v36, v37, v38, a3, v30, a5, a6, a7);
+    sprd_log(0, "Error allocating memory.\n", v31, v32, v33, v34, v35, v36, v37, v38, a3, v30, a5, a6, a7);
     goto LABEL_8;
   }
-  sub_940463E0(v29, a3, v26);
-  v40 = (int *)sub_94046700(4LL * (unsigned int)*v25);
-  v41 = (_DWORD *)sub_94046700(4LL * (unsigned int)*v25);
-  v42 = sub_94046700(4LL * (unsigned int)*v25);
+  memcpy(v29, a3, v26);
+  v40 = (int *)avb_malloc(4LL * (unsigned int)*v25);
+  v41 = (_DWORD *)avb_malloc(4LL * (unsigned int)*v25);
+  v42 = avb_malloc(4LL * (unsigned int)*v25);
   v43 = (_DWORD *)v42;
   v44 = a5;
   v45 = a6;
@@ -24940,7 +24940,7 @@ LABEL_8:
                | (*(unsigned __int8 *)(v39 + (unsigned int)(v51 + 2)) << 8);
       }
       v52 = 8;
-      sub_940432BC((__int64)v25, v41, (__int64)v40, *((_DWORD **)v25 + 2));
+      avb_rsa_modmult((__int64)v25, v41, (__int64)v40, *((_DWORD **)v25 + 2));
       v53 = a5;
       v54 = a6;
       v55 = a7;
@@ -24949,15 +24949,15 @@ LABEL_8:
         v92 = v55;
         v97 = v54;
         v103 = v53;
-        sub_940432BC((__int64)v25, v43, (__int64)v41, v41);
-        sub_940432BC((__int64)v25, v41, (__int64)v43, v43);
+        avb_rsa_modmult((__int64)v25, v43, (__int64)v41, v41);
+        avb_rsa_modmult((__int64)v25, v41, (__int64)v43, v43);
         --v52;
         v53 = v103;
         v54 = v97;
         v55 = v92;
       }
       while ( v52 != 0 );
-      sub_940432BC((__int64)v25, v43, (__int64)v41, v40);
+      avb_rsa_modmult((__int64)v25, v43, (__int64)v41, v40);
       v56 = *v25;
       v44 = v103;
       v45 = v97;
@@ -25022,7 +25022,7 @@ LABEL_30:
   v93 = v46;
   v98 = v45;
   v104 = v44;
-  sub_94046430((__int64)v40);
+  free((__int64)v40);
   v44 = v104;
   v45 = v98;
   v46 = v93;
@@ -25032,7 +25032,7 @@ LABEL_34:
     v94 = v46;
     v99 = v45;
     v105 = v44;
-    sub_94046430((__int64)v41);
+    free((__int64)v41);
     v46 = v94;
     v45 = v99;
     v44 = v105;
@@ -25042,35 +25042,35 @@ LABEL_34:
     v95 = v46;
     v100 = v45;
     v106 = v44;
-    sub_94046430((__int64)v43);
+    free((__int64)v43);
     v46 = v95;
     v45 = v100;
     v44 = v106;
   }
   v101 = v45;
   v107 = v44;
-  if ( (unsigned int)sub_9404649C(v39, v46, v28) != 0 )
+  if ( (unsigned int)memcmp_neq(v39, v46, v28) != 0 )
   {
     v78 = 0;
-    sub_940407DC(0, "Padding check failed.\n", v70, v71, v72, v73, v74, v75, v76, v77);
+    sprd_log(0, "Padding check failed.\n", v70, v71, v72, v73, v74, v75, v76, v77);
   }
   else
   {
     v79 = v39 + v28;
     v78 = 1;
-    if ( (unsigned int)sub_9404649C(v79, v107, v101) != 0 )
+    if ( (unsigned int)memcmp_neq(v79, v107, v101) != 0 )
     {
       v78 = 0;
-      sub_940407DC(0, "Hash check failed.\n", v80, v81, v82, v83, v84, v85, v86, v87);
+      sprd_log(0, "Hash check failed.\n", v80, v81, v82, v83, v84, v85, v86, v87);
     }
   }
-  sub_94043554((__int64)v25);
-  sub_94046430(v39);
+  avb_free_key((__int64)v25);
+  free(v39);
   return v78;
 }
 
-/* ===== sub_940439B8 @ 0x940439B8 size 548 ===== */
-unsigned int *__fastcall sub_940439B8(unsigned int *result, __int64 a2, int a3)
+/* ===== sha256_transform @ 0x940439B8 size 548 ===== */
+unsigned int *__fastcall sha256_transform(unsigned int *result, __int64 a2, int a3)
 {
   unsigned int v3; // w28
   int v4; // w26
@@ -25208,8 +25208,8 @@ unsigned int *__fastcall sub_940439B8(unsigned int *result, __int64 a2, int a3)
   return result;
 }
 
-/* ===== sub_94043BDC @ 0x94043BDC size 108 ===== */
-_DWORD *__fastcall sub_94043BDC(_DWORD *result)
+/* ===== sha256_init @ 0x94043BDC size 108 ===== */
+_DWORD *__fastcall sha256_init(_DWORD *result)
 {
   *result = 1779033703;
   result[1] = -1150833019;
@@ -25224,8 +25224,8 @@ _DWORD *__fastcall sub_94043BDC(_DWORD *result)
   return result;
 }
 
-/* ===== sub_94043C48 @ 0x94043C48 size 224 ===== */
-__int64 __fastcall sub_94043C48(unsigned int *a1, __int64 a2, unsigned int a3)
+/* ===== sha256_update @ 0x94043C48 size 224 ===== */
+__int64 __fastcall sha256_update(unsigned int *a1, __int64 a2, unsigned int a3)
 {
   unsigned int v3; // w3
   unsigned int v5; // w19
@@ -25243,18 +25243,18 @@ __int64 __fastcall sub_94043C48(unsigned int *a1, __int64 a2, unsigned int a3)
   else
     v5 = a3;
   v7 = v5;
-  sub_940463E0((char *)a1 + v3 + 40, a2, v5);
+  memcpy((char *)a1 + v3 + 40, a2, v5);
   result = a3 + a1[9];
   if ( (unsigned int)result > 0x3F )
   {
     v10 = a3 - v5;
     v11 = a2 + v7;
-    sub_940439B8(a1, (__int64)(a1 + 10), 1);
+    sha256_transform(a1, (__int64)(a1 + 10), 1);
     v12 = v10 >> 6;
     v13 = v10 >> 6;
     v14 = v10 & 0x3F;
-    sub_940439B8(a1, v11, v13);
-    sub_940463E0(a1 + 10, v11 + ((unsigned __int64)v12 << 6), v14 & 0x3F);
+    sha256_transform(a1, v11, v13);
+    memcpy(a1 + 10, v11 + ((unsigned __int64)v12 << 6), v14 & 0x3F);
     a1[9] = v14;
     result = a1[8];
     a1[8] = result + ((v12 + 1) << 6);
@@ -25266,8 +25266,8 @@ __int64 __fastcall sub_94043C48(unsigned int *a1, __int64 a2, unsigned int a3)
   return result;
 }
 
-/* ===== sub_94043D28 @ 0x94043D28 size 520 ===== */
-__int64 __fastcall sub_94043D28(__int64 a1)
+/* ===== sha256_final @ 0x94043D28 size 520 ===== */
+__int64 __fastcall sha256_final(__int64 a1)
 {
   unsigned int v1; // w3
   unsigned int v3; // w0
@@ -25317,14 +25317,14 @@ __int64 __fastcall sub_94043D28(__int64 a1)
   else
     v10 = 2;
   v11 = v1 + *(_DWORD *)(a1 + 32);
-  sub_940463F8(a1 + v1 + 40, 0, v9);
+  memset(a1 + v1 + 40, 0, v9);
   v11 *= 8;
   *(_BYTE *)(a1 + *(unsigned int *)(a1 + 36) + 40) = 0x80;
   *(_BYTE *)(a1 + v7 + 40) = v11;
   *(_BYTE *)(a1 + v6 + 40) = BYTE1(v11);
   *(_BYTE *)(a1 + v5 + 40) = BYTE2(v11);
   *(_BYTE *)(a1 + v4 + 40) = HIBYTE(v11);
-  sub_940439B8((unsigned int *)a1, a1 + 40, v10);
+  sha256_transform((unsigned int *)a1, a1 + 40, v10);
   v13 = *(_DWORD *)(a1 + 4);
   v14 = *(_DWORD *)(a1 + 8);
   v15 = *(_DWORD *)a1 >> 8;
@@ -25370,8 +25370,8 @@ __int64 __fastcall sub_94043D28(__int64 a1)
   return a1 + 168;
 }
 
-/* ===== sub_94043F30 @ 0x94043F30 size 584 ===== */
-__int64 *__fastcall sub_94043F30(__int64 *result, __int64 a2, int a3)
+/* ===== sha512_transform @ 0x94043F30 size 584 ===== */
+__int64 *__fastcall sha512_transform(__int64 *result, __int64 a2, int a3)
 {
   __int64 v3; // x28
   int v4; // w26
@@ -25477,8 +25477,8 @@ __int64 *__fastcall sub_94043F30(__int64 *result, __int64 a2, int a3)
   return result;
 }
 
-/* ===== sub_94044178 @ 0x94044178 size 172 ===== */
-__int64 __fastcall sub_94044178(__int64 result)
+/* ===== sha512_init @ 0x94044178 size 172 ===== */
+__int64 __fastcall sha512_init(__int64 result)
 {
   *(_QWORD *)result = 0x6A09E667F3BCC908LL;
   *(_QWORD *)(result + 8) = 0xBB67AE8584CAA73BLL;
@@ -25493,8 +25493,8 @@ __int64 __fastcall sub_94044178(__int64 result)
   return result;
 }
 
-/* ===== sub_94044224 @ 0x94044224 size 224 ===== */
-__int64 __fastcall sub_94044224(__int64 a1, __int64 a2, unsigned int a3)
+/* ===== sha512_update @ 0x94044224 size 224 ===== */
+__int64 __fastcall sha512_update(__int64 a1, __int64 a2, unsigned int a3)
 {
   unsigned int v3; // w3
   unsigned int v5; // w19
@@ -25512,18 +25512,18 @@ __int64 __fastcall sub_94044224(__int64 a1, __int64 a2, unsigned int a3)
   else
     v5 = a3;
   v7 = v5;
-  sub_940463E0(a1 + v3 + 72, a2, v5);
+  memcpy(a1 + v3 + 72, a2, v5);
   result = a3 + *(_DWORD *)(a1 + 68);
   if ( (unsigned int)result > 0x7F )
   {
     v10 = a3 - v5;
     v11 = a2 + v7;
-    sub_94043F30((__int64 *)a1, a1 + 72, 1);
+    sha512_transform((__int64 *)a1, a1 + 72, 1);
     v12 = v10 >> 7;
     v13 = v10 >> 7;
     v14 = v10 & 0x7F;
-    sub_94043F30((__int64 *)a1, v11, v13);
-    sub_940463E0(a1 + 72, v11 + ((unsigned __int64)v12 << 7), v14 & 0x7F);
+    sha512_transform((__int64 *)a1, v11, v13);
+    memcpy(a1 + 72, v11 + ((unsigned __int64)v12 << 7), v14 & 0x7F);
     *(_DWORD *)(a1 + 68) = v14;
     result = *(unsigned int *)(a1 + 64);
     *(_DWORD *)(a1 + 64) = result + ((v12 + 1) << 7);
@@ -25535,8 +25535,8 @@ __int64 __fastcall sub_94044224(__int64 a1, __int64 a2, unsigned int a3)
   return result;
 }
 
-/* ===== sub_94044304 @ 0x94044304 size 352 ===== */
-__int64 __fastcall sub_94044304(__int64 a1)
+/* ===== sha512_final @ 0x94044304 size 352 ===== */
+__int64 __fastcall sha512_final(__int64 a1)
 {
   unsigned int v1; // w3
   unsigned int v3; // w0
@@ -25581,14 +25581,14 @@ __int64 __fastcall sub_94044304(__int64 a1)
     v11 = 1;
   else
     v11 = 2;
-  sub_940463F8(a1 + v1 + 72, 0, v9);
+  memset(a1 + v1 + 72, 0, v9);
   v12 = 8 * v10;
   *(_BYTE *)(a1 + *(unsigned int *)(a1 + 68) + 72) = 0x80;
   *(_BYTE *)(a1 + v7 + 72) = v12;
   *(_BYTE *)(a1 + v6 + 72) = BYTE1(v12);
   *(_BYTE *)(a1 + v5 + 72) = BYTE2(v12);
   *(_BYTE *)(a1 + v4 + 72) = HIBYTE(v12);
-  sub_94043F30((__int64 *)a1, a1 + 72, v11);
+  sha512_transform((__int64 *)a1, a1 + 72, v11);
   v13 = 0;
   do
   {
@@ -25608,8 +25608,8 @@ __int64 __fastcall sub_94044304(__int64 a1)
   return a1 + 328;
 }
 
-/* ===== sub_94044464 @ 0x94044464 size 132 ===== */
-__int64 __fastcall sub_94044464(unsigned __int64 a1, __int64 a2)
+/* ===== uint_to_str @ 0x94044464 size 132 ===== */
+__int64 __fastcall uint_to_str(unsigned __int64 a1, __int64 a2)
 {
   __int64 v2; // x3
   int v3; // w2
@@ -25644,8 +25644,8 @@ LABEL_5:
   return result;
 }
 
-/* ===== sub_940444E8 @ 0x940444E8 size 296 ===== */
-__int64 __fastcall sub_940444E8(__int64 *a1, __int64 a2, __int64 a3)
+/* ===== avb_cmdline_append @ 0x940444E8 size 296 ===== */
+__int64 __fastcall avb_cmdline_append(__int64 *a1, __int64 a2, __int64 a3)
 {
   __int64 v6; // x22
   __int64 v7; // x24
@@ -25656,23 +25656,23 @@ __int64 __fastcall sub_940444E8(__int64 *a1, __int64 a2, __int64 a3)
   __int64 v12; // x0
   __int64 v13; // x19
 
-  v6 = sub_94046414(a2);
-  v7 = sub_94046414(a3);
+  v6 = strlen(a2);
+  v7 = strlen(a3);
   if ( *a1 != 0 )
   {
-    v8 = sub_94046414(*a1);
+    v8 = strlen(*a1);
     v9 = v8;
     if ( v8 != 0 )
     {
       v10 = v8 + 1;
       v11 = v8 + 1 + v6;
-      v12 = sub_94046748(v7 + 2 + v11);
+      v12 = avb_calloc(v7 + 2 + v11);
       v13 = v12;
       if ( v12 != 0 )
       {
         if ( v10 != 0 )
         {
-          sub_940463E0(v12, *a1, v9);
+          memcpy(v12, *a1, v9);
           *(_BYTE *)(v13 + v9) = 32;
         }
         goto LABEL_6;
@@ -25680,23 +25680,23 @@ __int64 __fastcall sub_940444E8(__int64 *a1, __int64 a2, __int64 a3)
       return 0;
     }
   }
-  v13 = sub_94046748(v6 + v7 + 2);
+  v13 = avb_calloc(v6 + v7 + 2);
   if ( v13 == 0 )
     return 0;
   v11 = v6;
   v10 = 0;
 LABEL_6:
-  sub_940463E0(v13 + v10, a2, v6);
+  memcpy(v13 + v10, a2, v6);
   *(_BYTE *)(v13 + v11) = 61;
-  sub_940463E0(v13 + v11 + 1, a3, v7);
+  memcpy(v13 + v11 + 1, a3, v7);
   if ( *a1 != 0 )
-    sub_94046430(*a1);
+    free(*a1);
   *a1 = v13;
   return 1;
 }
 
-/* ===== sub_94044610 @ 0x94044610 size 204 ===== */
-__int64 __fastcall sub_94044610(__int64 a1, __int64 a2, __int64 a3)
+/* ===== avb_cmdline_append_hash @ 0x94044610 size 204 ===== */
+__int64 __fastcall avb_cmdline_append_hash(__int64 a1, __int64 a2, __int64 a3)
 {
   __int64 v3; // x21
   __int64 v5; // x19
@@ -25709,7 +25709,7 @@ __int64 __fastcall sub_94044610(__int64 a1, __int64 a2, __int64 a3)
 
   v3 = 2 * a3;
   strcpy(v13, "0123456789abcdef");
-  v5 = sub_94046700(2 * a3 + 1);
+  v5 = avb_malloc(2 * a3 + 1);
   result = 0;
   if ( v5 != 0 )
   {
@@ -25722,15 +25722,15 @@ __int64 __fastcall sub_94044610(__int64 a1, __int64 a2, __int64 a3)
       *(_BYTE *)(v7 - 1) = v13[v9 & 0xF];
     }
     *(_BYTE *)(v5 + v3) = 0;
-    v10 = sub_940444E8((__int64 *)(a1 + 40), (__int64)"androidboot.vbmeta.digest", v5);
-    sub_94046430(v5);
+    v10 = avb_cmdline_append((__int64 *)(a1 + 40), (__int64)"androidboot.vbmeta.digest", v5);
+    free(v5);
     return v10;
   }
   return result;
 }
 
-/* ===== sub_940446DC @ 0x940446DC size 4620 ===== */
-__int64 __fastcall sub_940446DC(
+/* ===== load_and_verify_vbmeta @ 0x940446DC size 4620 ===== */
+__int64 __fastcall load_and_verify_vbmeta(
         __int64 a1,
         __int64 *a2,
         __int64 a3,
@@ -26123,25 +26123,25 @@ __int64 __fastcall sub_940446DC(
   unsigned __int64 v397; // [xsp+324h] [xbp+304h]
 
   if ( a18 == nullptr )
-    sub_940407DC(0, "assert fail: slot_data != NULL\n", a9, a10, a11, a12, a13, a14, a15, a16);
-  v28 = sub_94046410(a6, (__int64)"vbmeta");
-  if ( (unsigned int)sub_94046570(a6, a7) == 0 )
+    sprd_log(0, "assert fail: slot_data != NULL\n", a9, a10, a11, a12, a13, a14, a15, a16);
+  v28 = strcmp(a6, (__int64)"vbmeta");
+  if ( (unsigned int)is_valid_utf8(a6, a7) == 0 )
   {
-    sub_940407DC(0, "Partition name is not valid UTF-8.\n", v29, v30, v31, v32, v33, v34, v35, v36);
+    sprd_log(0, "Partition name is not valid UTF-8.\n", v29, v30, v31, v32, v33, v34, v35, v36);
     return 0;
   }
-  v38 = sub_94046414(a3);
-  if ( (unsigned int)sub_94046608(v389, 32, a6, a7, a3, v38) == 0 )
+  v38 = strlen(a3);
+  if ( (unsigned int)concat_partition_name_suffix(v389, 32, a6, a7, a3, v38) == 0 )
   {
-    sub_940407DC(0, "Partition name and suffix does not fit.\n", v39, v40, v41, v42, v43, v44, v45, v46);
+    sprd_log(0, "Partition name and suffix does not fit.\n", v39, v40, v41, v42, v43, v44, v45, v46);
     return 0;
   }
   v378 = v28 == 0;
-  sub_940407DC(7u, "Loading vbmeta struct from partition '%s'.\n", v39, v40, v41, v42, v43, v44, v45, v46, v389, 0);
+  sprd_log(7u, "Loading vbmeta struct from partition '%s'.\n", v39, v40, v41, v42, v43, v44, v45, v46, v389, 0);
   if ( v28 != 0 )
   {
-    if ( (unsigned int)sub_94046410(a6, (__int64)"system") != 0
-      && (unsigned int)sub_94046410(a6, (__int64)"vendor") != 0 )
+    if ( (unsigned int)strcmp(a6, (__int64)"system") != 0
+      && (unsigned int)strcmp(a6, (__int64)"vendor") != 0 )
     {
       v198 = (*(__int64 (__fastcall **)(__int64, char *, __int64, __int64, _QWORD *, _QWORD *))(a1 + 24))(
                a1,
@@ -26152,7 +26152,7 @@ __int64 __fastcall sub_940446DC(
                v391);
       if ( v198 == 1 )
       {
-        sub_940407DC(
+        sprd_log(
           7u,
           "in %s, l:%d, return err %d. \n",
           v199,
@@ -26169,11 +26169,11 @@ __int64 __fastcall sub_940446DC(
       }
       if ( v198 != 0 )
       {
-        sub_940407DC(0, v389, v199, v200, v201, v202, v203, v204, v205, v206, ": Error loading footer.\n", 0, v198);
+        sprd_log(0, v389, v199, v200, v201, v202, v203, v204, v205, v206, ": Error loading footer.\n", 0, v198);
         return 0;
       }
       if ( v391[0] != 64 )
-        sub_940407DC(
+        sprd_log(
           0,
           "assert fail: footer_num_read == AVB_FOOTER_SIZE\n",
           v199,
@@ -26184,15 +26184,15 @@ __int64 __fastcall sub_940446DC(
           v204,
           v205,
           v206);
-      if ( (unsigned int)sub_94042FF4((__int64)v393, (__int64)v394) == 0 )
+      if ( (unsigned int)avb_footer_validate((__int64)v393, (__int64)v394) == 0 )
       {
-        sub_940407DC(0, v389, v207, v208, v209, v210, v211, v212, v213, v214, ": Error validating footer.\n", 0);
+        sprd_log(0, v389, v207, v208, v209, v210, v211, v212, v213, v214, ": Error validating footer.\n", 0);
         return 0;
       }
       v47 = v397;
       if ( v397 > 0x10000 )
       {
-        sub_940407DC(0, v389, v207, v208, v209, v210, v211, v212, v213, v214, ": Invalid vbmeta size in footer.\n", 0);
+        sprd_log(0, v389, v207, v208, v209, v210, v211, v212, v213, v214, ": Invalid vbmeta size in footer.\n", 0);
         return 0;
       }
       v380 = v396;
@@ -26208,10 +26208,10 @@ __int64 __fastcall sub_940446DC(
     v380 = 0;
     v47 = MEMORY[0xFFFFFFFFE0064408];
   }
-  v48 = sub_94046700(v47);
+  v48 = avb_malloc(v47);
   if ( v48 == 0 )
   {
-    sub_940407DC(
+    sprd_log(
       7u,
       "in %s, l:%d, return err %d. \n",
       v49,
@@ -26226,7 +26226,7 @@ __int64 __fastcall sub_940446DC(
       358);
     return 0;
   }
-  sub_940407DC(7u, ">>> begin to load vbmeta image of partition:%s.\n", v49, v50, v51, v52, v53, v54, v55, v56, v389, 0);
+  sprd_log(7u, ">>> begin to load vbmeta image of partition:%s.\n", v49, v50, v51, v52, v53, v54, v55, v56, v389, 0);
   v57 = (*(__int64 (__fastcall **)(__int64, char *, __int64, unsigned __int64, __int64, unsigned __int64 *))(a1 + 24))(
           a1,
           v389,
@@ -26236,7 +26236,7 @@ __int64 __fastcall sub_940446DC(
           &v383);
   if ( v57 == 1 )
   {
-    sub_940407DC(
+    sprd_log(
       7u,
       "in %s, l:%d, return err %d. \n",
       v58,
@@ -26256,22 +26256,22 @@ __int64 __fastcall sub_940446DC(
   {
     if ( v378 && a5 == 0 && v57 == 3 )
     {
-      sub_940407DC(7u, v389, v58, v59, v60, v61, v62, v63, v64, v65, ": No such partition. Trying 'boot' instead.\n", 0);
-      v272 = sub_94046414("boot");
-      sub_940446DC(a1, a2, a3, a4, 0, "boot", v272, 0, 0, a18, a19, a20);
+      sprd_log(7u, v389, v58, v59, v60, v61, v62, v63, v64, v65, ": No such partition. Trying 'boot' instead.\n", 0);
+      v272 = strlen("boot");
+      load_and_verify_vbmeta(a1, a2, a3, a4, 0, "boot", v272, 0, 0, a18, a19, a20);
     }
     else
     {
-      sub_940407DC(0, v389, v58, v59, v60, v61, v62, v63, v64, v65, ": Error loading vbmeta data.\n", 0, v57);
+      sprd_log(0, v389, v58, v59, v60, v61, v62, v63, v64, v65, ": Error loading vbmeta data.\n", 0, v57);
     }
     goto LABEL_27;
   }
   if ( v47 < v383 )
-    sub_940407DC(0, "assert fail: vbmeta_num_read <= vbmeta_size\n", v58, v59, v60, v61, v62, v63, v64, v65);
+    sprd_log(0, "assert fail: vbmeta_num_read <= vbmeta_size\n", v58, v59, v60, v61, v62, v63, v64, v65);
   if ( !v378 || MEMORY[0xFFFFFFFFE0057F10] == 0 )
   {
-    v376 = sub_94046B5C(v48, v383, &v384, &v385, 0);
-    sub_940407DC(
+    v376 = avb_vbmeta_verify(v48, v383, &v384, &v385, 0);
+    sprd_log(
       7u,
       "partition: %s vbmeta_verify_ret is :%d. \n",
       v83,
@@ -26289,13 +26289,13 @@ __int64 __fastcall sub_940446DC(
     {
       case 0u:
         if ( v384 == 0 || v385 == 0 )
-          sub_940407DC(0, "assert fail: pk_data != NULL && pk_len > 0\n", v91, v92, v93, v94, v95, v96, v97, v98);
+          sprd_log(0, "assert fail: pk_data != NULL && pk_len > 0\n", v91, v92, v93, v94, v95, v96, v97, v98);
         goto LABEL_18;
       case 1u:
       case 4u:
       case 5u:
-        v99 = sub_94047050(v376);
-        sub_940407DC(
+        v99 = avb_vbmeta_verify_result_to_string(v376);
+        sprd_log(
           0,
           v389,
           v100,
@@ -26314,7 +26314,7 @@ __int64 __fastcall sub_940446DC(
           goto LABEL_18;
         goto LABEL_27;
       case 2u:
-        sub_940407DC(
+        sprd_log(
           0,
           v389,
           v91,
@@ -26329,7 +26329,7 @@ __int64 __fastcall sub_940446DC(
           0);
         goto LABEL_27;
       case 3u:
-        sub_940407DC(
+        sprd_log(
           0,
           v389,
           v91,
@@ -26351,13 +26351,13 @@ __int64 __fastcall sub_940446DC(
   v384 = 0;
   v385 = 0;
 LABEL_18:
-  sub_94046A64(v48, v393);
+  avb_vbmeta_header_parse(v48, v393);
   if ( a5 != 0 )
   {
     v375 = 0;
     if ( LODWORD(v393[15]) != 0 )
     {
-      sub_940407DC(0, v389, v66, v67, v68, v69, v70, v71, v72, v73, ": chained vbmeta image has non-zero flags\n", 0);
+      sprd_log(0, v389, v66, v67, v68, v69, v70, v71, v72, v73, ": chained vbmeta image has non-zero flags\n", 0);
       goto LABEL_27;
     }
   }
@@ -26374,10 +26374,10 @@ LABEL_18:
       if ( a8 != 0 )
       {
         if ( a5 == 0 )
-          sub_940407DC(0, "assert fail: !is_main_vbmeta\n", v74, v75, v76, v77, v78, v79, v80, v81);
-        if ( v385 != a17 || (unsigned int)sub_9404649C(a8, v384, a17) != 0 )
+          sprd_log(0, "assert fail: !is_main_vbmeta\n", v74, v75, v76, v77, v78, v79, v80, v81);
+        if ( v385 != a17 || (unsigned int)memcmp_neq(a8, v384, a17) != 0 )
         {
-          sub_940407DC(
+          sprd_log(
             0,
             v389,
             v74,
@@ -26403,14 +26403,14 @@ LABEL_18:
         if ( a5 != 0 )
         {
           v374 = v108;
-          sub_940407DC(0, "assert fail: is_main_vbmeta\n", v74, v75, v76, v77, v78, v79, v80, v81);
+          sprd_log(0, "assert fail: is_main_vbmeta\n", v74, v75, v76, v77, v78, v79, v80, v81);
           v108 = v374;
           v82 = v384;
         }
         v109 = (*(__int64 (__fastcall **)(__int64, __int64, __int64, __int64))(a1 + 40))(a1, v82, v385, v108);
         if ( v109 == 1 )
         {
-          sub_940407DC(
+          sprd_log(
             7u,
             "in %s, l:%d, return err %d. \n",
             v110,
@@ -26427,7 +26427,7 @@ LABEL_18:
         }
         if ( v109 != 0 )
         {
-          sub_940407DC(
+          sprd_log(
             0,
             v389,
             v110,
@@ -26445,7 +26445,7 @@ LABEL_18:
         }
         if ( v394[0] == 0 )
         {
-          sub_940407DC(
+          sprd_log(
             0,
             v389,
             v110,
@@ -26472,12 +26472,12 @@ LABEL_18:
   if ( v118 == 1 )
   {
 LABEL_27:
-    sub_94046430(v48);
+    free(v48);
     return 0;
   }
   if ( v118 != 0 )
   {
-    sub_940407DC(
+    sprd_log(
       0,
       v389,
       v119,
@@ -26494,7 +26494,7 @@ LABEL_27:
   }
   if ( v393[14] >= v386 )
   {
-    sub_940407DC(
+    sprd_log(
       7u,
       "Info: vbmeta_header.rollback_index:%d, >= stored_rollback_index:%d.\n",
       v119,
@@ -26510,7 +26510,7 @@ LABEL_27:
   }
   else
   {
-    sub_940407DC(
+    sprd_log(
       7u,
       "Error: vbmeta_header.rollback_index:%d, < stored_rollback_index:%d.\n",
       v119,
@@ -26521,7 +26521,7 @@ LABEL_27:
       v124,
       v125,
       v126);
-    sub_940407DC(
+    sprd_log(
       0,
       v389,
       v127,
@@ -26541,7 +26541,7 @@ LABEL_27:
   }
   if ( v386 < v143 )
   {
-    sub_940407DC(7u, "set update version flag.\n", v135, v136, v137, v138, v139, v140, v141, v142);
+    sprd_log(7u, "set update version flag.\n", v135, v136, v137, v138, v139, v140, v141, v142);
     MEMORY[0xFFFFFFFFE00642E4] = 1;
   }
   if ( a5 != 0 )
@@ -26549,7 +26549,7 @@ LABEL_27:
     v291 = a18[2];
     if ( v291 == 0 )
     {
-      sub_940407DC(0, "assert fail: slot_data->num_vbmeta_images > 0\n", v135, v136, v137, v138, v139, v140, v141, v142);
+      sprd_log(0, "assert fail: slot_data->num_vbmeta_images > 0\n", v135, v136, v137, v138, v139, v140, v141, v142);
       v291 = a18[2];
     }
   }
@@ -26558,20 +26558,20 @@ LABEL_27:
     v144 = a18[2];
     if ( v144 == 0 )
       goto LABEL_64;
-    sub_940407DC(0, "assert fail: slot_data->num_vbmeta_images == 0\n", v135, v136, v137, v138, v139, v140, v141, v142);
+    sprd_log(0, "assert fail: slot_data->num_vbmeta_images == 0\n", v135, v136, v137, v138, v139, v140, v141, v142);
     v291 = a18[2];
   }
   v144 = v291;
   if ( v291 == 32 )
   {
-    sub_940407DC(0, v389, v135, v136, v137, v138, v139, v140, v141, v142, ": Too many vbmeta images.\n", 0);
+    sprd_log(0, v389, v135, v136, v137, v138, v139, v140, v141, v142, ": Too many vbmeta images.\n", 0);
     goto LABEL_27;
   }
 LABEL_64:
   v145 = 32 * v144;
   v146 = a18[1];
   a18[2] = v144 + 1;
-  v147 = sub_94046780(a6);
+  v147 = avb_strdup(a6);
   v148 = v146 + v145;
   v149 = *(_QWORD *)((char *)&v393[1] + 4);
   v150 = *(_QWORD *)((char *)&v393[2] + 4);
@@ -26580,8 +26580,8 @@ LABEL_64:
   v151 = v383;
   *(_QWORD *)(v148 + 8) = v48;
   *(_DWORD *)(v148 + 24) = v376;
-  v48 = sub_94042F48(v48, v151, &v387, v152, v153, v154, v155, v156, v157, v158, v159);
-  sub_940407DC(
+  v48 = avb_get_all_descriptors(v48, v151, &v387, v152, v153, v154, v155, v156, v157, v158, v159);
+  sprd_log(
     7u,
     "in %s, l:%d. num_descriptors:%d.\n",
     v160,
@@ -26604,12 +26604,12 @@ LABEL_64:
     v370 = a5;
     while ( 1 )
     {
-      if ( (unsigned int)sub_94042CC8(*(_QWORD **)(v48 + 8 * v176), &v388) == 0 )
+      if ( (unsigned int)avb_desc_header_validate(*(_QWORD **)(v48 + 8 * v176), &v388) == 0 )
       {
-        sub_940407DC(0, v389, v177, v178, v179, v180, v181, v182, v183, v184, &loc_940562B0, 0);
+        sprd_log(0, v389, v177, v178, v179, v180, v181, v182, v183, v184, &loc_940562B0, 0);
         goto LABEL_27;
       }
-      sub_940407DC(
+      sprd_log(
         7u,
         "in %s, l:%d. desc.tag:0x%llx.\n",
         v177,
@@ -26627,9 +26627,9 @@ LABEL_64:
       switch ( v388 )
       {
         case 3LL:
-          if ( (unsigned int)sub_940431E4(*(_QWORD **)(v48 + 8 * v176), (__int64)v394) == 0 )
+          if ( (unsigned int)avb_cmdline_desc_parse(*(_QWORD **)(v48 + 8 * v176), (__int64)v394) == 0 )
           {
-            sub_940407DC(
+            sprd_log(
               0,
               v389,
               v185,
@@ -26645,9 +26645,9 @@ LABEL_64:
             goto LABEL_27;
           }
           v193 = *(_QWORD *)(v48 + 8 * v176) + 24LL;
-          if ( (unsigned int)sub_94046570(v193, (unsigned int)v396) == 0 )
+          if ( (unsigned int)is_valid_utf8(v193, (unsigned int)v396) == 0 )
           {
-            sub_940407DC(
+            sprd_log(
               0,
               v389,
               v168,
@@ -26660,7 +26660,7 @@ LABEL_64:
               v175,
               ": Kernel cmdline is not valid UTF-8.\n",
               0);
-            sub_940407DC(
+            sprd_log(
               7u,
               "in %s, l:%d. \n",
               v361,
@@ -26687,24 +26687,24 @@ LABEL_75:
             v194 = a18[5];
             if ( v194 != 0 )
             {
-              v195 = sub_94046414(v194);
-              v196 = sub_94046748((unsigned int)v396 + 2LL + v195);
+              v195 = strlen(v194);
+              v196 = avb_calloc((unsigned int)v396 + 2LL + v195);
               v197 = v196;
               if ( v196 == 0 )
                 goto LABEL_27;
-              sub_940463E0(v196, a18[5], v195);
+              memcpy(v196, a18[5], v195);
               *(_BYTE *)(v197 + v195) = 32;
-              sub_940463E0(v197 + v195 + 1, v193, (unsigned int)v396);
-              sub_94046430(a18[5]);
+              memcpy(v197 + v195 + 1, v193, (unsigned int)v396);
+              free(a18[5]);
               a18[5] = v197;
             }
             else
             {
-              v315 = sub_94046748((unsigned int)(v396 + 1));
+              v315 = avb_calloc((unsigned int)(v396 + 1));
               a18[5] = v315;
               if ( v315 == 0 )
                 goto LABEL_27;
-              sub_940463E0(v315, v193, (unsigned int)v396);
+              memcpy(v315, v193, (unsigned int)v396);
             }
           }
           break;
@@ -26713,7 +26713,7 @@ LABEL_75:
           {
             if ( !v381 )
             {
-              sub_940407DC(
+              sprd_log(
                 0,
                 v389,
                 v168,
@@ -26726,7 +26726,7 @@ LABEL_75:
                 v175,
                 ": Encountered chain descriptor not in main image.\n",
                 0);
-              sub_940407DC(
+              sprd_log(
                 7u,
                 "in %s, l:%d, return err %d. \n",
                 v353,
@@ -26743,9 +26743,9 @@ LABEL_75:
                 0);
               goto LABEL_27;
             }
-            if ( (unsigned int)sub_94042B10(*(_QWORD *)(v48 + 8 * v176), (__int64)v394) == 0 )
+            if ( (unsigned int)avb_chain_partition_validate(*(_QWORD *)(v48 + 8 * v176), (__int64)v394) == 0 )
             {
-              sub_940407DC(
+              sprd_log(
                 0,
                 v389,
                 v235,
@@ -26758,7 +26758,7 @@ LABEL_75:
                 v242,
                 ": Chain partition descriptor is invalid.\n",
                 0);
-              sub_940407DC(
+              sprd_log(
                 7u,
                 "in %s, l:%d, return err %d. \n",
                 v345,
@@ -26777,7 +26777,7 @@ LABEL_75:
             }
             if ( v395 == 0 )
             {
-              sub_940407DC(
+              sprd_log(
                 0,
                 v389,
                 v235,
@@ -26794,9 +26794,9 @@ LABEL_75:
             }
             v243 = (unsigned int)v396;
             v244 = *(_QWORD *)(v48 + 8 * v176) + 92LL;
-            if ( *(_QWORD *)(v48 + 8 * v176) != -92 && *a2 != 0 && (unsigned int)sub_940463DC(v244, *a2, v396) != 0 )
+            if ( *(_QWORD *)(v48 + 8 * v176) != -92 && *a2 != 0 && (unsigned int)memcmp(v244, *a2, v396) != 0 )
             {
-              sub_940407DC(
+              sprd_log(
                 7u,
                 "Info::>>> chain_partition_name:%s != requested_partitions[0]:%s. skip .... \n",
                 v245,
@@ -26813,23 +26813,23 @@ LABEL_75:
             }
             else
             {
-              v253 = sub_94046700((unsigned int)(v396 + 1));
+              v253 = avb_malloc((unsigned int)(v396 + 1));
               *(_QWORD *)(a20 + 8) = v253;
               if ( v253 != 0 )
               {
-                sub_940463E0(v253, v244, (unsigned int)v396);
+                memcpy(v253, v244, (unsigned int)v396);
                 *(_BYTE *)(*(_QWORD *)(a20 + 8) + (unsigned int)v396) = 0;
               }
               else
               {
-                sub_940407DC(0, "partname buffer NULL\n", v254, v255, v256, v257, v258, v259, v260, v261);
+                sprd_log(0, "partname buffer NULL\n", v254, v255, v256, v257, v258, v259, v260, v261);
               }
-              v262 = sub_94046700(HIDWORD(v396));
+              v262 = avb_malloc(HIDWORD(v396));
               *(_QWORD *)(a20 + 16) = v262;
               if ( v262 != 0 )
-                sub_940463E0(v262, v244 + v243, HIDWORD(v396));
+                memcpy(v262, v244 + v243, HIDWORD(v396));
               else
-                sub_940407DC(0, (const char *)&loc_94056568, v263, v264, v265, v266, v267, v268, v269, v270);
+                sprd_log(0, (const char *)&loc_94056568, v263, v264, v265, v266, v267, v268, v269, v270);
               v382 = 1;
               v271 = v395;
               *(_QWORD *)(a20 + 24) = HIDWORD(v396);
@@ -26839,7 +26839,7 @@ LABEL_75:
           break;
         case 2LL:
           v215 = *(_QWORD **)(v48 + 8 * v176);
-          if ( (unsigned int)sub_940430CC(v215, (__int64)v391) == 0 )
+          if ( (unsigned int)avb_hash_desc_parse(v215, (__int64)v391) == 0 )
           {
             v224 = 100;
             v225 = 6;
@@ -26848,22 +26848,22 @@ LABEL_75:
           v273 = (char *)v215 + 132;
           v372 = v392[8];
           v371 = v392[9];
-          if ( (unsigned int)sub_94046570(v273, v392[8]) == 0 )
+          if ( (unsigned int)is_valid_utf8(v273, v392[8]) == 0 )
           {
             v226 = 6;
-            sub_940407DC(0, "Partition name is not valid UTF-8.\n", v274, v275, v276, v277, v278, v279, v280, v281);
+            sprd_log(0, "Partition name is not valid UTF-8.\n", v274, v275, v276, v277, v278, v279, v280, v281);
             v224 = 112;
             goto LABEL_89;
           }
           v369 = v392[8];
-          v282 = sub_94046414(a3);
-          if ( (unsigned int)sub_94046608(v390, 32, v273, v369, a3, v282) == 0 )
+          v282 = strlen(a3);
+          if ( (unsigned int)concat_partition_name_suffix(v390, 32, v273, v369, a3, v282) == 0 )
           {
             v226 = 6;
-            sub_940407DC(0, "Partition name and suffix does not fit.\n", v283, v284, v285, v286, v287, v288, v289, v290);
+            sprd_log(0, "Partition name and suffix does not fit.\n", v283, v284, v285, v286, v287, v288, v289, v290);
             goto LABEL_90;
           }
-          v292 = sub_940407DC(
+          v292 = sprd_log(
                    7u,
                    "in %s, l:%d.hash_desc.image_size:0x%llx.\n",
                    v283,
@@ -26878,7 +26878,7 @@ LABEL_75:
                    127,
                    v391[2],
                    0);
-          v293 = sub_940475E8(v292);
+          v293 = avb_get_image_buffer(v292);
           if ( v293 == 0 )
           {
             v224 = 135;
@@ -26886,7 +26886,7 @@ LABEL_75:
 LABEL_88:
             v226 = v225;
 LABEL_89:
-            sub_940407DC(
+            sprd_log(
               7u,
               "in %s, l:%d, return err %d. \n",
               v216,
@@ -26900,7 +26900,7 @@ LABEL_89:
               "load_and_verify_hash_partition",
               v224);
 LABEL_90:
-            sub_940407DC(
+            sprd_log(
               7u,
               "in %s, l:%d.sub_ret:%d.\n",
               v227,
@@ -26918,7 +26918,7 @@ LABEL_90:
             goto LABEL_91;
           }
           v294 = (__int64)&v273[v372];
-          sub_940407DC(
+          sprd_log(
             7u,
             "in %s, l:%d. Warning: Read partition to be verified... name:%s, size:0x%llx >>>>> \n",
             v216,
@@ -26934,26 +26934,26 @@ LABEL_90:
             v390,
             v391[2],
             0);
-          if ( (unsigned int)sub_94046410((__int64)v392, (__int64)"sha256") != 0 )
+          if ( (unsigned int)strcmp((__int64)v392, (__int64)"sha256") != 0 )
           {
-            if ( (unsigned int)sub_94046410((__int64)v392, (__int64)"sha512") != 0 )
+            if ( (unsigned int)strcmp((__int64)v392, (__int64)"sha512") != 0 )
             {
               v305 = ": Unsupported hash algorithm.\n";
               v306 = 6;
               goto LABEL_125;
             }
-            sub_94044178((__int64)v394);
-            sub_94044224((__int64)v394, v294, v392[9]);
-            sub_94044224((__int64)v394, v293, v391[2]);
-            v295 = sub_94044304((__int64)v394);
+            sha512_init((__int64)v394);
+            sha512_update((__int64)v394, v294, v392[9]);
+            sha512_update((__int64)v394, v293, v391[2]);
+            v295 = sha512_final((__int64)v394);
             v304 = 64;
           }
           else
           {
-            sub_94043BDC(v394);
-            sub_94043C48(v394, v294, v392[9]);
-            sub_94043C48(v394, v293, v391[2]);
-            v295 = sub_94043D28((__int64)v394);
+            sha256_init(v394);
+            sha256_update(v394, v294, v392[9]);
+            sha256_update(v394, v293, v391[2]);
+            v295 = sha256_final((__int64)v394);
             v304 = 32;
           }
           if ( v392[10] != v304 )
@@ -26962,9 +26962,9 @@ LABEL_90:
             v306 = 6;
             goto LABEL_125;
           }
-          if ( (unsigned int)sub_9404649C(v295, v294 + v371, v304) != 0 )
+          if ( (unsigned int)memcmp_neq(v295, v294 + v371, v304) != 0 )
           {
-            sub_940407DC(
+            sprd_log(
               0,
               v390,
               v316,
@@ -26977,7 +26977,7 @@ LABEL_90:
               v323,
               ": Hash of data does not match digest in descriptor.\n",
               0);
-            v339 = sub_9404684C(a2, v273, v392[8]);
+            v339 = avb_str_in_list(a2, v273, v392[8]);
             if ( v339 != 0 )
             {
               v340 = a18[4];
@@ -26987,8 +26987,8 @@ LABEL_162:
                 v305 = ": Too many loaded partitions.\n";
                 v306 = 1;
 LABEL_125:
-                sub_940407DC(0, v390, v296, v297, v298, v299, v300, v301, v302, v303, v305, 0);
-                sub_940407DC(
+                sprd_log(0, v390, v296, v297, v298, v299, v300, v301, v302, v303, v305, 0);
+                sprd_log(
                   7u,
                   "in %s, l:%d.sub_ret:%d.\n",
                   v307,
@@ -27004,7 +27004,7 @@ LABEL_125:
                   v306,
                   0);
 LABEL_91:
-                sub_940407DC(
+                sprd_log(
                   7u,
                   "in %s, l:%d. \n",
                   v168,
@@ -27024,13 +27024,13 @@ LABEL_91:
               v377 = a18[3];
               v342 = v377 + 24 * v340;
               a18[4] = v340 + 1;
-              v343 = sub_94046780(v339);
+              v343 = avb_strdup(v339);
               v344 = v391[2];
               *(_QWORD *)(v377 + v341) = v343;
               *(_QWORD *)(v342 + 16) = v344;
               *(_QWORD *)(v342 + 8) = v293;
             }
-            sub_940407DC(
+            sprd_log(
               7u,
               "in %s, l:%d.sub_ret:%d.\n",
               v296,
@@ -27050,7 +27050,7 @@ LABEL_91:
           }
           else
           {
-            v324 = sub_9404684C(a2, v273, v392[8]);
+            v324 = avb_str_in_list(a2, v273, v392[8]);
             if ( v324 != 0 )
             {
               v325 = a18[4];
@@ -27059,13 +27059,13 @@ LABEL_91:
               v326 = 24 * v325;
               v327 = a18[3];
               a18[4] = v325 + 1;
-              v328 = sub_94046780(v324);
+              v328 = avb_strdup(v324);
               v329 = v327 + v326;
               v330 = v391[2];
               *(_QWORD *)(v327 + v326) = v328;
               *(_QWORD *)(v329 + 16) = v330;
               *(_QWORD *)(v329 + 8) = v293;
-              sub_940407DC(
+              sprd_log(
                 7u,
                 "in %s, l:%d.sub_ret:%d.\n",
                 v331,
@@ -27083,7 +27083,7 @@ LABEL_91:
             }
             else
             {
-              sub_940407DC(
+              sprd_log(
                 7u,
                 "in %s, l:%d.sub_ret:%d.\n",
                 v296,
@@ -27120,14 +27120,14 @@ LABEL_91:
       return 0;
     goto LABEL_27;
   }
-  sub_940407DC(0, v389, v168, v169, v170, v171, v172, v173, v174, v175, ": Invalid rollback_index_location.\n", 0);
+  sprd_log(0, v389, v168, v169, v170, v171, v172, v173, v174, v175, ": Invalid rollback_index_location.\n", 0);
   if ( v48 != 0 )
     goto LABEL_27;
   return 0;
 }
 
-/* ===== sub_940458E8 @ 0x940458E8 size 220 ===== */
-__int64 __fastcall sub_940458E8(__int64 *a1)
+/* ===== avb_slot_data_free @ 0x940458E8 size 220 ===== */
+__int64 __fastcall avb_slot_data_free(__int64 *a1)
 {
   __int64 v2; // x0
   __int64 v3; // x0
@@ -27145,10 +27145,10 @@ __int64 __fastcall sub_940458E8(__int64 *a1)
 
   v2 = *a1;
   if ( v2 != 0 )
-    sub_94046430(v2);
+    free(v2);
   v3 = a1[5];
   if ( v3 != 0 )
-    sub_94046430(v3);
+    free(v3);
   v4 = a1[1];
   if ( v4 != 0 )
   {
@@ -27161,15 +27161,15 @@ __int64 __fastcall sub_940458E8(__int64 *a1)
         v7 = v4 + v6;
         v8 = *(_QWORD *)(v4 + v6);
         if ( v8 != 0 )
-          sub_94046430(v8);
+          free(v8);
         v9 = *(_QWORD *)(v7 + 8);
         if ( v9 != 0 )
-          sub_94046430(v9);
+          free(v9);
         v4 = a1[1];
       }
       while ( a1[2] > v5 );
     }
-    sub_94046430(v4);
+    free(v4);
   }
   v10 = a1[3];
   if ( v10 != 0 )
@@ -27184,19 +27184,19 @@ __int64 __fastcall sub_940458E8(__int64 *a1)
         v12 += 24;
         if ( v14 != 0 )
         {
-          sub_94046430(v14);
+          free(v14);
           v11 = a1[4];
           v10 = a1[3];
         }
       }
     }
-    sub_94046430(v10);
+    free(v10);
   }
-  return sub_94046430((__int64)a1);
+  return free((__int64)a1);
 }
 
-/* ===== sub_940459C4 @ 0x940459C4 size 2384 ===== */
-__int64 __fastcall sub_940459C4(
+/* ===== avb_slot_verify @ 0x940459C4 size 2384 ===== */
+__int64 __fastcall avb_slot_verify(
         __int64 a1,
         __int64 *a2,
         __int64 a3,
@@ -27415,20 +27415,20 @@ __int64 __fastcall sub_940459C4(
   v212 = 0;
   if ( a5 != nullptr )
     *a5 = 0;
-  sub_940407DC(7u, "### enter avb_slot_verify. ###\n", a6, a7, a8, a9, a10, a11, a12, a13);
-  v18 = sub_94046748(304);
+  sprd_log(7u, "### enter avb_slot_verify. ###\n", a6, a7, a8, a9, a10, a11, a12, a13);
+  v18 = avb_calloc(304);
   if ( v18 != 0 )
   {
-    v27 = sub_94046748(1024);
+    v27 = avb_calloc(1024);
     *(_QWORD *)(v18 + 8) = v27;
     if ( v27 != 0 )
     {
-      v36 = sub_94046748(768);
+      v36 = avb_calloc(768);
       *(_QWORD *)(v18 + 24) = v36;
       if ( v36 != 0 )
       {
-        v45 = sub_94046414("vbmeta");
-        v54 = sub_940446DC(
+        v45 = strlen("vbmeta");
+        v54 = load_and_verify_vbmeta(
                 a1,
                 a2,
                 a3,
@@ -27451,11 +27451,11 @@ __int64 __fastcall sub_940459C4(
                 (__int64)v215);
         if ( v54 != 0 && a4 == 0 )
           goto LABEL_8;
-        sub_940407DC(7u, "allow_verification_error:%d, ret:%d\n", v55, v56, v57, v58, v59, v60, v61, v62, a4, v54, 0);
+        sprd_log(7u, "allow_verification_error:%d, ret:%d\n", v55, v56, v57, v58, v59, v60, v61, v62, a4, v54, 0);
         v208 = v215[0];
         v209 = v215[1];
-        v72 = sub_94046414(v215[1]);
-        v81 = sub_940446DC(
+        v72 = strlen(v215[1]);
+        v81 = load_and_verify_vbmeta(
                 a1,
                 a2,
                 a3,
@@ -27477,7 +27477,7 @@ __int64 __fastcall sub_940459C4(
                 &v212,
                 (__int64)v215);
         v54 |= v81;
-        sub_940407DC(
+        sprd_log(
           7u,
           "allow_verification_error:%d, subret:%d, ret:%d\n",
           v82,
@@ -27493,18 +27493,18 @@ __int64 __fastcall sub_940459C4(
           v54,
           0);
         if ( v215[1] != 0 )
-          sub_94046430(v215[1]);
+          free(v215[1]);
         if ( v215[2] != 0 )
-          sub_94046430(v215[2]);
+          free(v215[2]);
         if ( v54 != 0 && a4 == 0 )
         {
 LABEL_8:
-          sub_940407DC(7u, "allow_verification_error:%d, ret:%d\n", v55, v56, v57, v58, v59, v60, v61, v62, 0, v54, 0);
+          sprd_log(7u, "allow_verification_error:%d, ret:%d\n", v55, v56, v57, v58, v59, v60, v61, v62, 0, v54, 0);
         }
         else
         {
           v210 = 0;
-          sub_940407DC(
+          sprd_log(
             7u,
             "in %s, l:%d. load_and_verify_vbmeta ret is %d, algorithm_type: %d. \n",
             v55,
@@ -27520,11 +27520,11 @@ LABEL_8:
             v54,
             v212,
             0);
-          if ( (unsigned int)sub_94046410(**(_QWORD **)(v18 + 8), (__int64)"vbmeta") != 0 )
+          if ( (unsigned int)strcmp(**(_QWORD **)(v18 + 8), (__int64)"vbmeta") != 0 )
           {
             v210 = 1;
-            if ( (unsigned int)sub_94046410(**(_QWORD **)(v18 + 8), (__int64)"boot") != 0 )
-              sub_940407DC(
+            if ( (unsigned int)strcmp(**(_QWORD **)(v18 + 8), (__int64)"boot") != 0 )
+              sprd_log(
                 0,
                 "assert fail: avb_strcmp(slot_data->vbmeta_images[0].partition_name, \"boot\") == 0\n",
                 v90,
@@ -27536,7 +27536,7 @@ LABEL_8:
                 v96,
                 v97);
           }
-          sub_940407DC(
+          sprd_log(
             7u,
             "in %s, l:%d, %s, %d, %d\n",
             v90,
@@ -27556,7 +27556,7 @@ LABEL_8:
           if ( v54 != 0 && v54 - 3 > 2 )
           {
 LABEL_21:
-            sub_940407DC(
+            sprd_log(
               7u,
               "in %s, l:%d. \n",
               v98,
@@ -27572,12 +27572,12 @@ LABEL_21:
               0);
             return 0;
           }
-          v106 = sub_94046780(a3);
+          v106 = avb_strdup(a3);
           *(_QWORD *)v18 = v106;
           if ( v106 != 0 )
           {
             v205 = (__int64 *)(v18 + 40);
-            sub_940407DC(
+            sprd_log(
               7u,
               "in %s, l:%d. \n",
               v107,
@@ -27591,12 +27591,12 @@ LABEL_21:
               "avb_slot_verify",
               1109,
               0);
-            if ( (unsigned int)sub_940444E8(
+            if ( (unsigned int)avb_cmdline_append(
                                  (__int64 *)(v18 + 40),
                                  (__int64)"androidboot.vbmeta.device",
                                  (__int64)"PARTUUID=$(ANDROID_VBMETA_PARTUUID)") != 0 )
             {
-              sub_940407DC(
+              sprd_log(
                 7u,
                 "in %s, l:%d. \n",
                 v115,
@@ -27610,13 +27610,13 @@ LABEL_21:
                 "avb_slot_verify",
                 1118,
                 0);
-              v206 = sub_94044464(1u, (__int64)v216);
-              v203 = sub_94044464(0, (__int64)v217);
-              sub_940463E0(v218, v216, v206);
+              v206 = uint_to_str(1u, (__int64)v216);
+              v203 = uint_to_str(0, (__int64)v217);
+              memcpy(v218, v216, v206);
               *((_BYTE *)v218 + v206) = 46;
-              sub_940463E0((char *)v218 + v206 + 1, v217, v203);
+              memcpy((char *)v218 + v206 + 1, v217, v203);
               *((_BYTE *)v218 + v206 + v203 + 1) = 0;
-              v123 = sub_940444E8(v205, (__int64)"androidboot.vbmeta.avb_version", (__int64)v218);
+              v123 = avb_cmdline_append(v205, (__int64)"androidboot.vbmeta.avb_version", (__int64)v218);
               v132 = "in %s, l:%d. \n";
               v133 = "avb_slot_verify";
               if ( v123 != 0 )
@@ -27637,11 +27637,11 @@ LABEL_21:
                   while ( 1 )
                   {
                     v204 = v213[v211];
-                    v207 = sub_94046414(v204);
-                    v135 = sub_94046414(a3);
-                    if ( (unsigned int)sub_94046608(v217, 32, v204, v207, a3, v135) == 0 )
+                    v207 = strlen(v204);
+                    v135 = strlen(a3);
+                    if ( (unsigned int)concat_partition_name_suffix(v217, 32, v204, v207, a3, v135) == 0 )
                     {
-                      sub_940407DC(
+                      sprd_log(
                         0,
                         "Partition name and suffix does not fit.\n",
                         v136,
@@ -27666,25 +27666,25 @@ LABEL_21:
                     v153 = v216[v211];
                     if ( v134 != 0 )
                     {
-                      v154 = sub_940468C4(v134, v153, v218);
+                      v154 = avb_str_replace(v134, v153, v218);
                       v155 = v134;
                       v134 = v154;
-                      sub_94046430(v155);
+                      free(v155);
                     }
                     else
                     {
-                      v134 = sub_940468C4(v202, v153, v218);
+                      v134 = avb_str_replace(v202, v153, v218);
                     }
                     if ( v134 == 0 )
                       goto LABEL_73;
                     if ( ++v211 == 3 )
                     {
-                      sub_94046430(*(_QWORD *)(v18 + 40));
+                      free(*(_QWORD *)(v18 + 40));
                       *(_QWORD *)(v18 + 40) = v134;
                       goto LABEL_40;
                     }
                   }
-                  sub_940407DC(
+                  sprd_log(
                     0,
                     "Error getting unique GUID for partition.\n",
                     v145,
@@ -27697,9 +27697,9 @@ LABEL_21:
                     v152);
 LABEL_71:
                   if ( v134 != 0 )
-                    sub_94046430(v134);
+                    free(v134);
 LABEL_73:
-                  sub_940407DC(
+                  sprd_log(
                     7u,
                     "in %s, l:%d. \n",
                     v145,
@@ -27717,7 +27717,7 @@ LABEL_73:
                 else
                 {
 LABEL_40:
-                  sub_940407DC(
+                  sprd_log(
                     7u,
                     "in %s, l:%d. \n",
                     v124,
@@ -27738,7 +27738,7 @@ LABEL_40:
                   {
                     if ( v156 != 0 )
                     {
-                      sub_940407DC(0, "Error getting device state.\n", v157, v158, v159, v160, v161, v162, v163, v164);
+                      sprd_log(0, "Error getting device state.\n", v157, v158, v159, v160, v161, v162, v163, v164);
                     }
                     else
                     {
@@ -27746,9 +27746,9 @@ LABEL_40:
                         v165 = "unlocked";
                       else
                         v165 = "locked";
-                      if ( (unsigned int)sub_940444E8(v205, (__int64)"androidboot.vbmeta.device_state", (__int64)v165) != 0 )
+                      if ( (unsigned int)avb_cmdline_append(v205, (__int64)"androidboot.vbmeta.device_state", (__int64)v165) != 0 )
                       {
-                        sub_940407DC(
+                        sprd_log(
                           7u,
                           "in %s, l:%d. \n",
                           v166,
@@ -27768,7 +27768,7 @@ LABEL_40:
                           case 1u:
                           case 2u:
                           case 3u:
-                            sub_94043BDC(v218);
+                            sha256_init(v218);
                             if ( *(_QWORD *)(v18 + 16) != 0 )
                             {
                               v187 = *(_QWORD *)(v18 + 8);
@@ -27778,7 +27778,7 @@ LABEL_40:
                               {
                                 v190 = 32 * v189;
                                 v191 = v187 + 32 * v189++;
-                                sub_94043C48(v218, *(_QWORD *)(v191 + 8), *(_DWORD *)(v191 + 16));
+                                sha256_update(v218, *(_QWORD *)(v191 + 8), *(_DWORD *)(v191 + 16));
                                 v187 = *(_QWORD *)(v18 + 8);
                                 v188 += *(_QWORD *)(v187 + v190 + 16);
                               }
@@ -27788,20 +27788,20 @@ LABEL_40:
                             {
                               v188 = 0;
                             }
-                            if ( (unsigned int)sub_940444E8(
+                            if ( (unsigned int)avb_cmdline_append(
                                                  v205,
                                                  (__int64)"androidboot.vbmeta.hash_alg",
                                                  (__int64)"sha256") != 0 )
                             {
-                              sub_94044464(v188, (__int64)v217);
-                              if ( (unsigned int)sub_940444E8(v205, (__int64)"androidboot.vbmeta.size", (__int64)v217) != 0 )
+                              uint_to_str(v188, (__int64)v217);
+                              if ( (unsigned int)avb_cmdline_append(v205, (__int64)"androidboot.vbmeta.size", (__int64)v217) != 0 )
                               {
-                                v200 = sub_94043D28((__int64)v218);
-                                if ( (unsigned int)sub_94044610(v18, v200, 32) != 0 )
+                                v200 = sha256_final((__int64)v218);
+                                if ( (unsigned int)avb_cmdline_append_hash(v18, v200, 32) != 0 )
                                   goto LABEL_61;
                               }
                             }
-                            sub_940407DC(
+                            sprd_log(
                               7u,
                               "in %s, l:%d. \n",
                               v174,
@@ -27819,7 +27819,7 @@ LABEL_40:
                           case 4u:
                           case 5u:
                           case 6u:
-                            sub_94044178((__int64)v218);
+                            sha512_init((__int64)v218);
                             if ( *(_QWORD *)(v18 + 16) != 0 )
                             {
                               v182 = *(_QWORD *)(v18 + 8);
@@ -27829,7 +27829,7 @@ LABEL_40:
                               {
                                 v185 = 32 * v184;
                                 v186 = v182 + 32 * v184++;
-                                sub_94044224((__int64)v218, *(_QWORD *)(v186 + 8), *(_DWORD *)(v186 + 16));
+                                sha512_update((__int64)v218, *(_QWORD *)(v186 + 8), *(_DWORD *)(v186 + 16));
                                 v182 = *(_QWORD *)(v18 + 8);
                                 v183 += *(_QWORD *)(v182 + v185 + 16);
                               }
@@ -27839,20 +27839,20 @@ LABEL_40:
                             {
                               v183 = 0;
                             }
-                            if ( (unsigned int)sub_940444E8(
+                            if ( (unsigned int)avb_cmdline_append(
                                                  v205,
                                                  (__int64)"androidboot.vbmeta.hash_alg",
                                                  (__int64)"sha512") != 0 )
                             {
-                              sub_94044464(v183, (__int64)v217);
-                              if ( (unsigned int)sub_940444E8(v205, (__int64)"androidboot.vbmeta.size", (__int64)v217) != 0 )
+                              uint_to_str(v183, (__int64)v217);
+                              if ( (unsigned int)avb_cmdline_append(v205, (__int64)"androidboot.vbmeta.size", (__int64)v217) != 0 )
                               {
-                                v201 = sub_94044304((__int64)v218);
-                                if ( (unsigned int)sub_94044610(v18, v201, 64) != 0 )
+                                v201 = sha512_final((__int64)v218);
+                                if ( (unsigned int)avb_cmdline_append_hash(v18, v201, 64) != 0 )
                                   goto LABEL_61;
                               }
                             }
-                            sub_940407DC(
+                            sprd_log(
                               7u,
                               "in %s, l:%d. \n",
                               v174,
@@ -27868,11 +27868,11 @@ LABEL_40:
                               0);
                             break;
                           case 7u:
-                            sub_940407DC(0, (const char *)&loc_940568B0, v174, v175, v176, v177, v178, v179, v180, v181);
+                            sprd_log(0, (const char *)&loc_940568B0, v174, v175, v176, v177, v178, v179, v180, v181);
                             goto LABEL_61;
                           default:
 LABEL_61:
-                            sub_940407DC(
+                            sprd_log(
                               7u,
                               "in %s, l:%d. \n",
                               v174,
@@ -27889,7 +27889,7 @@ LABEL_61:
                             if ( a5 != nullptr )
                             {
                               *a5 = v18;
-                              sub_940407DC(
+                              sprd_log(
                                 7u,
                                 "in %s, l:%d. \n",
                                 v192,
@@ -27906,7 +27906,7 @@ LABEL_61:
                             }
                             else
                             {
-                              sub_940458E8((__int64 *)v18);
+                              avb_slot_data_free((__int64 *)v18);
                             }
                             goto LABEL_21;
                         }
@@ -27917,7 +27917,7 @@ LABEL_61:
               }
               else
               {
-                sub_940407DC(
+                sprd_log(
                   7u,
                   "in %s, l:%d. \n",
                   v124,
@@ -27935,7 +27935,7 @@ LABEL_61:
             }
             else
             {
-              sub_940407DC(
+              sprd_log(
                 7u,
                 "in %s, l:%d. \n",
                 v115,
@@ -27953,7 +27953,7 @@ LABEL_61:
           }
           else
           {
-            sub_940407DC(
+            sprd_log(
               7u,
               "in %s, l:%d. \n",
               v107,
@@ -27972,25 +27972,25 @@ LABEL_61:
       }
       else
       {
-        sub_940407DC(7u, "in %s, l:%d. \n", v37, v38, v39, v40, v41, v42, v43, v44, "avb_slot_verify", 1038, 0);
+        sprd_log(7u, "in %s, l:%d. \n", v37, v38, v39, v40, v41, v42, v43, v44, "avb_slot_verify", 1038, 0);
       }
     }
     else
     {
-      sub_940407DC(7u, "in %s, l:%d. \n", v28, v29, v30, v31, v32, v33, v34, v35, "avb_slot_verify", 1031, 0);
+      sprd_log(7u, "in %s, l:%d. \n", v28, v29, v30, v31, v32, v33, v34, v35, "avb_slot_verify", 1031, 0);
     }
-    sub_940458E8((__int64 *)v18);
+    avb_slot_data_free((__int64 *)v18);
   }
   else
   {
-    sub_940407DC(7u, "in %s, l:%d. \n", v19, v20, v21, v22, v23, v24, v25, v26, "avb_slot_verify", 1024, 0);
+    sprd_log(7u, "in %s, l:%d. \n", v19, v20, v21, v22, v23, v24, v25, v26, "avb_slot_verify", 1024, 0);
   }
-  sub_940407DC(7u, "in %s, l:%d. \n", v63, v64, v65, v66, v67, v68, v69, v70, "avb_slot_verify", 1241, 0);
+  sprd_log(7u, "in %s, l:%d. \n", v63, v64, v65, v66, v67, v68, v69, v70, "avb_slot_verify", 1241, 0);
   return 0;
 }
 
-/* ===== sub_94046314 @ 0x94046314 size 200 ===== */
-const char *__fastcall sub_94046314(
+/* ===== avb_slot_verify_result_to_string @ 0x94046314 size 200 ===== */
+const char *__fastcall avb_slot_verify_result_to_string(
         int a1,
         double a2,
         double a3,
@@ -28030,69 +28030,69 @@ const char *__fastcall sub_94046314(
       result = "ERROR_UNSUPPORTED_VERSION";
       break;
     default:
-      sub_940407DC(0, "Unknown AvbSlotVerifyResult value.\n", a2, a3, a4, a5, a6, a7, a8, a9);
+      sprd_log(0, "Unknown AvbSlotVerifyResult value.\n", a2, a3, a4, a5, a6, a7, a8, a9);
       result = "(unknown)";
       break;
   }
   return result;
 }
 
-/* ===== sub_940463DC @ 0x940463DC size 4 ===== */
+/* ===== memcmp @ 0x940463DC size 4 ===== */
 // attributes: thunk
-__int64 __fastcall sub_940463DC(__int64 a1, __int64 a2, unsigned int a3)
+__int64 __fastcall memcmp(__int64 a1, __int64 a2, unsigned int a3)
 {
-  return sub_94040870(a1, a2, a3);
+  return memcmp(a1, a2, a3);
 }
 
-/* ===== sub_940463E0 @ 0x940463E0 size 24 ===== */
-__int64 __fastcall sub_940463E0(__int64 a1, __int64 a2, unsigned int a3)
+/* ===== memcpy @ 0x940463E0 size 24 ===== */
+__int64 __fastcall memcpy(__int64 a1, __int64 a2, unsigned int a3)
 {
-  sub_94040880(a1, a2, a3);
+  memcpy(a1, a2, a3);
   return 0;
 }
 
-/* ===== sub_940463F8 @ 0x940463F8 size 24 ===== */
-__int64 __fastcall sub_940463F8(__int64 a1, unsigned __int8 a2, unsigned int a3)
+/* ===== memset @ 0x940463F8 size 24 ===== */
+__int64 __fastcall memset(__int64 a1, unsigned __int8 a2, unsigned int a3)
 {
-  sub_94040888(a1, a2, a3);
+  memset(a1, a2, a3);
   return 0;
 }
 
-/* ===== sub_94046410 @ 0x94046410 size 4 ===== */
+/* ===== strcmp @ 0x94046410 size 4 ===== */
 // attributes: thunk
-__int64 __fastcall sub_94046410(__int64 a1, __int64 a2)
+__int64 __fastcall strcmp(__int64 a1, __int64 a2)
 {
-  return sub_94040878(a1, a2);
+  return strcmp(a1, a2);
 }
 
-/* ===== sub_94046414 @ 0x94046414 size 24 ===== */
-__int64 __fastcall sub_94046414(__int64 a1)
+/* ===== strlen @ 0x94046414 size 24 ===== */
+__int64 __fastcall strlen(__int64 a1)
 {
-  return (unsigned int)sub_94040AC4(a1);
+  return (unsigned int)strlen(a1);
 }
 
-/* ===== sub_9404642C @ 0x9404642C size 4 ===== */
+/* ===== malloc @ 0x9404642C size 4 ===== */
 // attributes: thunk
-__int64 __fastcall sub_9404642C(unsigned int a1)
+__int64 __fastcall malloc(unsigned int a1)
 {
-  return sub_94040894(a1);
+  return malloc(a1);
 }
 
-/* ===== sub_94046430 @ 0x94046430 size 4 ===== */
+/* ===== free @ 0x94046430 size 4 ===== */
 // attributes: thunk
-__int64 __fastcall sub_94046430(__int64 a1)
+__int64 __fastcall free(__int64 a1)
 {
-  return sub_940408AC(a1);
+  return free(a1);
 }
 
-/* ===== sub_94046434 @ 0x94046434 size 36 ===== */
-__int64 __fastcall sub_94046434(unsigned int a1)
+/* ===== be32_to_cpu @ 0x94046434 size 36 ===== */
+__int64 __fastcall be32_to_cpu(unsigned int a1)
 {
   return (BYTE1(a1) << 16) | (a1 << 24) | HIBYTE(a1) | (BYTE2(a1) << 8);
 }
 
-/* ===== sub_94046458 @ 0x94046458 size 68 ===== */
-unsigned __int64 __fastcall sub_94046458(unsigned __int64 a1)
+/* ===== be64_to_cpu @ 0x94046458 size 68 ===== */
+unsigned __int64 __fastcall be64_to_cpu(unsigned __int64 a1)
 {
   return ((unsigned __int64)BYTE1(a1) << 48)
        | (a1 << 56)
@@ -28104,8 +28104,8 @@ unsigned __int64 __fastcall sub_94046458(unsigned __int64 a1)
        | ((unsigned __int64)BYTE6(a1) << 8);
 }
 
-/* ===== sub_9404649C @ 0x9404649C size 64 ===== */
-__int64 __fastcall sub_9404649C(__int64 a1, __int64 a2, __int64 a3)
+/* ===== memcmp_neq @ 0x9404649C size 64 ===== */
+__int64 __fastcall memcmp_neq(__int64 a1, __int64 a2, __int64 a3)
 {
   unsigned int v3; // w3
   __int64 v4; // x4
@@ -28130,8 +28130,8 @@ __int64 __fastcall sub_9404649C(__int64 a1, __int64 a2, __int64 a3)
   return v3;
 }
 
-/* ===== sub_940464DC @ 0x940464DC size 100 ===== */
-__int64 __fastcall sub_940464DC(
+/* ===== add_overflow @ 0x940464DC size 100 ===== */
+__int64 __fastcall add_overflow(
         unsigned __int64 *a1,
         __int64 a2,
         double a3,
@@ -28148,21 +28148,21 @@ __int64 __fastcall sub_940464DC(
   unsigned __int64 v14; // x1
 
   if ( a1 == nullptr )
-    sub_940407DC(0, "assert fail: value != NULL\n", a3, a4, a5, a6, a7, a8, a9, a10);
+    sprd_log(0, "assert fail: value != NULL\n", a3, a4, a5, a6, a7, a8, a9, a10);
   v12 = *a1;
   result = 1;
   v14 = *a1 + a2;
   *a1 = v14;
   if ( v12 > v14 )
   {
-    sub_940407DC(0, "Overflow when adding values.\n", a3, a4, a5, a6, a7, a8, a9, a10);
+    sprd_log(0, "Overflow when adding values.\n", a3, a4, a5, a6, a7, a8, a9, a10);
     return 0;
   }
   return result;
 }
 
-/* ===== sub_94046540 @ 0x94046540 size 48 ===== */
-__int64 __fastcall sub_94046540(
+/* ===== add_overflow_set @ 0x94046540 size 48 ===== */
+__int64 __fastcall add_overflow_set(
         unsigned __int64 *a1,
         unsigned __int64 a2,
         __int64 a3,
@@ -28182,11 +28182,11 @@ __int64 __fastcall sub_94046540(
   if ( a1 == nullptr )
     v11 = (unsigned __int64 *)&v13;
   *v11 = a2;
-  return sub_940464DC(v11, a3, a4, a5, a6, a7, a8, a9, a10, a11);
+  return add_overflow(v11, a3, a4, a5, a6, a7, a8, a9, a10, a11);
 }
 
-/* ===== sub_94046570 @ 0x94046570 size 152 ===== */
-__int64 __fastcall sub_94046570(char *a1, __int64 a2)
+/* ===== is_valid_utf8 @ 0x94046570 size 152 ===== */
+__int64 __fastcall is_valid_utf8(char *a1, __int64 a2)
 {
   int v2; // w3
   char *v3; // x1
@@ -28235,8 +28235,8 @@ LABEL_5:
   return 1;
 }
 
-/* ===== sub_94046608 @ 0x94046608 size 248 ===== */
-__int64 __fastcall sub_94046608(
+/* ===== concat_partition_name_suffix @ 0x94046608 size 248 ===== */
+__int64 __fastcall concat_partition_name_suffix(
         __int64 a1,
         __int64 a2,
         __int64 a3,
@@ -28264,30 +28264,30 @@ __int64 __fastcall sub_94046608(
   unsigned __int64 v29; // [xsp+58h] [xbp+58h] BYREF
 
   v19 = a6;
-  if ( (unsigned int)sub_94046540(&v29, a4, a6, a7, a8, a9, a10, a11, a12, a13, a14) != 0 )
+  if ( (unsigned int)add_overflow_set(&v29, a4, a6, a7, a8, a9, a10, a11, a12, a13, a14) != 0 )
   {
     if ( a2 - 1 < v29 )
     {
-      sub_940407DC(0, "Insufficient buffer space.\n", v20, v21, v22, v23, v24, v25, v26, v27);
+      sprd_log(0, "Insufficient buffer space.\n", v20, v21, v22, v23, v24, v25, v26, v27);
       return 0;
     }
     else
     {
-      sub_940463E0(a1, a3, a4);
-      sub_940463E0(a1 + a4, a5, v19);
+      memcpy(a1, a3, a4);
+      memcpy(a1 + a4, a5, v19);
       *(_BYTE *)(a1 + v29) = 0;
       return 1;
     }
   }
   else
   {
-    sub_940407DC(0, "Overflow when adding string sizes.\n", v20, v21, v22, v23, v24, v25, v26, v27);
+    sprd_log(0, "Overflow when adding string sizes.\n", v20, v21, v22, v23, v24, v25, v26, v27);
     return 0;
   }
 }
 
-/* ===== sub_94046700 @ 0x94046700 size 72 ===== */
-__int64 __fastcall sub_94046700(__int64 a1)
+/* ===== avb_malloc @ 0x94046700 size 72 ===== */
+__int64 __fastcall avb_malloc(__int64 a1)
 {
   __int64 v2; // x19
   double v3; // d0
@@ -28299,47 +28299,47 @@ __int64 __fastcall sub_94046700(__int64 a1)
   double v9; // d6
   double v10; // d7
 
-  v2 = sub_9404642C(a1);
+  v2 = malloc(a1);
   if ( v2 == 0 )
-    sub_940407DC(7u, "Failed to allocate memory. size:%d\n", v3, v4, v5, v6, v7, v8, v9, v10, a1, 0);
+    sprd_log(7u, "Failed to allocate memory. size:%d\n", v3, v4, v5, v6, v7, v8, v9, v10, a1, 0);
   return v2;
 }
 
-/* ===== sub_94046748 @ 0x94046748 size 56 ===== */
-__int64 __fastcall sub_94046748(__int64 a1)
+/* ===== avb_calloc @ 0x94046748 size 56 ===== */
+__int64 __fastcall avb_calloc(__int64 a1)
 {
   __int64 v1; // x0
   __int64 v2; // x19
   unsigned int v4; // [xsp+28h] [xbp+28h]
 
   v4 = a1;
-  v1 = sub_94046700(a1);
+  v1 = avb_malloc(a1);
   v2 = v1;
   if ( v1 != 0 )
-    sub_940463F8(v1, 0, v4);
+    memset(v1, 0, v4);
   return v2;
 }
 
-/* ===== sub_94046780 @ 0x94046780 size 72 ===== */
-__int64 __fastcall sub_94046780(__int64 a1)
+/* ===== avb_strdup @ 0x94046780 size 72 ===== */
+__int64 __fastcall avb_strdup(__int64 a1)
 {
   __int64 v1; // x20
   __int64 v2; // x0
   __int64 v3; // x19
 
-  v1 = sub_94046414(a1);
-  v2 = sub_94046700(v1 + 1);
+  v1 = strlen(a1);
+  v2 = avb_malloc(v1 + 1);
   v3 = v2;
   if ( v2 != 0 )
   {
-    sub_940463E0(v2, a1, v1);
+    memcpy(v2, a1, v1);
     *(_BYTE *)(v3 + v1) = 0;
   }
   return v3;
 }
 
-/* ===== sub_940467C8 @ 0x940467C8 size 132 ===== */
-_BYTE *__fastcall sub_940467C8(_BYTE *result, unsigned __int8 *a2)
+/* ===== avb_strstr @ 0x940467C8 size 132 ===== */
+_BYTE *__fastcall avb_strstr(_BYTE *result, unsigned __int8 *a2)
 {
   int v2; // w8
   _BYTE *v3; // x4
@@ -28383,8 +28383,8 @@ LABEL_6:
   return nullptr;
 }
 
-/* ===== sub_9404684C @ 0x9404684C size 120 ===== */
-__int64 __fastcall sub_9404684C(__int64 *a1, __int64 a2, __int64 a3)
+/* ===== avb_str_in_list @ 0x9404684C size 120 ===== */
+__int64 __fastcall avb_str_in_list(__int64 *a1, __int64 a2, __int64 a3)
 {
   __int64 *v3; // x19
   __int64 v4; // x0
@@ -28394,7 +28394,7 @@ __int64 __fastcall sub_9404684C(__int64 *a1, __int64 a2, __int64 a3)
   v4 = *a1;
   if ( v4 == 0 )
     return 0;
-  while ( sub_94046414(v4) != a3 || (unsigned int)sub_940463DC(*v3, a2, a3) != 0 )
+  while ( strlen(v4) != a3 || (unsigned int)memcmp(*v3, a2, a3) != 0 )
   {
     v7 = v3[1];
     ++v3;
@@ -28405,8 +28405,8 @@ __int64 __fastcall sub_9404684C(__int64 *a1, __int64 a2, __int64 a3)
   return *v3;
 }
 
-/* ===== sub_940468C4 @ 0x940468C4 size 416 ===== */
-__int64 __fastcall sub_940468C4(_BYTE *a1, unsigned __int8 *a2, __int64 a3)
+/* ===== avb_str_replace @ 0x940468C4 size 416 ===== */
+__int64 __fastcall avb_str_replace(_BYTE *a1, unsigned __int8 *a2, __int64 a3)
 {
   __int64 v4; // x26
   __int64 v5; // x25
@@ -28427,15 +28427,15 @@ __int64 __fastcall sub_940468C4(_BYTE *a1, unsigned __int8 *a2, __int64 a3)
   unsigned int v20; // w24
   __int64 v21; // x19
 
-  v4 = sub_94046414((__int64)a2);
-  v5 = sub_94046414(a3);
+  v4 = strlen((__int64)a2);
+  v5 = strlen(a3);
   if ( *a1 == 0 )
-    return sub_94046780((__int64)a1);
+    return avb_strdup((__int64)a1);
   v6 = 0;
   v7 = 0;
   while ( 1 )
   {
-    v12 = sub_940467C8(a1, a2);
+    v12 = avb_strstr(a1, a2);
     v13 = v12 - a1;
     v14 = v12;
     v15 = v12 - a1 + v6;
@@ -28444,78 +28444,78 @@ __int64 __fastcall sub_940468C4(_BYTE *a1, unsigned __int8 *a2, __int64 a3)
     v16 = v15 + v5;
     if ( v7 != 0 )
     {
-      v8 = sub_94046700(v16 + 1);
-      sub_940463E0(v8, v7, v6);
+      v8 = avb_malloc(v16 + 1);
+      memcpy(v8, v7, v6);
       v9 = (__int64)a1;
       v10 = v8 + v6;
       v6 = v15 + v5;
       a1 = &v14[v4];
-      sub_940463E0(v10, v9, v13);
-      sub_940463E0(v8 + v15, a3, v5);
+      memcpy(v10, v9, v13);
+      memcpy(v8 + v15, a3, v5);
       *(_BYTE *)(v8 + v16) = 0;
       v11 = v7;
       v7 = v8;
-      sub_94046430(v11);
+      free(v11);
       if ( v14[v4] == 0 )
         break;
     }
     else
     {
       v6 = v13 + v5;
-      v17 = sub_94046700(v13 + v5 + 1);
+      v17 = avb_malloc(v13 + v5 + 1);
       v7 = v17;
       if ( v17 == 0 )
         return 0;
-      sub_940463E0(v17, (__int64)a1, v13);
+      memcpy(v17, (__int64)a1, v13);
       a1 = &v14[v4];
-      sub_940463E0(v7 + v13, a3, v5);
+      memcpy(v7 + v13, a3, v5);
       *(_BYTE *)(v7 + v6) = 0;
       if ( v14[v4] == 0 )
         break;
     }
   }
   if ( v7 == 0 )
-    return sub_94046780((__int64)a1);
-  v18 = sub_94046414((__int64)a1);
+    return avb_strdup((__int64)a1);
+  v18 = strlen((__int64)a1);
   v19 = v18 + v6;
   v20 = v18;
-  v21 = sub_94046700(v18 + v6 + 1);
-  sub_940463E0(v21, v7, v6);
-  sub_940463E0(v21 + v6, (__int64)a1, v20);
+  v21 = avb_malloc(v18 + v6 + 1);
+  memcpy(v21, v7, v6);
+  memcpy(v21 + v6, (__int64)a1, v20);
   *(_BYTE *)(v21 + v19) = 0;
-  sub_94046430(v7);
+  free(v7);
   return v21;
 }
 
-/* ===== sub_94046A64 @ 0x94046A64 size 248 ===== */
-__int64 __fastcall sub_94046A64(__int64 a1, __int64 a2)
+/* ===== avb_vbmeta_header_parse @ 0x94046A64 size 248 ===== */
+__int64 __fastcall avb_vbmeta_header_parse(__int64 a1, __int64 a2)
 {
   __int64 result; // x0
 
-  sub_940463E0(a2, a1, 0x100u);
-  *(_DWORD *)(a2 + 4) = sub_94046434(*(_DWORD *)(a2 + 4));
-  *(_DWORD *)(a2 + 8) = sub_94046434(*(_DWORD *)(a2 + 8));
-  *(_QWORD *)(a2 + 12) = sub_94046458(*(_QWORD *)(a2 + 12));
-  *(_QWORD *)(a2 + 20) = sub_94046458(*(_QWORD *)(a2 + 20));
-  *(_DWORD *)(a2 + 28) = sub_94046434(*(_DWORD *)(a2 + 28));
-  *(_QWORD *)(a2 + 32) = sub_94046458(*(_QWORD *)(a2 + 32));
-  *(_QWORD *)(a2 + 40) = sub_94046458(*(_QWORD *)(a2 + 40));
-  *(_QWORD *)(a2 + 48) = sub_94046458(*(_QWORD *)(a2 + 48));
-  *(_QWORD *)(a2 + 56) = sub_94046458(*(_QWORD *)(a2 + 56));
-  *(_QWORD *)(a2 + 64) = sub_94046458(*(_QWORD *)(a2 + 64));
-  *(_QWORD *)(a2 + 72) = sub_94046458(*(_QWORD *)(a2 + 72));
-  *(_QWORD *)(a2 + 80) = sub_94046458(*(_QWORD *)(a2 + 80));
-  *(_QWORD *)(a2 + 88) = sub_94046458(*(_QWORD *)(a2 + 88));
-  *(_QWORD *)(a2 + 96) = sub_94046458(*(_QWORD *)(a2 + 96));
-  *(_QWORD *)(a2 + 104) = sub_94046458(*(_QWORD *)(a2 + 104));
-  *(_QWORD *)(a2 + 112) = sub_94046458(*(_QWORD *)(a2 + 112));
-  result = sub_94046434(*(_DWORD *)(a2 + 120));
+  memcpy(a2, a1, 0x100u);
+  *(_DWORD *)(a2 + 4) = be32_to_cpu(*(_DWORD *)(a2 + 4));
+  *(_DWORD *)(a2 + 8) = be32_to_cpu(*(_DWORD *)(a2 + 8));
+  *(_QWORD *)(a2 + 12) = be64_to_cpu(*(_QWORD *)(a2 + 12));
+  *(_QWORD *)(a2 + 20) = be64_to_cpu(*(_QWORD *)(a2 + 20));
+  *(_DWORD *)(a2 + 28) = be32_to_cpu(*(_DWORD *)(a2 + 28));
+  *(_QWORD *)(a2 + 32) = be64_to_cpu(*(_QWORD *)(a2 + 32));
+  *(_QWORD *)(a2 + 40) = be64_to_cpu(*(_QWORD *)(a2 + 40));
+  *(_QWORD *)(a2 + 48) = be64_to_cpu(*(_QWORD *)(a2 + 48));
+  *(_QWORD *)(a2 + 56) = be64_to_cpu(*(_QWORD *)(a2 + 56));
+  *(_QWORD *)(a2 + 64) = be64_to_cpu(*(_QWORD *)(a2 + 64));
+  *(_QWORD *)(a2 + 72) = be64_to_cpu(*(_QWORD *)(a2 + 72));
+  *(_QWORD *)(a2 + 80) = be64_to_cpu(*(_QWORD *)(a2 + 80));
+  *(_QWORD *)(a2 + 88) = be64_to_cpu(*(_QWORD *)(a2 + 88));
+  *(_QWORD *)(a2 + 96) = be64_to_cpu(*(_QWORD *)(a2 + 96));
+  *(_QWORD *)(a2 + 104) = be64_to_cpu(*(_QWORD *)(a2 + 104));
+  *(_QWORD *)(a2 + 112) = be64_to_cpu(*(_QWORD *)(a2 + 112));
+  result = be32_to_cpu(*(_DWORD *)(a2 + 120));
   *(_DWORD *)(a2 + 120) = result;
   return result;
 }
 
-/* ===== sub_94046B5C @ 0x94046B5C size 1268 ===== */
-__int64 __fastcall sub_94046B5C(unsigned __int64 a1, unsigned __int64 a2, _QWORD *a3, _QWORD *a4, _QWORD *a5)
+/* ===== avb_vbmeta_verify @ 0x94046B5C size 1268 ===== */
+__int64 __fastcall avb_vbmeta_verify(unsigned __int64 a1, unsigned __int64 a2, _QWORD *a3, _QWORD *a4, _QWORD *a5)
 {
   __int64 v10; // x21
   unsigned int *v11; // x19
@@ -28629,33 +28629,33 @@ __int64 __fastcall sub_94046B5C(unsigned __int64 a1, unsigned __int64 a2, _QWORD
     *a3 = 0;
   if ( a4 != nullptr )
     *a4 = 0;
-  v10 = sub_94046700(256);
-  v11 = (unsigned int *)sub_94046700(200);
-  v12 = sub_94046700(392);
+  v10 = avb_malloc(256);
+  v11 = (unsigned int *)avb_malloc(200);
+  v12 = avb_malloc(392);
   v21 = v12;
   if ( v11 != nullptr && v10 != 0 )
   {
     if ( v12 != 0 )
     {
-      if ( (unsigned int)sub_9404649C(a1, (__int64)"AVB0", 4) != 0 )
+      if ( (unsigned int)memcmp_neq(a1, (__int64)"AVB0", 4) != 0 )
       {
         v30 = 2;
-        sub_940407DC(0, "Magic is incorrect.\n", v22, v23, v24, v25, v26, v27, v28, v29);
+        sprd_log(0, "Magic is incorrect.\n", v22, v23, v24, v25, v26, v27, v28, v29);
       }
       else
       {
         if ( a2 <= 0xFF )
         {
           v30 = 2;
-          sub_940407DC(0, "Length is smaller than header.\n", v22, v23, v24, v25, v26, v27, v28, v29);
-          sub_94046430(v10);
+          sprd_log(0, "Length is smaller than header.\n", v22, v23, v24, v25, v26, v27, v28, v29);
+          free(v10);
           goto LABEL_11;
         }
-        sub_94046A64(a1, v10);
+        avb_vbmeta_header_parse(a1, v10);
         if ( *(_DWORD *)(v10 + 4) != 1 || *(_DWORD *)(v10 + 8) != 0 )
         {
           v30 = 3;
-          sub_940407DC(
+          sprd_log(
             0,
             "Mismatch between image version and libavb version.\n",
             v32,
@@ -28670,7 +28670,7 @@ __int64 __fastcall sub_94046B5C(unsigned __int64 a1, unsigned __int64 a2, _QWORD
         else if ( *(_BYTE *)(v10 + 175) != 0 )
         {
           v30 = 2;
-          sub_940407DC(0, "Release string does not end with a NUL byte.\n", v32, v33, v34, v35, v36, v37, v38, v39);
+          sprd_log(0, "Release string does not end with a NUL byte.\n", v32, v33, v34, v35, v36, v37, v38, v39);
         }
         else
         {
@@ -28678,19 +28678,19 @@ __int64 __fastcall sub_94046B5C(unsigned __int64 a1, unsigned __int64 a2, _QWORD
           if ( (v40 & 0x3F) != 0 || (*(_QWORD *)(v10 + 20) & 0x3FLL) != 0 )
           {
             v30 = 2;
-            sub_940407DC(0, "Block size is not a multiple of 64.\n", v32, v33, v34, v35, v36, v37, v38, v39);
+            sprd_log(0, "Block size is not a multiple of 64.\n", v32, v33, v34, v35, v36, v37, v38, v39);
           }
           else
           {
             v113 = 256;
-            if ( (unsigned int)sub_940464DC(&v113, v40, v32, v33, v34, v35, v36, v37, v38, v39) != 0
-              && (unsigned int)sub_940464DC(&v113, *(_QWORD *)(v10 + 20), v41, v42, v43, v44, v45, v46, v47, v48) != 0 )
+            if ( (unsigned int)add_overflow(&v113, v40, v32, v33, v34, v35, v36, v37, v38, v39) != 0
+              && (unsigned int)add_overflow(&v113, *(_QWORD *)(v10 + 20), v41, v42, v43, v44, v45, v46, v47, v48) != 0 )
             {
               if ( a2 >= v113 )
               {
-                if ( (unsigned int)sub_94046540(nullptr, a1, a2, v41, v42, v43, v44, v45, v46, v47, v48) != 0 )
+                if ( (unsigned int)add_overflow_set(nullptr, a1, a2, v41, v42, v43, v44, v45, v46, v47, v48) != 0 )
                 {
-                  if ( (unsigned int)sub_94046540(
+                  if ( (unsigned int)add_overflow_set(
                                        &v114,
                                        *(_QWORD *)(v10 + 32),
                                        *(_QWORD *)(v10 + 40),
@@ -28704,7 +28704,7 @@ __int64 __fastcall sub_94046B5C(unsigned __int64 a1, unsigned __int64 a2, _QWORD
                                        v56) != 0
                     && *(_QWORD *)(v10 + 12) >= v114 )
                   {
-                    if ( (unsigned int)sub_94046540(
+                    if ( (unsigned int)add_overflow_set(
                                          &v115,
                                          *(_QWORD *)(v10 + 48),
                                          *(_QWORD *)(v10 + 56),
@@ -28718,7 +28718,7 @@ __int64 __fastcall sub_94046B5C(unsigned __int64 a1, unsigned __int64 a2, _QWORD
                                          v64) != 0
                       && *(_QWORD *)(v10 + 12) >= v115 )
                     {
-                      if ( (unsigned int)sub_94046540(
+                      if ( (unsigned int)add_overflow_set(
                                            &v116,
                                            *(_QWORD *)(v10 + 64),
                                            *(_QWORD *)(v10 + 72),
@@ -28734,7 +28734,7 @@ __int64 __fastcall sub_94046B5C(unsigned __int64 a1, unsigned __int64 a2, _QWORD
                       {
                         v81 = *(_QWORD *)(v10 + 88);
                         if ( v81 == 0
-                          || (unsigned int)sub_94046540(
+                          || (unsigned int)add_overflow_set(
                                              &v117,
                                              *(_QWORD *)(v10 + 80),
                                              v81,
@@ -28752,7 +28752,7 @@ __int64 __fastcall sub_94046B5C(unsigned __int64 a1, unsigned __int64 a2, _QWORD
                           v30 = 1;
                           if ( v82 != 0 )
                           {
-                            v83 = sub_94042C24(v82);
+                            v83 = avb_get_algorithm(v82);
                             v92 = v83;
                             if ( v83 != nullptr )
                             {
@@ -28765,26 +28765,26 @@ __int64 __fastcall sub_94046B5C(unsigned __int64 a1, unsigned __int64 a2, _QWORD
                                   case 1:
                                   case 2:
                                   case 3:
-                                    sub_94043BDC(v11);
-                                    sub_94043C48(v11, a1, 0x100u);
-                                    sub_94043C48(v11, v101, *(_DWORD *)(v10 + 20));
-                                    v102 = sub_94043D28((__int64)v11);
+                                    sha256_init(v11);
+                                    sha256_update(v11, a1, 0x100u);
+                                    sha256_update(v11, v101, *(_DWORD *)(v10 + 20));
+                                    v102 = sha256_final((__int64)v11);
                                     goto LABEL_56;
                                   case 4:
                                   case 5:
                                   case 6:
-                                    sub_94044178(v21);
-                                    sub_94044224(v21, a1, 0x100u);
-                                    sub_94044224(v21, v101, *(_DWORD *)(v10 + 20));
-                                    v102 = sub_94044304(v21);
+                                    sha512_init(v21);
+                                    sha512_update(v21, a1, 0x100u);
+                                    sha512_update(v21, v101, *(_DWORD *)(v10 + 20));
+                                    v102 = sha512_final(v21);
 LABEL_56:
-                                    if ( (unsigned int)sub_9404649C(
+                                    if ( (unsigned int)memcmp_neq(
                                                          v112 + *(_QWORD *)(v10 + 32),
                                                          v102,
                                                          *(_QWORD *)(v10 + 40)) != 0 )
                                     {
                                       v30 = 4;
-                                      sub_940407DC(
+                                      sprd_log(
                                         0,
                                         "Hash does not match!\n",
                                         v103,
@@ -28799,7 +28799,7 @@ LABEL_56:
                                     else
                                     {
                                       v30 = 5;
-                                      if ( (unsigned int)sub_94043558(
+                                      if ( (unsigned int)avb_rsa_verify_sw(
                                                            v101 + *(_QWORD *)(v10 + 64),
                                                            *(_QWORD *)(v10 + 72),
                                                            v112 + *(_QWORD *)(v10 + 48),
@@ -28833,14 +28833,14 @@ LABEL_56:
                                     break;
                                   default:
                                     v30 = 2;
-                                    sub_940407DC(0, "Unknown algorithm.\n", v84, v85, v86, v87, v88, v89, v90, v91);
+                                    sprd_log(0, "Unknown algorithm.\n", v84, v85, v86, v87, v88, v89, v90, v91);
                                     break;
                                 }
                               }
                               else
                               {
                                 v30 = 2;
-                                sub_940407DC(
+                                sprd_log(
                                   0,
                                   "Embedded hash has wrong size.\n",
                                   v84,
@@ -28856,26 +28856,26 @@ LABEL_56:
                             else
                             {
                               v30 = 2;
-                              sub_940407DC(0, "Invalid or unknown algorithm.\n", v84, v85, v86, v87, v88, v89, v90, v91);
+                              sprd_log(0, "Invalid or unknown algorithm.\n", v84, v85, v86, v87, v88, v89, v90, v91);
                             }
                           }
                         }
                         else
                         {
                           v30 = 2;
-                          sub_940407DC(0, (const char *)&loc_94056CC8, v93, v94, v95, v96, v97, v98, v99, v100);
+                          sprd_log(0, (const char *)&loc_94056CC8, v93, v94, v95, v96, v97, v98, v99, v100);
                         }
                       }
                       else
                       {
                         v30 = 2;
-                        sub_940407DC(0, (const char *)&loc_94056C98, v73, v74, v75, v76, v77, v78, v79, v80);
+                        sprd_log(0, (const char *)&loc_94056C98, v73, v74, v75, v76, v77, v78, v79, v80);
                       }
                     }
                     else
                     {
                       v30 = 2;
-                      sub_940407DC(
+                      sprd_log(
                         0,
                         "Signature is not entirely in its block.\n",
                         v65,
@@ -28891,19 +28891,19 @@ LABEL_56:
                   else
                   {
                     v30 = 2;
-                    sub_940407DC(0, "Hash is not entirely in its block.\n", v57, v58, v59, v60, v61, v62, v63, v64);
+                    sprd_log(0, "Hash is not entirely in its block.\n", v57, v58, v59, v60, v61, v62, v63, v64);
                   }
                 }
                 else
                 {
                   v30 = 2;
-                  sub_940407DC(0, "Boot image location and length mismatch.\n", v49, v50, v51, v52, v53, v54, v55, v56);
+                  sprd_log(0, "Boot image location and length mismatch.\n", v49, v50, v51, v52, v53, v54, v55, v56);
                 }
               }
               else
               {
                 v30 = 2;
-                sub_940407DC(
+                sprd_log(
                   0,
                   "Block sizes add up to more than given length.\n",
                   v41,
@@ -28919,7 +28919,7 @@ LABEL_56:
             else
             {
               v30 = 2;
-              sub_940407DC(0, "Overflow while computing size of boot image.\n", v41, v42, v43, v44, v45, v46, v47, v48);
+              sprd_log(0, "Overflow while computing size of boot image.\n", v41, v42, v43, v44, v45, v46, v47, v48);
             }
           }
         }
@@ -28928,25 +28928,25 @@ LABEL_56:
     else
     {
       v30 = 2;
-      sub_940407DC(0, "malloc failed.\n", v13, v14, v15, v16, v17, v18, v19, v20);
+      sprd_log(0, "malloc failed.\n", v13, v14, v15, v16, v17, v18, v19, v20);
     }
     goto LABEL_17;
   }
   v30 = 2;
-  sub_940407DC(0, "malloc failed.\n", v13, v14, v15, v16, v17, v18, v19, v20);
+  sprd_log(0, "malloc failed.\n", v13, v14, v15, v16, v17, v18, v19, v20);
   if ( v10 != 0 )
 LABEL_17:
-    sub_94046430(v10);
+    free(v10);
 LABEL_11:
   if ( v11 != nullptr )
-    sub_94046430((__int64)v11);
+    free((__int64)v11);
   if ( v21 != 0 )
-    sub_94046430(v21);
+    free(v21);
   return v30;
 }
 
-/* ===== sub_94047050 @ 0x94047050 size 168 ===== */
-const char *__fastcall sub_94047050(
+/* ===== avb_vbmeta_verify_result_to_string @ 0x94047050 size 168 ===== */
+const char *__fastcall avb_vbmeta_verify_result_to_string(
         int a1,
         double a2,
         double a3,
@@ -28980,28 +28980,28 @@ const char *__fastcall sub_94047050(
       result = "SIGNATURE_MISMATCH";
       break;
     default:
-      sub_940407DC(0, "Unknown AvbVBMetaVerifyResult value.\n", a2, a3, a4, a5, a6, a7, a8, a9);
+      sprd_log(0, "Unknown AvbVBMetaVerifyResult value.\n", a2, a3, a4, a5, a6, a7, a8, a9);
       result = "(unknown)";
       break;
   }
   return result;
 }
 
-/* ===== sub_940470F8 @ 0x940470F8 size 8 ===== */
-__int64 sub_940470F8()
+/* ===== avb_stub_ret0 @ 0x940470F8 size 8 ===== */
+__int64 avb_stub_ret0()
 {
   return 0;
 }
 
-/* ===== sub_94047100 @ 0x94047100 size 36 ===== */
-__int64 __fastcall sub_94047100(double a1, double a2, double a3, double a4, double a5, double a6, double a7, double a8)
+/* ===== avb_write_rollback_index @ 0x94047100 size 36 ===== */
+__int64 __fastcall avb_write_rollback_index(double a1, double a2, double a3, double a4, double a5, double a6, double a7, double a8)
 {
-  sub_940407DC(7u, "TODO: implement write_rollback_index().\n", a1, a2, a3, a4, a5, a6, a7, a8);
+  sprd_log(7u, "TODO: implement write_rollback_index().\n", a1, a2, a3, a4, a5, a6, a7, a8);
   return 0;
 }
 
-/* ===== sub_94047124 @ 0x94047124 size 68 ===== */
-__int64 __fastcall sub_94047124(
+/* ===== avb_read_is_device_unlocked @ 0x94047124 size 68 ===== */
+__int64 __fastcall avb_read_is_device_unlocked(
         double a1,
         double a2,
         double a3,
@@ -29014,7 +29014,7 @@ __int64 __fastcall sub_94047124(
         _DWORD *a10)
 {
   *a10 = MEMORY[0xFFFFFFFFE0064418] == 1;
-  sub_940407DC(
+  sprd_log(
     7u,
     "read_is_device_unlocked() get vb_unlock_status 0x%x, *out_is_unlocked is %d.\n",
     a1,
@@ -29029,8 +29029,8 @@ __int64 __fastcall sub_94047124(
   return 0;
 }
 
-/* ===== sub_94047168 @ 0x94047168 size 76 ===== */
-__int64 __fastcall sub_94047168(
+/* ===== avb_read_rollback_index @ 0x94047168 size 76 ===== */
+__int64 __fastcall avb_read_rollback_index(
         double a1,
         double a2,
         double a3,
@@ -29043,14 +29043,14 @@ __int64 __fastcall sub_94047168(
         __int64 a10,
         _QWORD *a11)
 {
-  sub_940407DC(7u, (const char *)&loc_94056E88, a1, a2, a3, a4, a5, a6, a7, a8);
+  sprd_log(7u, (const char *)&loc_94056E88, a1, a2, a3, a4, a5, a6, a7, a8);
   if ( a11 != nullptr )
     *a11 = *(unsigned int *)(4 * a10 - 536460624);
   return 0;
 }
 
-/* ===== sub_940471B4 @ 0x940471B4 size 408 ===== */
-__int64 __fastcall sub_940471B4(__int64 a1, __int64 a2, __int64 a3, __int64 a4, __int64 a5, __int64 *a6)
+/* ===== avb_read_from_partition @ 0x940471B4 size 408 ===== */
+__int64 __fastcall avb_read_from_partition(__int64 a1, __int64 a2, __int64 a3, __int64 a4, __int64 a5, __int64 *a6)
 {
   double v11; // d0
   double v12; // d1
@@ -29079,7 +29079,7 @@ __int64 __fastcall sub_940471B4(__int64 a1, __int64 a2, __int64 a3, __int64 a4, 
   double v36; // d6
   double v37; // d7
 
-  if ( (unsigned int)sub_94040878(a2, (__int64)"vbmeta") != 0 )
+  if ( (unsigned int)strcmp(a2, (__int64)"vbmeta") != 0 )
   {
     v19 = MEMORY[0xFFFFFFFFE0064404];
     if ( (a3 & 0x8000000000000000LL) == 0 )
@@ -29095,11 +29095,11 @@ __int64 __fastcall sub_940471B4(__int64 a1, __int64 a2, __int64 a3, __int64 a4, 
   a3 += v19;
   if ( v19 < v29 )
   {
-    sub_940407DC(7u, "Offset outside range.\n", v11, v12, v13, v14, v15, v16, v17, v18);
+    sprd_log(7u, "Offset outside range.\n", v11, v12, v13, v14, v15, v16, v17, v18);
     return 4;
   }
 LABEL_3:
-  sub_940407DC(
+  sprd_log(
     7u,
     "read partition %s, offset: 0x%llx, bytes: 0x%x.\n",
     v11,
@@ -29113,9 +29113,9 @@ LABEL_3:
     a2,
     a3,
     a4);
-  if ( (unsigned int)sub_94040878(a2, (__int64)"vbmeta") != 0 )
+  if ( (unsigned int)strcmp(a2, (__int64)"vbmeta") != 0 )
   {
-    sub_940407DC(
+    sprd_log(
       7u,
       "buf:0x%x, g_avbUserData.img_addr:0x%x, offset_from_partition:0x%llx num_bytes:0x%llx\n",
       v20,
@@ -29130,12 +29130,12 @@ LABEL_3:
       MEMORY[0xFFFFFFFFE00643D8],
       a3,
       a4);
-    sub_94040880(a5, MEMORY[0xFFFFFFFFE00643D8] + a3, a4);
+    memcpy(a5, MEMORY[0xFFFFFFFFE00643D8] + a3, a4);
     *a6 = a4;
   }
   else
   {
-    sub_940407DC(
+    sprd_log(
       7u,
       "buf:0x%x, g_avbUserData.vbmeta_img_addr:0x%x, offset_from_partition:0x%llx num_bytes:0x%llx\n",
       v20,
@@ -29150,16 +29150,16 @@ LABEL_3:
       MEMORY[0xFFFFFFFFE00643E0],
       a3,
       a4);
-    sub_94040880(a5, MEMORY[0xFFFFFFFFE00643E0] + a3, a4);
+    memcpy(a5, MEMORY[0xFFFFFFFFE00643E0] + a3, a4);
     *a6 = a4;
-    sub_940407DC(7u, "[kbc] save vbmeta image for cp verify.\n", v30, v31, v32, v33, v34, v35, v36, v37);
-    sub_94040880(-536576240, MEMORY[0xFFFFFFFFE00643E0] + a3, a4);
+    sprd_log(7u, "[kbc] save vbmeta image for cp verify.\n", v30, v31, v32, v33, v34, v35, v36, v37);
+    memcpy(-536576240, MEMORY[0xFFFFFFFFE00643E0] + a3, a4);
   }
   return 0;
 }
 
-/* ===== sub_9404734C @ 0x9404734C size 204 ===== */
-__int64 __fastcall sub_9404734C(
+/* ===== avb_dump_hex @ 0x9404734C size 204 ===== */
+__int64 __fastcall avb_dump_hex(
         __int64 a1,
         __int64 a2,
         int a3,
@@ -29193,7 +29193,7 @@ __int64 __fastcall sub_9404734C(
   double v31; // d6
   double v32; // d7
 
-  sub_940407DC(7u, "%s", a4, a5, a6, a7, a8, a9, a10, a11, a1);
+  sprd_log(7u, "%s", a4, a5, a6, a7, a8, a9, a10, a11, a1);
   if ( a3 > 0 )
   {
     v21 = (unsigned int)(a3 - 1) + 1LL;
@@ -29203,21 +29203,21 @@ __int64 __fastcall sub_9404734C(
       while ( (v22 & 0xF) != 0 )
       {
         v23 = *(unsigned __int8 *)(a2 + v22++);
-        sub_940407DC(7u, " %02x", v13, v14, v15, v16, v17, v18, v19, v20, v23);
+        sprd_log(7u, " %02x", v13, v14, v15, v16, v17, v18, v19, v20, v23);
         if ( v22 == v21 )
-          return sub_940407DC(7u, "\n", v13, v14, v15, v16, v17, v18, v19, v20);
+          return sprd_log(7u, "\n", v13, v14, v15, v16, v17, v18, v19, v20);
       }
-      sub_940407DC(7u, "\n%04x", v13, v14, v15, v16, v17, v18, v19, v20, (unsigned int)v22);
+      sprd_log(7u, "\n%04x", v13, v14, v15, v16, v17, v18, v19, v20, (unsigned int)v22);
       v24 = *(unsigned __int8 *)(a2 + v22++);
-      sub_940407DC(7u, " %02x", v25, v26, v27, v28, v29, v30, v31, v32, v24);
+      sprd_log(7u, " %02x", v25, v26, v27, v28, v29, v30, v31, v32, v24);
     }
     while ( v22 != v21 );
   }
-  return sub_940407DC(7u, "\n", v13, v14, v15, v16, v17, v18, v19, v20);
+  return sprd_log(7u, "\n", v13, v14, v15, v16, v17, v18, v19, v20);
 }
 
-/* ===== sub_94047418 @ 0x94047418 size 364 ===== */
-__int64 __fastcall sub_94047418(
+/* ===== avb_read_from_partition_kbc @ 0x94047418 size 364 ===== */
+__int64 __fastcall avb_read_from_partition_kbc(
         double a1,
         double a2,
         double a3,
@@ -29276,7 +29276,7 @@ __int64 __fastcall sub_94047418(
   double v59; // d7
 
   v14 = a11;
-  sub_940407DC(
+  sprd_log(
     7u,
     "[kbc]read partition name: %s, offset = 0x%llx, num_bytes = 0x%x\n",
     a1,
@@ -29290,17 +29290,17 @@ __int64 __fastcall sub_94047418(
     a10,
     a11,
     a12);
-  if ( (unsigned int)sub_94040878(a10, (__int64)"vbmeta") != 0 )
+  if ( (unsigned int)strcmp(a10, (__int64)"vbmeta") != 0 )
   {
     if ( a12 == 64 )
     {
-      sub_940407DC(7u, "[kbc]read footer\n", v19, v20, v21, v22, v23, v24, v25, v26);
-      sub_94040880(a13, MEMORY[0xFFFFFFFFE00643F8], 0x40u);
-      sub_9404734C((__int64)"dump footer", a13, 64, v52, v53, v54, v55, v56, v57, v58, v59);
+      sprd_log(7u, "[kbc]read footer\n", v19, v20, v21, v22, v23, v24, v25, v26);
+      memcpy(a13, MEMORY[0xFFFFFFFFE00643F8], 0x40u);
+      avb_dump_hex((__int64)"dump footer", a13, 64, v52, v53, v54, v55, v56, v57, v58, v59);
     }
     else
     {
-      sub_940407DC(
+      sprd_log(
         7u,
         "[kbc]read certificate: img_addr = 0x%x\n",
         v19,
@@ -29312,31 +29312,31 @@ __int64 __fastcall sub_94047418(
         v25,
         v26,
         MEMORY[0xFFFFFFFFE00643D8]);
-      if ( sub_9404087C() != 0 )
+      if ( rtc_read() != 0 )
         v14 -= MEMORY[0xFFFFFFFFE0064414];
-      sub_940407DC(7u, "[kbc]read certificate: offset = 0x%x\n", v27, v28, v29, v30, v31, v32, v33, v34, v14);
-      sub_94040880(a13, MEMORY[0xFFFFFFFFE00643D8] + v14, a12);
-      sub_9404734C((__int64)sub_940570A8, a13, 16, v35, v36, v37, v38, v39, v40, v41, v42);
+      sprd_log(7u, "[kbc]read certificate: offset = 0x%x\n", v27, v28, v29, v30, v31, v32, v33, v34, v14);
+      memcpy(a13, MEMORY[0xFFFFFFFFE00643D8] + v14, a12);
+      avb_dump_hex((__int64)kbc_read_footer_stub, a13, 16, v35, v36, v37, v38, v39, v40, v41, v42);
     }
     *a14 = a12;
   }
   else
   {
-    sub_94040880(a13, -536576240, a12);
+    memcpy(a13, -536576240, a12);
     *a14 = a12;
   }
-  sub_940407DC(7u, "[kbc]read_from_partition_kbc leave buf = 0x%x\n", v43, v44, v45, v46, v47, v48, v49, v50, a13);
+  sprd_log(7u, "[kbc]read_from_partition_kbc leave buf = 0x%x\n", v43, v44, v45, v46, v47, v48, v49, v50, a13);
   return 0;
 }
 
-/* ===== sub_94047584 @ 0x94047584 size 100 ===== */
-__int64 sub_94047584()
+/* ===== avb_ops_init @ 0x94047584 size 100 ===== */
+__int64 avb_ops_init()
 {
   MEMORY[0xFFFFFFFFE00643A8] = -536709184;
   MEMORY[0xFFFFFFFFE0064388] = 0;
   MEMORY[0xFFFFFFFFE0064398] = -536710732;
   MEMORY[0xFFFFFFFFE00643A0] = 0;
-  MEMORY[0xFFFFFFFFE00643B0] = sub_94047168;
+  MEMORY[0xFFFFFFFFE00643B0] = avb_read_rollback_index;
   MEMORY[0xFFFFFFFFE00643B8] = -536710912;
   MEMORY[0xFFFFFFFFE00643C0] = -536710876;
   MEMORY[0xFFFFFFFFE00643C8] = -536710920;
@@ -29344,8 +29344,8 @@ __int64 sub_94047584()
   return 0;
 }
 
-/* ===== sub_940475E8 @ 0x940475E8 size 448 ===== */
-__int64 __fastcall sub_940475E8(double a1, double a2, double a3, double a4, double a5, double a6, double a7, double a8)
+/* ===== avb_get_image_buffer @ 0x940475E8 size 448 ===== */
+__int64 __fastcall avb_get_image_buffer(double a1, double a2, double a3, double a4, double a5, double a6, double a7, double a8)
 {
   __int64 v8; // x19
   double v9; // d0
@@ -29386,7 +29386,7 @@ __int64 __fastcall sub_940475E8(double a1, double a2, double a3, double a4, doub
   _QWORD v45[2]; // [xsp+80h] [xbp+80h] BYREF
 
   v8 = 0;
-  sub_940407DC(
+  sprd_log(
     7u,
     "avb_ops_get_image_buffer: img_addr = 0x%x\n",
     a1,
@@ -29398,10 +29398,10 @@ __int64 __fastcall sub_940475E8(double a1, double a2, double a3, double a4, doub
     a7,
     a8,
     MEMORY[0xFFFFFFFFE00643D8]);
-  sub_940407DC(7u, "check dat cp\n", v9, v10, v11, v12, v13, v14, v15, v16);
-  if ( (unsigned int)sub_9404649C(MEMORY[0xFFFFFFFFE00643D8], (__int64)"SCI1", 5) == 0 )
+  sprd_log(7u, "check dat cp\n", v9, v10, v11, v12, v13, v14, v15, v16);
+  if ( (unsigned int)memcmp_neq(MEMORY[0xFFFFFFFFE00643D8], (__int64)"SCI1", 5) == 0 )
   {
-    sub_940407DC(7u, "the image is new packed modem image\n", v17, v18, v19, v20, v21, v22, v23, v24);
+    sprd_log(7u, "the image is new packed modem image\n", v17, v18, v19, v20, v21, v22, v23, v24);
     v38 = 0;
     v39[0] = 0;
     v39[1] = 0;
@@ -29414,8 +29414,8 @@ __int64 __fastcall sub_940475E8(double a1, double a2, double a3, double a4, doub
     v44 = 0;
     v45[0] = 0;
     v45[1] = 0;
-    sub_94040880((__int64)&v38, MEMORY[0xFFFFFFFFE00643D8], 0x60u);
-    if ( (unsigned int)sub_9404649C((__int64)&v38, (__int64)"SCI1", 5) == 0 )
+    memcpy((__int64)&v38, MEMORY[0xFFFFFFFFE00643D8], 0x60u);
+    if ( (unsigned int)memcmp_neq((__int64)&v38, (__int64)"SCI1", 5) == 0 )
     {
       v33 = WORD2(v39[0]);
       if ( BYTE4(v39[0]) == 1 )
@@ -29449,11 +29449,11 @@ __int64 __fastcall sub_940475E8(double a1, double a2, double a3, double a4, doub
                   if ( BYTE4(v45[0]) != 1 )
                   {
                     v8 = 0;
-                    sub_940407DC(7u, "no MODEM exe found in SCI header!", v25, v26, v27, v28, v29, v30, v31, v32);
+                    sprd_log(7u, "no MODEM exe found in SCI header!", v25, v26, v27, v28, v29, v30, v31, v32);
                     v35 = 0;
                     v36 = 0;
 LABEL_11:
-                    sub_940407DC(
+                    sprd_log(
                       7u,
                       "modem offset: 0x%x, length: 0x%x\n",
                       v25,
@@ -29484,7 +29484,7 @@ LABEL_11:
       goto LABEL_11;
     }
     v8 = 0;
-    sub_940407DC(7u, "old image format!\n", v25, v26, v27, v28, v29, v30, v31, v32);
+    sprd_log(7u, "old image format!\n", v25, v26, v27, v28, v29, v30, v31, v32);
     v35 = 0;
     v36 = 0;
     goto LABEL_11;
@@ -29492,15 +29492,15 @@ LABEL_11:
   return MEMORY[0xFFFFFFFFE00643D8] + v8;
 }
 
-/* ===== sub_940477A8 @ 0x940477A8 size 24 ===== */
-__int64 __fastcall sub_940477A8(_QWORD *a1)
+/* ===== avb_get_pubkey_hash @ 0x940477A8 size 24 ===== */
+__int64 __fastcall avb_get_pubkey_hash(_QWORD *a1)
 {
   *a1 = MEMORY[0xFFFFFFFFE006440C];
   return MEMORY[0xFFFFFFFFE00643E8];
 }
 
-/* ===== sub_940477C0 @ 0x940477C0 size 436 ===== */
-__int64 __fastcall sub_940477C0(
+/* ===== avb_validate_public_key @ 0x940477C0 size 436 ===== */
+__int64 __fastcall avb_validate_public_key(
         double a1,
         double a2,
         double a3,
@@ -29584,19 +29584,19 @@ __int64 __fastcall sub_940477C0(
   __int64 v83; // [xsp+48h] [xbp+48h] BYREF
   _BYTE v84[32]; // [xsp+50h] [xbp+50h] BYREF
 
-  sub_940407DC(7u, (const char *)&loc_94057158, a1, a2, a3, a4, a5, a6, a7, a8);
+  sprd_log(7u, (const char *)&loc_94057158, a1, a2, a3, a4, a5, a6, a7, a8);
   if ( a10 == 0 || a11 == 0 || a14 == nullptr )
   {
-    sub_940407DC(0, "invalid: para is null.\n", v17, v18, v19, v20, v21, v22, v23, v24, 0);
-    sub_940407DC(0, "Info: out_key_is_trusted is 0x%llx.\n", v59, v60, v61, v62, v63, v64, v65, v66, a14, 0);
-    sub_940407DC(0, "Info: public_key_data is 0x%llx.\n", v67, v68, v69, v70, v71, v72, v73, v74, a10, 0);
-    sub_940407DC(0, "Info: public_key_length is 0x%llx.\n", v75, v76, v77, v78, v79, v80, v81, v82, a11, 0);
+    sprd_log(0, "invalid: para is null.\n", v17, v18, v19, v20, v21, v22, v23, v24, 0);
+    sprd_log(0, "Info: out_key_is_trusted is 0x%llx.\n", v59, v60, v61, v62, v63, v64, v65, v66, a14, 0);
+    sprd_log(0, "Info: public_key_data is 0x%llx.\n", v67, v68, v69, v70, v71, v72, v73, v74, a10, 0);
+    sprd_log(0, "Info: public_key_length is 0x%llx.\n", v75, v76, v77, v78, v79, v80, v81, v82, a11, 0);
     return 1;
   }
   else
   {
-    v25 = sub_940477A8(&v83);
-    sub_940407DC(
+    v25 = avb_get_pubkey_hash(&v83);
+    sprd_log(
       7u,
       "dump public_key_hash: public_key_hash_length:%d. \n",
       v26,
@@ -29611,12 +29611,12 @@ __int64 __fastcall sub_940477C0(
       0);
     if ( v25 != 0 && v83 != 0 )
       nullsub_9("vboot key hash from uboot", v25, v83);
-    sub_94041994(a10, a11, (__int64)v84, v34, v35, v36, v37, v38, v39, v40, v41);
+    cal_sha256(a10, a11, (__int64)v84, v34, v35, v36, v37, v38, v39, v40, v41);
     nullsub_9("pk_data sha256", v84, 32);
-    if ( v83 != 32 || (unsigned int)sub_9404649C(v25, (__int64)v84, 32) != 0 )
+    if ( v83 != 32 || (unsigned int)memcmp_neq(v25, (__int64)v84, 32) != 0 )
     {
-      sub_940407DC(7u, "expected_public_key is not matched.\n", v42, v43, v44, v45, v46, v47, v48, v49, 0);
-      sub_940407DC(
+      sprd_log(7u, "expected_public_key is not matched.\n", v42, v43, v44, v45, v46, v47, v48, v49, 0);
+      sprd_log(
         0,
         "vbmeta",
         v50,
@@ -29634,21 +29634,21 @@ __int64 __fastcall sub_940477C0(
     }
     else
     {
-      sub_940407DC(7u, "expected_public_key is matched.\n", v42, v43, v44, v45, v46, v47, v48, v49, 0);
+      sprd_log(7u, "expected_public_key is matched.\n", v42, v43, v44, v45, v46, v47, v48, v49, 0);
       *a14 = 1;
       return 0;
     }
   }
 }
 
-/* ===== sub_94047974 @ 0x94047974 size 96 ===== */
-__int64 sub_94047974()
+/* ===== avb_ops_init_kbc @ 0x94047974 size 96 ===== */
+__int64 avb_ops_init_kbc()
 {
   MEMORY[0xFFFFFFFFE00643A8] = -536709184;
   MEMORY[0xFFFFFFFFE0064388] = 0;
   MEMORY[0xFFFFFFFFE0064398] = -536710120;
   MEMORY[0xFFFFFFFFE00643A0] = 0;
-  MEMORY[0xFFFFFFFFE00643B0] = sub_94047168;
+  MEMORY[0xFFFFFFFFE00643B0] = avb_read_rollback_index;
   MEMORY[0xFFFFFFFFE00643B8] = -536710912;
   MEMORY[0xFFFFFFFFE00643C0] = -536710876;
   MEMORY[0xFFFFFFFFE00643C8] = -536710920;
@@ -29656,8 +29656,8 @@ __int64 sub_94047974()
   return -536460416;
 }
 
-/* ===== sub_940479D4 @ 0x940479D4 size 308 ===== */
-__int64 __fastcall sub_940479D4(
+/* ===== avb_check_image_kbc @ 0x940479D4 size 308 ===== */
+__int64 __fastcall avb_check_image_kbc(
         __int64 a1,
         double a2,
         double a3,
@@ -29726,23 +29726,23 @@ __int64 __fastcall sub_940479D4(
   v63[1] = 0;
   if ( a1 != 0 )
   {
-    sub_940407DC(1u, "avb check image name:%s.\n", a2, a3, a4, a5, a6, a7, a8, a9, a1);
+    sprd_log(1u, "avb check image name:%s.\n", a2, a3, a4, a5, a6, a7, a8, a9, a1);
     v63[0] = a1;
   }
   else
   {
-    sub_940407DC(1u, "avb check image name is null.\n", a2, a3, a4, a5, a6, a7, a8, a9);
+    sprd_log(1u, "avb check image name is null.\n", a2, a3, a4, a5, a6, a7, a8, a9);
     v63[0] = (__int64)"";
   }
   v18 = 0;
   if ( MEMORY[0xFFFFFFFFE0064418] == 1 )
   {
-    v62 = sub_94040878(a1, (__int64)"boot");
+    v62 = strcmp(a1, (__int64)"boot");
     v18 = 1;
     if ( v62 != 0 )
-      v18 = sub_94040878(a1, (__int64)"recovery") == 0;
+      v18 = strcmp(a1, (__int64)"recovery") == 0;
   }
-  v19 = sub_940459C4(
+  v19 = avb_slot_verify(
           -536460416,
           v63,
           (__int64)"",
@@ -29756,11 +29756,11 @@ __int64 __fastcall sub_940479D4(
           v15,
           v16,
           v17);
-  sub_940407DC(1u, ">>>>>>>>>>>>>>>>  avb_slot_verify result is %d.\n", v20, v21, v22, v23, v24, v25, v26, v27, v19);
-  v36 = sub_94046314(v19, v28, v29, v30, v31, v32, v33, v34, v35);
-  sub_940407DC(1u, ">>>>>>>>>>>>>>>>  avb_slot_verify result is %s.\n", v37, v38, v39, v40, v41, v42, v43, v44, v36);
-  sub_940407DC(1u, "slot_data[0] is 0x%x.\n", v45, v46, v47, v48, v49, v50, v51, v52, MEMORY[0xFFFFFFFFE0057F18]);
-  sub_940407DC(1u, "slot_data[1] is 0x%x.\n", v53, v54, v55, v56, v57, v58, v59, v60, MEMORY[0xFFFFFFFFE0057F20]);
+  sprd_log(1u, ">>>>>>>>>>>>>>>>  avb_slot_verify result is %d.\n", v20, v21, v22, v23, v24, v25, v26, v27, v19);
+  v36 = avb_slot_verify_result_to_string(v19, v28, v29, v30, v31, v32, v33, v34, v35);
+  sprd_log(1u, ">>>>>>>>>>>>>>>>  avb_slot_verify result is %s.\n", v37, v38, v39, v40, v41, v42, v43, v44, v36);
+  sprd_log(1u, "slot_data[0] is 0x%x.\n", v45, v46, v47, v48, v49, v50, v51, v52, MEMORY[0xFFFFFFFFE0057F18]);
+  sprd_log(1u, "slot_data[1] is 0x%x.\n", v53, v54, v55, v56, v57, v58, v59, v60, MEMORY[0xFFFFFFFFE0057F20]);
   return v19;
 }
 
@@ -29770,8 +29770,8 @@ void nullsub_9()
   ;
 }
 
-/* ===== sub_94047B0C @ 0x94047B0C size 292 ===== */
-__int64 __fastcall sub_94047B0C(
+/* ===== process_set_version_smc @ 0x94047B0C size 292 ===== */
+__int64 __fastcall process_set_version_smc(
         __int64 a1,
         double a2,
         double a3,
@@ -29812,24 +29812,24 @@ __int64 __fastcall sub_94047B0C(
   __int64 v38; // [xsp+38h] [xbp+38h]
   __int64 v39; // [xsp+48h] [xbp+48h] BYREF
 
-  sub_940407DC(1u, "enter vboot set_version\n", a2, a3, a4, a5, a6, a7, a8, a9);
+  sprd_log(1u, "enter vboot set_version\n", a2, a3, a4, a5, a6, a7, a8, a9);
   v10 = *(_DWORD *)(a1 + 8);
   v38 = *(unsigned int *)(a1 + 12);
-  sub_94040888(-536460624, 0, 0x38u);
-  sub_940407DC(1u, "from uboot smc...addr:0x%x len:0x%x\n", v11, v12, v13, v14, v15, v16, v17, v18, v10, v38);
-  v19 = sub_940408CC((__int64)"sprdsec", v10, 0x1000u, 0x30u, (__int64)&v39);
+  memset(-536460624, 0, 0x38u);
+  sprd_log(1u, "from uboot smc...addr:0x%x len:0x%x\n", v11, v12, v13, v14, v15, v16, v17, v18, v10, v38);
+  v19 = sprd_iomap((__int64)"sprdsec", v10, 0x1000u, 0x30u, (__int64)&v39);
   if ( v19 != 0 )
   {
-    sub_940407DC(1u, "can not map phy addr 1 , ret:%d\n", v20, v21, v22, v23, v24, v25, v26, v27, v19);
+    sprd_log(1u, "can not map phy addr 1 , ret:%d\n", v20, v21, v22, v23, v24, v25, v26, v27, v19);
     return (int)v19;
   }
   else
   {
-    sub_94040880(-536460624, v39, 0x38u);
+    memcpy(-536460624, v39, 0x38u);
     nullsub_9();
-    if ( v39 != 0 && (v28 = sub_940408F4(v39)) != 0 )
+    if ( v39 != 0 && (v28 = sprd_iounmap(v39)) != 0 )
     {
-      sub_940407DC(1u, "can not unmap virt addr, ret:%d\n", v29, v30, v31, v32, v33, v34, v35, v36, v28);
+      sprd_log(1u, "can not unmap virt addr, ret:%d\n", v29, v30, v31, v32, v33, v34, v35, v36, v28);
       return (int)v28;
     }
     else
@@ -29839,8 +29839,8 @@ __int64 __fastcall sub_94047B0C(
   }
 }
 
-/* ===== sub_94047C30 @ 0x94047C30 size 1928 ===== */
-__int64 __fastcall sub_94047C30(
+/* ===== process_vboot_verify_smc @ 0x94047C30 size 1928 ===== */
+__int64 __fastcall process_vboot_verify_smc(
         __int64 a1,
         double a2,
         double a3,
@@ -30030,17 +30030,17 @@ __int64 __fastcall sub_94047C30(
   v164 = 0;
   v174 = 0;
   v175 = 0;
-  sub_940407DC(1u, "enter vboot verify\n", a2, a3, a4, a5, a6, a7, a8, a9);
-  sub_94040EFC(v10, v11, v12, v13, v14, v15, v16, v17);
+  sprd_log(1u, "enter vboot verify\n", a2, a3, a4, a5, a6, a7, a8, a9);
+  secboot_data_init(v10, v11, v12, v13, v14, v15, v16, v17);
   v18 = *(_DWORD *)(a1 + 12);
   v19 = *(_DWORD *)(a1 + 8);
-  sub_940407DC(1u, "from uboot smc...addr:0x%x len:0x%x\n", v20, v21, v22, v23, v24, v25, v26, v27, v19, v18);
+  sprd_log(1u, "from uboot smc...addr:0x%x len:0x%x\n", v20, v21, v22, v23, v24, v25, v26, v27, v19, v18);
   if ( v18 != 0 && v19 != 0 )
   {
-    v117 = sub_940408CC((__int64)"sprdsec", v19, 0x1000u, 0x30u, (__int64)&v171);
+    v117 = sprd_iomap((__int64)"sprdsec", v19, 0x1000u, 0x30u, (__int64)&v171);
     if ( v117 != 0 )
     {
-      sub_940407DC(1u, "can not map phy addr 1 , ret:%d\n", v28, v29, v30, v31, v32, v33, v34, v35, v117);
+      sprd_log(1u, "can not map phy addr 1 , ret:%d\n", v28, v29, v30, v31, v32, v33, v34, v35, v117);
       return (int)v117;
     }
   }
@@ -30048,7 +30048,7 @@ __int64 __fastcall sub_94047C30(
   v37 = *(_DWORD *)(v171 + 8);
   if ( v37 != 0 )
   {
-    sub_940407DC(
+    sprd_log(
       1u,
       "from uboot smc...addr:0x%x len:0x%x\n",
       v28,
@@ -30061,7 +30061,7 @@ __int64 __fastcall sub_94047C30(
       v35,
       *(_QWORD *)v171,
       v37);
-    v43 = sub_940408CC((__int64)"sprdsec", *(_QWORD *)v171, (v37 & 0xFFFFF000) + 4096, 0x30u, (__int64)&v165);
+    v43 = sprd_iomap((__int64)"sprdsec", *(_QWORD *)v171, (v37 & 0xFFFFF000) + 4096, 0x30u, (__int64)&v165);
     if ( v43 != 0 )
       goto LABEL_55;
     v36 = v171;
@@ -30069,7 +30069,7 @@ __int64 __fastcall sub_94047C30(
   v38 = *(_DWORD *)(v36 + 24);
   if ( v38 != 0 )
   {
-    sub_940407DC(
+    sprd_log(
       1u,
       "from uboot smc...addr:0x%x len:0x%x\n",
       v28,
@@ -30082,7 +30082,7 @@ __int64 __fastcall sub_94047C30(
       v35,
       *(_QWORD *)(v36 + 16),
       v38);
-    v43 = sub_940408CC((__int64)"sprdsec", *(_QWORD *)(v171 + 16), (v38 & 0xFFFFF000) + 4096, 0x30u, (__int64)&v166);
+    v43 = sprd_iomap((__int64)"sprdsec", *(_QWORD *)(v171 + 16), (v38 & 0xFFFFF000) + 4096, 0x30u, (__int64)&v166);
     if ( v43 != 0 )
       goto LABEL_55;
     v36 = v171;
@@ -30094,7 +30094,7 @@ __int64 __fastcall sub_94047C30(
     if ( v40 == 0 )
       goto LABEL_7;
 LABEL_44:
-    sub_940407DC(
+    sprd_log(
       1u,
       "from uboot smc...addr:0x%x len:0x%x\n",
       v28,
@@ -30107,7 +30107,7 @@ LABEL_44:
       v35,
       *(_QWORD *)(v36 + 48),
       v40);
-    v43 = sub_940408CC((__int64)"sprdsec", *(_QWORD *)(v171 + 48), (v40 & 0xFFFFF000) + 4096, 0x30u, (__int64)&v168);
+    v43 = sprd_iomap((__int64)"sprdsec", *(_QWORD *)(v171 + 48), (v40 & 0xFFFFF000) + 4096, 0x30u, (__int64)&v168);
     if ( v43 != 0 )
       goto LABEL_55;
     v36 = v171;
@@ -30116,7 +30116,7 @@ LABEL_44:
       goto LABEL_8;
     goto LABEL_46;
   }
-  sub_940407DC(
+  sprd_log(
     1u,
     "from uboot smc...addr:0x%x len:0x%x\n",
     v28,
@@ -30129,7 +30129,7 @@ LABEL_44:
     v35,
     *(_QWORD *)(v36 + 32),
     v39);
-  v43 = sub_940408CC((__int64)"sprdsec", *(_QWORD *)(v171 + 32), (v39 & 0xFFFFF000) + 4096, 0x30u, (__int64)&v167);
+  v43 = sprd_iomap((__int64)"sprdsec", *(_QWORD *)(v171 + 32), (v39 & 0xFFFFF000) + 4096, 0x30u, (__int64)&v167);
   if ( v43 != 0 )
     goto LABEL_55;
   v36 = v171;
@@ -30141,7 +30141,7 @@ LABEL_7:
   if ( v41 != 0 )
   {
 LABEL_46:
-    sub_940407DC(
+    sprd_log(
       1u,
       "from uboot smc...addr:0x%x len:0x%x\n",
       v28,
@@ -30154,21 +30154,21 @@ LABEL_46:
       v35,
       *(_QWORD *)(v36 + 64),
       v41);
-    v43 = sub_940408CC((__int64)"sprdsec", *(_QWORD *)(v171 + 64), (v41 & 0xFFFFF000) + 4096, 0x30u, (__int64)&v169);
+    v43 = sprd_iomap((__int64)"sprdsec", *(_QWORD *)(v171 + 64), (v41 & 0xFFFFF000) + 4096, 0x30u, (__int64)&v169);
     if ( v43 == 0 )
     {
       v36 = v171;
       goto LABEL_8;
     }
 LABEL_55:
-    sub_940407DC(1u, "can not map phy addr 2 , ret:%d\n", v28, v29, v30, v31, v32, v33, v34, v35, v43);
+    sprd_log(1u, "can not map phy addr 2 , ret:%d\n", v28, v29, v30, v31, v32, v33, v34, v35, v43);
     return (int)v43;
   }
 LABEL_8:
   v42 = *(_DWORD *)(v36 + 88);
   if ( v42 != 0 )
   {
-    sub_940407DC(
+    sprd_log(
       1u,
       "from uboot smc...addr:0x%x len:0x%x\n",
       v28,
@@ -30181,12 +30181,12 @@ LABEL_8:
       v35,
       *(_QWORD *)(v36 + 80),
       v42);
-    v43 = sub_940408CC((__int64)"sprdsec", *(_QWORD *)(v171 + 80), (v42 & 0xFFFFF000) + 4096, 0x30u, (__int64)&v170);
+    v43 = sprd_iomap((__int64)"sprdsec", *(_QWORD *)(v171 + 80), (v42 & 0xFFFFF000) + 4096, 0x30u, (__int64)&v170);
     if ( v43 != 0 )
       goto LABEL_55;
   }
-  sub_940407DC(1u, "vb_cmdline_len:%d, vbmeta_pubkey_addr:0x%x\n", v28, v29, v30, v31, v32, v33, v34, v35, v41, v169);
-  sub_940407DC(1u, "vb_cmdline_len:%d, vbmeta_pubkey_addr:0x%x\n", v44, v45, v46, v47, v48, v49, v50, v51, v42, v170);
+  sprd_log(1u, "vb_cmdline_len:%d, vbmeta_pubkey_addr:0x%x\n", v28, v29, v30, v31, v32, v33, v34, v35, v41, v169);
+  sprd_log(1u, "vb_cmdline_len:%d, vbmeta_pubkey_addr:0x%x\n", v44, v45, v46, v47, v48, v49, v50, v51, v42, v170);
   MEMORY[0xFFFFFFFFE00643D0] = v165;
   MEMORY[0xFFFFFFFFE00643E0] = v167;
   v60 = *(_DWORD *)(v171 + 92);
@@ -30201,9 +30201,9 @@ LABEL_8:
   MEMORY[0xFFFFFFFFE0064418] = v60;
   if ( v166 != 0 && v38 != 0 )
   {
-    sub_94047584();
+    avb_ops_init();
     v87 = 0;
-    sub_940407DC(
+    sprd_log(
       1u,
       "img_name:%s, g_avbUserData.img_name:%s.\n",
       v118,
@@ -30216,16 +30216,16 @@ LABEL_8:
       v125,
       v165,
       MEMORY[0xFFFFFFFFE00643D0]);
-    v86 = sub_940479D4(v165, v126, v127, v128, v129, v130, v131, v132, v133);
+    v86 = avb_check_image_kbc(v165, v126, v127, v128, v129, v130, v131, v132, v133);
     v163 = v86;
   }
   else
   {
-    sub_940407DC(1u, "enter vbmeta check\n", v52, v53, v54, v55, v56, v57, v58, v59);
-    sub_94047584();
-    v61 = sub_94046B5C(v167, v39, &v172, &v173, &v174);
-    sub_940407DC(1u, (const char *)sub_94057450, v62, v63, v64, v65, v66, v67, v68, v69, v61);
-    sub_940407DC(1u, "rollback_index is %lld.\n", v70, v71, v72, v73, v74, v75, v76, v77, v174);
+    sprd_log(1u, "enter vbmeta check\n", v52, v53, v54, v55, v56, v57, v58, v59);
+    avb_ops_init();
+    v61 = avb_vbmeta_verify(v167, v39, &v172, &v173, &v174);
+    sprd_log(1u, (const char *)vbmeta_check_log_stub, v62, v63, v64, v65, v66, v67, v68, v69, v61);
+    sprd_log(1u, "rollback_index is %lld.\n", v70, v71, v72, v73, v74, v75, v76, v77, v174);
     if ( v61 != 0 )
     {
       v86 = 1;
@@ -30236,11 +30236,11 @@ LABEL_8:
     {
       v87 = 1;
       v163 = MEMORY[0xFFFFFFFFE00643A8](-536460416, v172, v173, 0, 0, &v164);
-      sub_940407DC(1u, (const char *)&loc_94057488, v154, v155, v156, v157, v158, v159, v160, v161, v163, v164);
+      sprd_log(1u, (const char *)&loc_94057488, v154, v155, v156, v157, v158, v159, v160, v161, v163, v164);
       v86 = v163;
       if ( v163 == 0 )
       {
-        sub_940407DC(1u, "Check rollback index for vbmeta \n", v78, v79, v80, v81, v82, v83, v84, v85);
+        sprd_log(1u, "Check rollback index for vbmeta \n", v78, v79, v80, v81, v82, v83, v84, v85);
         if ( (unsigned int)MEMORY[0xFFFFFFFFE00643B0](-536460416, 0, &v175) != 0 )
         {
           v86 = 4;
@@ -30248,7 +30248,7 @@ LABEL_8:
         }
         else if ( v174 >= v175 )
         {
-          sub_940407DC(
+          sprd_log(
             1u,
             "Info: vbmeta rollback_index:%lld, >= stored_rollback_index:%lld.\n",
             v78,
@@ -30263,7 +30263,7 @@ LABEL_8:
         }
         else
         {
-          sub_940407DC(
+          sprd_log(
             1u,
             "Error: vbmeta rollback_index:%lld, < stored_rollback_index:%lld.\n",
             v78,
@@ -30280,8 +30280,8 @@ LABEL_8:
       }
     }
   }
-  sub_940407DC(1u, (const char *)&loc_940575A0, v78, v79, v80, v81, v82, v83, v84, v85, v86);
-  if ( (unsigned int)sub_94040878(v165, (__int64)"boot") == 0 && MEMORY[0xFFFFFFFFE0064418] == 1 )
+  sprd_log(1u, (const char *)&loc_940575A0, v78, v79, v80, v81, v82, v83, v84, v85, v86);
+  if ( (unsigned int)strcmp(v165, (__int64)"boot") == 0 && MEMORY[0xFFFFFFFFE0064418] == 1 )
   {
     v96 = v163;
     if ( v163 == 5 )
@@ -30303,13 +30303,13 @@ LABEL_8:
       v97 = *(_QWORD *)(MEMORY[0xFFFFFFFFE0057F18] + 40LL);
       if ( v97 != 0 )
       {
-        if ( (unsigned int)sub_94040AC4(v97) != 0 )
+        if ( (unsigned int)strlen(v97) != 0 )
         {
-          v134 = sub_94040AC4(*(_QWORD *)(MEMORY[0xFFFFFFFFE0057F18] + 40LL));
-          sub_940407DC(1u, (const char *)&loc_940575C0, v135, v136, v137, v138, v139, v140, v141, v142, v134);
-          sub_94040AC4(*(_QWORD *)(MEMORY[0xFFFFFFFFE0057F18] + 40LL));
+          v134 = strlen(*(_QWORD *)(MEMORY[0xFFFFFFFFE0057F18] + 40LL));
+          sprd_log(1u, (const char *)&loc_940575C0, v135, v136, v137, v138, v139, v140, v141, v142, v134);
+          strlen(*(_QWORD *)(MEMORY[0xFFFFFFFFE0057F18] + 40LL));
           nullsub_9();
-          sub_940407DC(
+          sprd_log(
             1u,
             "avb_slot_data[0]->cmdline is %s\n",
             v143,
@@ -30323,14 +30323,14 @@ LABEL_8:
             *(_QWORD *)(MEMORY[0xFFFFFFFFE0057F18] + 40LL));
           v151 = v169;
           v162 = *(_QWORD *)(MEMORY[0xFFFFFFFFE0057F18] + 40LL);
-          v152 = sub_94040AC4(v162);
-          sub_94040880(v151, v162, v152);
+          v152 = strlen(v162);
+          memcpy(v151, v162, v152);
           v153 = v169;
-          *(_BYTE *)(v153 + (unsigned int)sub_94040AC4(*(_QWORD *)(MEMORY[0xFFFFFFFFE0057F18] + 40LL))) = 0;
-          sub_940408B0(v169, v41);
+          *(_BYTE *)(v153 + (unsigned int)strlen(*(_QWORD *)(MEMORY[0xFFFFFFFFE0057F18] + 40LL))) = 0;
+          dcache_clean(v169, v41);
 LABEL_24:
           if ( MEMORY[0xFFFFFFFFE0057F18] != 0 )
-            sub_940458E8(MEMORY[0xFFFFFFFFE0057F18]);
+            avb_slot_data_free(MEMORY[0xFFFFFFFFE0057F18]);
           goto LABEL_26;
         }
         v97 = *(_QWORD *)(MEMORY[0xFFFFFFFFE0057F18] + 40LL);
@@ -30340,33 +30340,33 @@ LABEL_24:
     {
       v97 = MEMORY[0x28];
     }
-    v98 = sub_94040AC4(v97);
-    sub_940407DC(1u, "avb_slot_data[0]->cmdline para error,  %d\n", v99, v100, v101, v102, v103, v104, v105, v106, v98);
+    v98 = strlen(v97);
+    sprd_log(1u, "avb_slot_data[0]->cmdline para error,  %d\n", v99, v100, v101, v102, v103, v104, v105, v106, v98);
     goto LABEL_24;
   }
 LABEL_60:
-  sub_940407DC(1u, (const char *)&loc_94057648, v88, v89, v90, v91, v92, v93, v94, v95, v87);
+  sprd_log(1u, (const char *)&loc_94057648, v88, v89, v90, v91, v92, v93, v94, v95, v87);
 LABEL_26:
-  sub_94040880(v170, (__int64)&v163, 4u);
-  if ( (v171 == 0 || (v107 = sub_940408F4(v171)) == 0)
-    && (v165 == 0 || (v107 = sub_940408F4(v165)) == 0)
-    && (v166 == 0 || (v107 = sub_940408F4(v166)) == 0)
-    && (v167 == 0 || (v107 = sub_940408F4(v167)) == 0)
-    && (v168 == 0 || (v107 = sub_940408F4(v168)) == 0)
-    && (v169 == 0 || (v107 = sub_940408F4(v169)) == 0) )
+  memcpy(v170, (__int64)&v163, 4u);
+  if ( (v171 == 0 || (v107 = sprd_iounmap(v171)) == 0)
+    && (v165 == 0 || (v107 = sprd_iounmap(v165)) == 0)
+    && (v166 == 0 || (v107 = sprd_iounmap(v166)) == 0)
+    && (v167 == 0 || (v107 = sprd_iounmap(v167)) == 0)
+    && (v168 == 0 || (v107 = sprd_iounmap(v168)) == 0)
+    && (v169 == 0 || (v107 = sprd_iounmap(v169)) == 0) )
   {
     if ( v170 == 0 )
       return 0;
-    v107 = sub_940408F4(v170);
+    v107 = sprd_iounmap(v170);
     if ( v107 == 0 )
       return 0;
   }
-  sub_940407DC(1u, "can not unmap virt addr, ret:%d\n", v108, v109, v110, v111, v112, v113, v114, v115, v107);
+  sprd_log(1u, "can not unmap virt addr, ret:%d\n", v108, v109, v110, v111, v112, v113, v114, v115, v107);
   return (int)v107;
 }
 
-/* ===== sub_940483B8 @ 0x940483B8 size 1564 ===== */
-__int64 __fastcall sub_940483B8(
+/* ===== process_vboot_verify_sn_smc @ 0x940483B8 size 1564 ===== */
+__int64 __fastcall process_vboot_verify_sn_smc(
         __int64 a1,
         double a2,
         double a3,
@@ -30497,29 +30497,29 @@ __int64 __fastcall sub_940483B8(
   v119 = 0;
   v120 = 0;
   v111 = 0;
-  sub_940407DC(1u, "enter vboot verify\n", a2, a3, a4, a5, a6, a7, a8, a9);
-  sub_94040EFC(v10, v11, v12, v13, v14, v15, v16, v17);
+  sprd_log(1u, "enter vboot verify\n", a2, a3, a4, a5, a6, a7, a8, a9);
+  secboot_data_init(v10, v11, v12, v13, v14, v15, v16, v17);
   v18 = *(_DWORD *)(a1 + 12);
   v19 = *(_DWORD *)(a1 + 8);
-  sub_940407DC(1u, "from uboot smc...addr:0x%x len:0x%x\n", v20, v21, v22, v23, v24, v25, v26, v27, v19, v18);
+  sprd_log(1u, "from uboot smc...addr:0x%x len:0x%x\n", v20, v21, v22, v23, v24, v25, v26, v27, v19, v18);
   if ( v18 == 0 || v19 == 0 )
     return -1;
-  v28 = sub_940408CC((__int64)"sprdsec", v19, 0x1000u, 0x30u, (__int64)&v118);
+  v28 = sprd_iomap((__int64)"sprdsec", v19, 0x1000u, 0x30u, (__int64)&v118);
   if ( v28 != 0 )
   {
-    sub_940407DC(1u, "can not map phy addr ns_addr , ret:%d\n", v29, v30, v31, v32, v33, v34, v35, v36, v28);
+    sprd_log(1u, "can not map phy addr ns_addr , ret:%d\n", v29, v30, v31, v32, v33, v34, v35, v36, v28);
     return (int)v28;
   }
   v37 = v118;
   if ( v118 == 0 )
   {
-    sub_940407DC(1u, "imginfo address error\n", v29, v30, v31, v32, v33, v34, v35, v36);
+    sprd_log(1u, "imginfo address error\n", v29, v30, v31, v32, v33, v34, v35, v36);
     return -1;
   }
   v38 = *(_DWORD *)(v118 + 8);
   if ( v38 != 0 )
   {
-    sub_940407DC(
+    sprd_log(
       1u,
       "from uboot smc...addr:0x%x len:0x%x\n",
       v29,
@@ -30532,10 +30532,10 @@ __int64 __fastcall sub_940483B8(
       v36,
       *(_QWORD *)v118,
       v38);
-    v73 = sub_940408CC((__int64)"sprdsec", *(_QWORD *)v118, (v38 & 0xFFFFF000) + 4096, 0x30u, (__int64)&v113);
+    v73 = sprd_iomap((__int64)"sprdsec", *(_QWORD *)v118, (v38 & 0xFFFFF000) + 4096, 0x30u, (__int64)&v113);
     if ( v73 != 0 )
     {
-      sub_940407DC(1u, "can not map phy addr vbmeta_img_paddr , ret:%d\n", v29, v30, v31, v32, v33, v34, v35, v36, v73);
+      sprd_log(1u, "can not map phy addr vbmeta_img_paddr , ret:%d\n", v29, v30, v31, v32, v33, v34, v35, v36, v73);
       return (int)v73;
     }
     v37 = v118;
@@ -30543,7 +30543,7 @@ __int64 __fastcall sub_940483B8(
   v39 = *(_DWORD *)(v37 + 24);
   if ( v39 != 0 )
   {
-    sub_940407DC(
+    sprd_log(
       1u,
       "from uboot smc...addr:0x%x len:0x%x\n",
       v29,
@@ -30556,10 +30556,10 @@ __int64 __fastcall sub_940483B8(
       v36,
       *(_QWORD *)(v37 + 16),
       v39);
-    v72 = sub_940408CC((__int64)"sprdsec", *(_QWORD *)(v118 + 16), (v39 & 0xFFFFF000) + 4096, 0x30u, (__int64)&v114);
+    v72 = sprd_iomap((__int64)"sprdsec", *(_QWORD *)(v118 + 16), (v39 & 0xFFFFF000) + 4096, 0x30u, (__int64)&v114);
     if ( v72 != 0 )
     {
-      sub_940407DC(
+      sprd_log(
         1u,
         "can not map phy addr vbmeta_pubkey_addr , ret:%d\n",
         v29,
@@ -30578,7 +30578,7 @@ __int64 __fastcall sub_940483B8(
   v40 = *(_DWORD *)(v37 + 40);
   if ( v40 != 0 )
   {
-    sub_940407DC(
+    sprd_log(
       1u,
       "from uboot smc...addr:0x%x len:0x%x\n",
       v29,
@@ -30591,10 +30591,10 @@ __int64 __fastcall sub_940483B8(
       v36,
       *(_QWORD *)(v37 + 32),
       v40);
-    v70 = sub_940408CC((__int64)"sprdsec", *(_QWORD *)(v118 + 32), (v40 & 0xFFFFF000) + 4096, 0x30u, (__int64)&v115);
+    v70 = sprd_iomap((__int64)"sprdsec", *(_QWORD *)(v118 + 32), (v40 & 0xFFFFF000) + 4096, 0x30u, (__int64)&v115);
     if ( v70 != 0 )
     {
-      sub_940407DC(1u, "can not map phy addr product_sn_addr , ret:%d\n", v29, v30, v31, v32, v33, v34, v35, v36, v70);
+      sprd_log(1u, "can not map phy addr product_sn_addr , ret:%d\n", v29, v30, v31, v32, v33, v34, v35, v36, v70);
       return (int)v70;
     }
     v37 = v118;
@@ -30608,7 +30608,7 @@ __int64 __fastcall sub_940483B8(
     if ( v41 == 0 )
       goto LABEL_9;
   }
-  sub_940407DC(
+  sprd_log(
     1u,
     "from uboot smc...addr:0x%x len:0x%x\n",
     v29,
@@ -30621,10 +30621,10 @@ __int64 __fastcall sub_940483B8(
     v36,
     *(_QWORD *)(v37 + 48),
     v41);
-  v71 = sub_940408CC((__int64)"sprdsec", *(_QWORD *)(v118 + 48), (v41 & 0xFFFFF000) + 4096, 0x30u, (__int64)&v116);
+  v71 = sprd_iomap((__int64)"sprdsec", *(_QWORD *)(v118 + 48), (v41 & 0xFFFFF000) + 4096, 0x30u, (__int64)&v116);
   if ( v71 != 0 )
   {
-    sub_940407DC(
+    sprd_log(
       1u,
       "can not map phy addr product_sn_signature_addr , ret:%d\n",
       v29,
@@ -30642,7 +30642,7 @@ __int64 __fastcall sub_940483B8(
 LABEL_9:
   v42 = *(_DWORD *)(v37 + 72);
   if ( v42 != 0
-    && (sub_940407DC(
+    && (sprd_log(
           1u,
           "from uboot smc...addr:0x%x len:0x%x\n",
           v29,
@@ -30655,47 +30655,47 @@ LABEL_9:
           v36,
           *(_QWORD *)(v37 + 64),
           v42),
-        (v43 = sub_940408CC(
+        (v43 = sprd_iomap(
                  (__int64)"sprdsec",
                  *(_QWORD *)(v118 + 64),
                  (v42 & 0xFFFFF000) + 4096,
                  0x30u,
                  (__int64)&v117)) != 0) )
   {
-    sub_940407DC(1u, "can not map phy addr 2 , ret:%d\n", v29, v30, v31, v32, v33, v34, v35, v36, v43);
+    sprd_log(1u, "can not map phy addr 2 , ret:%d\n", v29, v30, v31, v32, v33, v34, v35, v36, v43);
     return (int)v43;
   }
   else
   {
     v44 = 1;
-    sub_940407DC(1u, (const char *)&loc_94057780, v29, v30, v31, v32, v33, v34, v35, v36, v42, v117);
+    sprd_log(1u, (const char *)&loc_94057780, v29, v30, v31, v32, v33, v34, v35, v36, v42, v117);
     MEMORY[0xFFFFFFFFE00643E0] = v113;
     MEMORY[0xFFFFFFFFE00643E8] = v114;
     MEMORY[0xFFFFFFFFE0064408] = v38;
     MEMORY[0xFFFFFFFFE006440C] = v39;
-    sub_940407DC(1u, "Enter vbmeta check\n", v45, v46, v47, v48, v49, v50, v51, v52);
-    sub_94047584();
-    v53 = sub_94046B5C(v113, v38, &v119, &v120, nullptr);
-    sub_940407DC(1u, (const char *)sub_94057450, v54, v55, v56, v57, v58, v59, v60, v61, v53);
+    sprd_log(1u, "Enter vbmeta check\n", v45, v46, v47, v48, v49, v50, v51, v52);
+    avb_ops_init();
+    v53 = avb_vbmeta_verify(v113, v38, &v119, &v120, nullptr);
+    sprd_log(1u, (const char *)vbmeta_check_log_stub, v54, v55, v56, v57, v58, v59, v60, v61, v53);
     if ( v53 == 0 )
       v44 = MEMORY[0xFFFFFFFFE00643A8](-536460416, v119, v120, 0, 0, &v111);
-    sub_940407DC(1u, (const char *)&loc_940575A0, v62, v63, v64, v65, v66, v67, v68, v69, v44);
+    sprd_log(1u, (const char *)&loc_940575A0, v62, v63, v64, v65, v66, v67, v68, v69, v44);
     if ( v44 != 0 )
     {
       while ( 1 )
         ;
     }
-    v75 = (unsigned int *)sub_94046700(200);
+    v75 = (unsigned int *)avb_malloc(200);
     if ( v75 != nullptr )
     {
-      sub_940407DC(1u, "Calculate hash with product_sn\n", v76, v77, v78, v79, v80, v81, v82, v83);
-      sub_94043BDC(v75);
-      sub_94043C48(v75, v115, v40);
-      v110 = sub_94043D28((__int64)v75);
-      v84 = sub_94042C24(2u);
+      sprd_log(1u, "Calculate hash with product_sn\n", v76, v77, v78, v79, v80, v81, v82, v83);
+      sha256_init(v75);
+      sha256_update(v75, v115, v40);
+      v110 = sha256_final((__int64)v75);
+      v84 = avb_get_algorithm(2u);
       if ( v84 != nullptr )
       {
-        v112 = sub_94043558(
+        v112 = avb_rsa_verify_sw(
                  v119,
                  v120,
                  v116,
@@ -30713,28 +30713,28 @@ LABEL_9:
                  v91,
                  v92);
         if ( v112 != 0 )
-          sub_940407DC(1u, (const char *)&loc_940577F8, v93, v94, v95, v96, v97, v98, v99, v100);
+          sprd_log(1u, (const char *)&loc_940577F8, v93, v94, v95, v96, v97, v98, v99, v100);
       }
       else
       {
-        sub_940407DC(0, "Invalid or unknown algorithm.\n", v85, v86, v87, v88, v89, v90, v91, v92);
+        sprd_log(0, "Invalid or unknown algorithm.\n", v85, v86, v87, v88, v89, v90, v91, v92);
       }
-      sub_94046430((__int64)v75);
+      free((__int64)v75);
     }
     else
     {
-      sub_940407DC(0, "malloc failed.\n", v76, v77, v78, v79, v80, v81, v82, v83);
+      sprd_log(0, "malloc failed.\n", v76, v77, v78, v79, v80, v81, v82, v83);
     }
-    sub_94040880(v117, (__int64)&v112, 4u);
-    v101 = sub_940408F4(v118);
+    memcpy(v117, (__int64)&v112, 4u);
+    v101 = sprd_iounmap(v118);
     if ( v101 != 0
-      || v113 != 0 && (v101 = sub_940408F4(v113)) != 0
-      || v114 != 0 && (v101 = sub_940408F4(v114)) != 0
-      || v115 != 0 && (v101 = sub_940408F4(v115)) != 0
-      || v116 != 0 && (v101 = sub_940408F4(v116)) != 0
-      || v117 != 0 && (v101 = sub_940408F4(v117)) != 0 )
+      || v113 != 0 && (v101 = sprd_iounmap(v113)) != 0
+      || v114 != 0 && (v101 = sprd_iounmap(v114)) != 0
+      || v115 != 0 && (v101 = sprd_iounmap(v115)) != 0
+      || v116 != 0 && (v101 = sprd_iounmap(v116)) != 0
+      || v117 != 0 && (v101 = sprd_iounmap(v117)) != 0 )
     {
-      sub_940407DC(1u, "can not unmap virt addr, ret:%d\n", v102, v103, v104, v105, v106, v107, v108, v109, v101);
+      sprd_log(1u, "can not unmap virt addr, ret:%d\n", v102, v103, v104, v105, v106, v107, v108, v109, v101);
       return (int)v101;
     }
     else
@@ -30744,8 +30744,8 @@ LABEL_9:
   }
 }
 
-/* ===== sub_940489D4 @ 0x940489D4 size 472 ===== */
-__int64 __fastcall sub_940489D4(
+/* ===== process_config_os_version_smc @ 0x940489D4 size 472 ===== */
+__int64 __fastcall process_config_os_version_smc(
         __int64 a1,
         double a2,
         double a3,
@@ -30811,24 +30811,24 @@ __int64 __fastcall sub_940489D4(
   _DWORD v63[2]; // [xsp+78h] [xbp+78h] BYREF
 
   v61 = 0;
-  sub_940407DC(1u, "enter sprd_vboot_config_os_version\n", a2, a3, a4, a5, a6, a7, a8, a9);
+  sprd_log(1u, "enter sprd_vboot_config_os_version\n", a2, a3, a4, a5, a6, a7, a8, a9);
   v10 = *(_DWORD *)(a1 + 8);
   v60 = *(unsigned int *)(a1 + 12);
-  sub_94040888(-536477112, 0, 0x1000u);
-  sub_940407DC(1u, "from uboot smc...addr:0x%x len:0x%x\n", v11, v12, v13, v14, v15, v16, v17, v18, v10, v60);
-  v19 = sub_940408CC((__int64)"sprdsec", v10, 0x1000u, 0x30u, (__int64)&v62);
+  memset(-536477112, 0, 0x1000u);
+  sprd_log(1u, "from uboot smc...addr:0x%x len:0x%x\n", v11, v12, v13, v14, v15, v16, v17, v18, v10, v60);
+  v19 = sprd_iomap((__int64)"sprdsec", v10, 0x1000u, 0x30u, (__int64)&v62);
   if ( v19 != 0 )
   {
-    sub_940407DC(1u, "can not map phy addr 1 , ret:%d\n", v20, v21, v22, v23, v24, v25, v26, v27, v19);
+    sprd_log(1u, "can not map phy addr 1 , ret:%d\n", v20, v21, v22, v23, v24, v25, v26, v27, v19);
     return (int)v19;
   }
   else
   {
-    sub_94040880((__int64)&v61, v62, 4u);
+    memcpy((__int64)&v61, v62, 4u);
     v28 = v61 >> 25;
     v29 = ((unsigned __int64)v61 >> 18) & 0x7F;
     v30 = ((unsigned __int64)v61 >> 11) & 0x7F;
-    sub_940407DC(
+    sprd_log(
       1u,
       "System version(Major.Minor.Sub_minor): (%d.%d.%d)\n",
       v31,
@@ -30846,7 +30846,7 @@ __int64 __fastcall sub_940489D4(
     v40 = v61 & 0xF;
     v41 = ((v61 >> 4) & 0x7F) + 2000;
     v63[0] = v30 + 100 * v39;
-    sub_940407DC(
+    sprd_log(
       1u,
       "System security patch level(Year-Month): (%04d-%02d)\n",
       v42,
@@ -30860,12 +30860,12 @@ __int64 __fastcall sub_940489D4(
       v41,
       v61 & 0xF);
     v63[1] = v40 + 100 * v41;
-    sub_94040880(-536477112, (__int64)v63, 8u);
+    memcpy(-536477112, (__int64)v63, 8u);
     MEMORY[0xFFFFFFFFE0061248] = 8;
     nullsub_9();
-    if ( v62 != 0 && (v50 = sub_940408F4(v62)) != 0 )
+    if ( v62 != 0 && (v50 = sprd_iounmap(v62)) != 0 )
     {
-      sub_940407DC(1u, "can not unmap virt addr, ret:%d\n", v51, v52, v53, v54, v55, v56, v57, v58, v50);
+      sprd_log(1u, "can not unmap virt addr, ret:%d\n", v51, v52, v53, v54, v55, v56, v57, v58, v50);
       return (int)v50;
     }
     else
@@ -30875,8 +30875,8 @@ __int64 __fastcall sub_940489D4(
   }
 }
 
-/* ===== sub_94048BAC @ 0x94048BAC size 204 ===== */
-__int64 __fastcall sub_94048BAC(
+/* ===== dump_hex @ 0x94048BAC size 204 ===== */
+__int64 __fastcall dump_hex(
         __int64 a1,
         __int64 a2,
         int a3,
@@ -30910,7 +30910,7 @@ __int64 __fastcall sub_94048BAC(
   double v31; // d6
   double v32; // d7
 
-  sub_940407DC(1u, "%s", a4, a5, a6, a7, a8, a9, a10, a11, a1);
+  sprd_log(1u, "%s", a4, a5, a6, a7, a8, a9, a10, a11, a1);
   if ( a3 > 0 )
   {
     v21 = (unsigned int)(a3 - 1) + 1LL;
@@ -30920,21 +30920,21 @@ __int64 __fastcall sub_94048BAC(
       while ( (v22 & 0xF) != 0 )
       {
         v23 = *(unsigned __int8 *)(a2 + v22++);
-        sub_940407DC(1u, " %02x", v13, v14, v15, v16, v17, v18, v19, v20, v23);
+        sprd_log(1u, " %02x", v13, v14, v15, v16, v17, v18, v19, v20, v23);
         if ( v22 == v21 )
-          return sub_940407DC(1u, "\n", v13, v14, v15, v16, v17, v18, v19, v20);
+          return sprd_log(1u, "\n", v13, v14, v15, v16, v17, v18, v19, v20);
       }
-      sub_940407DC(1u, "\n%04x", v13, v14, v15, v16, v17, v18, v19, v20, (unsigned int)v22);
+      sprd_log(1u, "\n%04x", v13, v14, v15, v16, v17, v18, v19, v20, (unsigned int)v22);
       v24 = *(unsigned __int8 *)(a2 + v22++);
-      sub_940407DC(1u, " %02x", v25, v26, v27, v28, v29, v30, v31, v32, v24);
+      sprd_log(1u, " %02x", v25, v26, v27, v28, v29, v30, v31, v32, v24);
     }
     while ( v22 != v21 );
   }
-  return sub_940407DC(1u, "\n", v13, v14, v15, v16, v17, v18, v19, v20);
+  return sprd_log(1u, "\n", v13, v14, v15, v16, v17, v18, v19, v20);
 }
 
-/* ===== sub_94048C78 @ 0x94048C78 size 200 ===== */
-const char *__fastcall sub_94048C78(int a1)
+/* ===== kbc_version_name @ 0x94048C78 size 200 ===== */
+const char *__fastcall kbc_version_name(int a1)
 {
   const char *result; // x0
 
@@ -30986,8 +30986,8 @@ const char *__fastcall sub_94048C78(int a1)
   return result;
 }
 
-/* ===== sub_94048D40 @ 0x94048D40 size 108 ===== */
-__int64 __fastcall sub_94048D40(
+/* ===== kbc_v2_dump_version @ 0x94048D40 size 108 ===== */
+__int64 __fastcall kbc_v2_dump_version(
         __int64 a1,
         double a2,
         double a3,
@@ -31012,22 +31012,22 @@ __int64 __fastcall sub_94048D40(
   double v21; // d7
 
   v10 = 0;
-  result = sub_940407DC(1u, "kbc_v2_dump_version \n", a2, a3, a4, a5, a6, a7, a8, a9);
+  result = sprd_log(1u, "kbc_v2_dump_version \n", a2, a3, a4, a5, a6, a7, a8, a9);
   if ( a1 != 0 )
   {
     do
     {
-      v12 = sub_94048C78(v10);
+      v12 = kbc_version_name(v10);
       v13 = *(unsigned int *)(a1 + 4 * v10++);
-      result = sub_940407DC(1u, "%8s ver = %d \n", v14, v15, v16, v17, v18, v19, v20, v21, v12, v13);
+      result = sprd_log(1u, "%8s ver = %d \n", v14, v15, v16, v17, v18, v19, v20, v21, v12, v13);
     }
     while ( v10 != 13 );
   }
   return result;
 }
 
-/* ===== sub_94048DAC @ 0x94048DAC size 104 ===== */
-__int64 __fastcall sub_94048DAC(
+/* ===== avb_userdata_set @ 0x94048DAC size 104 ===== */
+__int64 __fastcall avb_userdata_set(
         __int64 a1,
         __int64 a2,
         int a3,
@@ -31040,8 +31040,8 @@ __int64 __fastcall sub_94048DAC(
         double a10,
         double a11)
 {
-  sub_940407DC(1u, "[kbc]avb_userdata_set() packed offset = 0x%x\n", a4, a5, a6, a7, a8, a9, a10, a11);
-  sub_94040888(-536460336, 0, 0x50u);
+  sprd_log(1u, "[kbc]avb_userdata_set() packed offset = 0x%x\n", a4, a5, a6, a7, a8, a9, a10, a11);
+  memset(-536460336, 0, 0x50u);
   MEMORY[0xFFFFFFFFE00643D8] = a1;
   MEMORY[0xFFFFFFFFE00643F8] = a2;
   MEMORY[0xFFFFFFFFE0064414] = a3;
@@ -31049,8 +31049,8 @@ __int64 __fastcall sub_94048DAC(
   return 0x10000;
 }
 
-/* ===== sub_94048E14 @ 0x94048E14 size 216 ===== */
-__int64 __fastcall sub_94048E14(
+/* ===== avb_check_kbc_image @ 0x94048E14 size 216 ===== */
+__int64 __fastcall avb_check_kbc_image(
         __int64 a1,
         double a2,
         double a3,
@@ -31114,9 +31114,9 @@ __int64 __fastcall sub_94048E14(
   __int64 v61[2]; // [xsp+20h] [xbp+20h] BYREF
 
   v61[1] = 0;
-  sub_940407DC(1u, "[kbc]avb_check_kbc_image() name = %s\n", a2, a3, a4, a5, a6, a7, a8, a9, a1);
+  sprd_log(1u, "[kbc]avb_check_kbc_image() name = %s\n", a2, a3, a4, a5, a6, a7, a8, a9, a1);
   v61[0] = a1;
-  v18 = sub_940459C4(
+  v18 = avb_slot_verify(
           -536460416,
           v61,
           (__int64)"",
@@ -31130,18 +31130,18 @@ __int64 __fastcall sub_94048E14(
           v15,
           v16,
           v17);
-  sub_940407DC(1u, "[kbc]avb_slot_verify result is %d.\n", v19, v20, v21, v22, v23, v24, v25, v26, v18);
-  v35 = sub_94046314(v18, v27, v28, v29, v30, v31, v32, v33, v34);
-  sub_940407DC(1u, "[kbc]avb_slot_verify result is %s.\n", v36, v37, v38, v39, v40, v41, v42, v43, v35);
-  sub_940407DC(1u, "[kbc]slot_data[0] is 0x%x.\n", v44, v45, v46, v47, v48, v49, v50, v51, MEMORY[0xFFFFFFFFE0057F18]);
-  sub_940407DC(1u, "[kbc]slot_data[1] is 0x%x.\n", v52, v53, v54, v55, v56, v57, v58, v59, MEMORY[0xFFFFFFFFE0057F20]);
+  sprd_log(1u, "[kbc]avb_slot_verify result is %d.\n", v19, v20, v21, v22, v23, v24, v25, v26, v18);
+  v35 = avb_slot_verify_result_to_string(v18, v27, v28, v29, v30, v31, v32, v33, v34);
+  sprd_log(1u, "[kbc]avb_slot_verify result is %s.\n", v36, v37, v38, v39, v40, v41, v42, v43, v35);
+  sprd_log(1u, "[kbc]slot_data[0] is 0x%x.\n", v44, v45, v46, v47, v48, v49, v50, v51, MEMORY[0xFFFFFFFFE0057F18]);
+  sprd_log(1u, "[kbc]slot_data[1] is 0x%x.\n", v52, v53, v54, v55, v56, v57, v58, v59, MEMORY[0xFFFFFFFFE0057F20]);
   if ( MEMORY[0xFFFFFFFFE0057F18] != 0 )
-    sub_940458E8(MEMORY[0xFFFFFFFFE0057F18]);
+    avb_slot_data_free(MEMORY[0xFFFFFFFFE0057F18]);
   return v18;
 }
 
-/* ===== sub_94048EEC @ 0x94048EEC size 480 ===== */
-__int64 __fastcall sub_94048EEC(
+/* ===== kbc_image_verify_v2 @ 0x94048EEC size 480 ===== */
+__int64 __fastcall kbc_image_verify_v2(
         __int64 a1,
         double a2,
         double a3,
@@ -31242,16 +31242,16 @@ __int64 __fastcall sub_94048EEC(
   v10 = a1 + 112;
   v11 = 0;
   v96 = 0;
-  sub_940407DC(1u, "[kbc]kbc_image_verify_v2() enter.\n", a2, a3, a4, a5, a6, a7, a8, a9);
-  sub_94047974();
+  sprd_log(1u, "[kbc]kbc_image_verify_v2() enter.\n", a2, a3, a4, a5, a6, a7, a8, a9);
+  avb_ops_init_kbc();
   while ( 1 )
   {
     if ( *(_QWORD *)(v10 - 112) == 0 )
     {
-      sub_940407DC(1u, "[kbc]invalid image [%d]\n", v12, v13, v14, v15, v16, v17, v18, v19, v11);
+      sprd_log(1u, "[kbc]invalid image [%d]\n", v12, v13, v14, v15, v16, v17, v18, v19, v11);
       goto LABEL_4;
     }
-    sub_940407DC(
+    sprd_log(
       1u,
       "[kbc]call mem map:ns addr = %p map len = 0x%x \n",
       v12,
@@ -31264,7 +31264,7 @@ __int64 __fastcall sub_94048EEC(
       v19,
       *(_QWORD *)(v10 - 112),
       *(unsigned int *)(v10 - 100));
-    v37 = sub_940408CC(
+    v37 = sprd_iomap(
             (__int64)"sprdsec",
             *(_QWORD *)(v10 - 112),
             (*(_DWORD *)(v10 - 100) & 0xFFFFF000) + 4096,
@@ -31272,23 +31272,23 @@ __int64 __fastcall sub_94048EEC(
             (__int64)&v96);
     if ( v37 != 0 )
       break;
-    sub_940407DC(1u, "[kbc]after map:pAddr = %p\n", v38, v39, v40, v41, v42, v43, v44, v45, v96);
-    sub_94048BAC((__int64)"pAddr:", v96, 16, v46, v47, v48, v49, v50, v51, v52, v53);
-    sub_94048DAC(v96, v10 - 96, *(_DWORD *)(a1 + 452), v54, v55, v56, v57, v58, v59, v60, v61);
-    sub_940407DC(1u, "[kbc]start verify... \n", v62, v63, v64, v65, v66, v67, v68, v69);
-    v78 = sub_94048E14(v10 - 32, v70, v71, v72, v73, v74, v75, v76, v77);
-    sub_940407DC(1u, "[kbc]ret = %d\n", v79, v80, v81, v82, v83, v84, v85, v86, v78);
+    sprd_log(1u, "[kbc]after map:pAddr = %p\n", v38, v39, v40, v41, v42, v43, v44, v45, v96);
+    dump_hex((__int64)"pAddr:", v96, 16, v46, v47, v48, v49, v50, v51, v52, v53);
+    avb_userdata_set(v96, v10 - 96, *(_DWORD *)(a1 + 452), v54, v55, v56, v57, v58, v59, v60, v61);
+    sprd_log(1u, "[kbc]start verify... \n", v62, v63, v64, v65, v66, v67, v68, v69);
+    v78 = avb_check_kbc_image(v10 - 32, v70, v71, v72, v73, v74, v75, v76, v77);
+    sprd_log(1u, "[kbc]ret = %d\n", v79, v80, v81, v82, v83, v84, v85, v86, v78);
     if ( v78 != 0 )
     {
-      sub_940407DC(1u, "[kbc]kbc verify failed!\n", v87, v88, v89, v90, v91, v92, v93, v94);
-      sub_94040A88(0x3E8u);
+      sprd_log(1u, "[kbc]kbc verify failed!\n", v87, v88, v89, v90, v91, v92, v93, v94);
+      thread_sleep_ms(0x3E8u);
       while ( 1 )
         ;
     }
-    v95 = sub_940408F4(v96);
+    v95 = sprd_iounmap(v96);
     if ( v95 != 0 )
     {
-      sub_940407DC(1u, "[kbc]can not unmap virt addr, ret = %d \n", v12, v13, v14, v15, v16, v17, v18, v19, v95);
+      sprd_log(1u, "[kbc]can not unmap virt addr, ret = %d \n", v12, v13, v14, v15, v16, v17, v18, v19, v95);
       return (int)v95;
     }
 LABEL_4:
@@ -31296,36 +31296,36 @@ LABEL_4:
     v10 += 112;
     if ( v11 == 4 )
     {
-      sub_940407DC(1u, "[kbc]verify success. \n", v12, v13, v14, v15, v16, v17, v18, v19);
-      sub_94048BAC((__int64)"version:", -536460624, 56, v20, v21, v22, v23, v24, v25, v26, v27);
-      sub_94048D40(-536460624, v28, v29, v30, v31, v32, v33, v34, v35);
+      sprd_log(1u, "[kbc]verify success. \n", v12, v13, v14, v15, v16, v17, v18, v19);
+      dump_hex((__int64)"version:", -536460624, 56, v20, v21, v22, v23, v24, v25, v26, v27);
+      kbc_v2_dump_version(-536460624, v28, v29, v30, v31, v32, v33, v34, v35);
       return 0;
     }
   }
-  sub_940407DC(1u, "[kbc]can not map, ret = %d \n", v38, v39, v40, v41, v42, v43, v44, v45, v37);
+  sprd_log(1u, "[kbc]can not map, ret = %d \n", v38, v39, v40, v41, v42, v43, v44, v45, v37);
   return (int)v37;
 }
 
-/* ===== sub_940490CC @ 0x940490CC size 24 ===== */
-__int64 __fastcall sub_940490CC(__int64 a1)
+/* ===== spi_sync_wrap @ 0x940490CC size 24 ===== */
+__int64 __fastcall spi_sync_wrap(__int64 a1)
 {
   return (*(__int64 (**)(void))(a1 + 48))();
 }
 
-/* ===== sub_940490E4 @ 0x940490E4 size 24 ===== */
-__int64 __fastcall sub_940490E4(__int64 a1)
+/* ===== spi_setup_wrap @ 0x940490E4 size 24 ===== */
+__int64 __fastcall spi_setup_wrap(__int64 a1)
 {
   return (*(__int64 (**)(void))(a1 + 40))();
 }
 
-/* ===== sub_940490FC @ 0x940490FC size 20 ===== */
-__int64 __fastcall sub_940490FC(int a1)
+/* ===== fp_spi_get_ctrl @ 0x940490FC size 20 ===== */
+__int64 __fastcall fp_spi_get_ctrl(int a1)
 {
   return ((__int64)a1 << 6) - 536622672;
 }
 
-/* ===== sub_94049110 @ 0x94049110 size 32 ===== */
-__int64 __fastcall sub_94049110(__int64 a1)
+/* ===== spi_wait_done @ 0x94049110 size 32 ===== */
+__int64 __fastcall spi_wait_done(__int64 a1)
 {
   if ( (*(_DWORD *)(**(_QWORD **)(a1 + 56) + 24LL) & 0x1FF) == *(_DWORD *)(**(_QWORD **)(a1 + 56) + 60LL) )
     return 0;
@@ -31333,8 +31333,8 @@ __int64 __fastcall sub_94049110(__int64 a1)
     return 0xFFFFFFFFLL;
 }
 
-/* ===== sub_94049130 @ 0x94049130 size 52 ===== */
-__int64 __fastcall sub_94049130(__int64 *a1, __int64 a2, unsigned int a3)
+/* ===== spi_set_cs @ 0x94049130 size 52 ===== */
+__int64 __fastcall spi_set_cs(__int64 *a1, __int64 a2, unsigned int a3)
 {
   __int64 v3; // x1
 
@@ -31345,8 +31345,8 @@ __int64 __fastcall sub_94049130(__int64 *a1, __int64 a2, unsigned int a3)
   return a3;
 }
 
-/* ===== sub_94049164 @ 0x94049164 size 48 ===== */
-__int64 __fastcall sub_94049164(_BYTE **a1, __int64 a2, unsigned int a3)
+/* ===== spi_fifo_write8 @ 0x94049164 size 48 ===== */
+__int64 __fastcall spi_fifo_write8(_BYTE **a1, __int64 a2, unsigned int a3)
 {
   __int64 v3; // x3
   char v4; // w5
@@ -31363,8 +31363,8 @@ __int64 __fastcall sub_94049164(_BYTE **a1, __int64 a2, unsigned int a3)
   return a3;
 }
 
-/* ===== sub_94049194 @ 0x94049194 size 48 ===== */
-__int64 __fastcall sub_94049194(_WORD **a1, __int64 a2, unsigned int a3)
+/* ===== spi_fifo_write16 @ 0x94049194 size 48 ===== */
+__int64 __fastcall spi_fifo_write16(_WORD **a1, __int64 a2, unsigned int a3)
 {
   _WORD *v3; // x0
   __int64 v4; // x3
@@ -31383,8 +31383,8 @@ __int64 __fastcall sub_94049194(_WORD **a1, __int64 a2, unsigned int a3)
   return 2 * a3;
 }
 
-/* ===== sub_940491C4 @ 0x940491C4 size 48 ===== */
-__int64 __fastcall sub_940491C4(_DWORD **a1, __int64 a2, unsigned int a3)
+/* ===== spi_fifo_write32 @ 0x940491C4 size 48 ===== */
+__int64 __fastcall spi_fifo_write32(_DWORD **a1, __int64 a2, unsigned int a3)
 {
   _DWORD *v3; // x0
   __int64 v4; // x3
@@ -31403,8 +31403,8 @@ __int64 __fastcall sub_940491C4(_DWORD **a1, __int64 a2, unsigned int a3)
   return 4 * a3;
 }
 
-/* ===== sub_940491F4 @ 0x940491F4 size 48 ===== */
-__int64 __fastcall sub_940491F4(_BYTE **a1, __int64 a2, unsigned int a3)
+/* ===== spi_fifo_read8 @ 0x940491F4 size 48 ===== */
+__int64 __fastcall spi_fifo_read8(_BYTE **a1, __int64 a2, unsigned int a3)
 {
   __int64 v3; // x3
 
@@ -31417,8 +31417,8 @@ __int64 __fastcall sub_940491F4(_BYTE **a1, __int64 a2, unsigned int a3)
   return a3;
 }
 
-/* ===== sub_94049224 @ 0x94049224 size 48 ===== */
-__int64 __fastcall sub_94049224(_WORD **a1, __int64 a2, unsigned int a3)
+/* ===== spi_fifo_read16 @ 0x94049224 size 48 ===== */
+__int64 __fastcall spi_fifo_read16(_WORD **a1, __int64 a2, unsigned int a3)
 {
   _WORD *v3; // x0
   __int64 v4; // x3
@@ -31433,8 +31433,8 @@ __int64 __fastcall sub_94049224(_WORD **a1, __int64 a2, unsigned int a3)
   return 2 * a3;
 }
 
-/* ===== sub_94049254 @ 0x94049254 size 48 ===== */
-__int64 __fastcall sub_94049254(_DWORD **a1, __int64 a2, unsigned int a3)
+/* ===== spi_fifo_read32 @ 0x94049254 size 48 ===== */
+__int64 __fastcall spi_fifo_read32(_DWORD **a1, __int64 a2, unsigned int a3)
 {
   _DWORD *v3; // x0
   __int64 v4; // x3
@@ -31449,8 +31449,8 @@ __int64 __fastcall sub_94049254(_DWORD **a1, __int64 a2, unsigned int a3)
   return 4 * a3;
 }
 
-/* ===== sub_94049284 @ 0x94049284 size 56 ===== */
-__int64 __fastcall sub_94049284(__int64 result, int a2)
+/* ===== spi_set_clk @ 0x94049284 size 56 ===== */
+__int64 __fastcall spi_set_clk(__int64 result, int a2)
 {
   __int64 v2; // x3
   int v3; // w2
@@ -31471,8 +31471,8 @@ __int64 __fastcall sub_94049284(__int64 result, int a2)
   return result;
 }
 
-/* ===== sub_940492BC @ 0x940492BC size 324 ===== */
-__int64 __fastcall sub_940492BC(__int64 a1, __int64 *a2)
+/* ===== spi_transfer @ 0x940492BC size 324 ===== */
+__int64 __fastcall spi_transfer(__int64 a1, __int64 *a2)
 {
   __int64 v2; // x19
   unsigned int v4; // w21
@@ -31518,8 +31518,8 @@ __int64 __fastcall sub_940492BC(__int64 a1, __int64 *a2)
   return v6;
 }
 
-/* ===== sub_94049400 @ 0x94049400 size 320 ===== */
-__int64 __fastcall sub_94049400(unsigned __int64 a1, __int64 *a2)
+/* ===== spi_config @ 0x94049400 size 320 ===== */
+__int64 __fastcall spi_config(unsigned __int64 a1, __int64 *a2)
 {
   int v2; // w2
   __int64 v3; // x3
@@ -31538,20 +31538,20 @@ __int64 __fastcall sub_94049400(unsigned __int64 a1, __int64 *a2)
   {
     case 16:
       v10 = *((_DWORD *)a2 + 4);
-      *(_QWORD *)(v3 + 48) = sub_94049224;
+      *(_QWORD *)(v3 + 48) = spi_fifo_read16;
       *(_DWORD *)(v3 + 12) = (unsigned int)(v10 + 1) >> 1;
-      *(_QWORD *)(v3 + 56) = sub_94049194;
+      *(_QWORD *)(v3 + 56) = spi_fifo_write16;
       break;
     case 32:
       v9 = *((_DWORD *)a2 + 4);
-      *(_QWORD *)(v3 + 48) = sub_94049254;
+      *(_QWORD *)(v3 + 48) = spi_fifo_read32;
       *(_DWORD *)(v3 + 12) = (unsigned int)(v9 + 3) >> 2;
-      *(_QWORD *)(v3 + 56) = sub_940491C4;
+      *(_QWORD *)(v3 + 56) = spi_fifo_write32;
       break;
     case 8:
       *(_DWORD *)(v3 + 12) = *((_DWORD *)a2 + 4);
-      *(_QWORD *)(v3 + 48) = sub_940491F4;
-      *(_QWORD *)(v3 + 56) = sub_94049164;
+      *(_QWORD *)(v3 + 48) = spi_fifo_read8;
+      *(_QWORD *)(v3 + 56) = spi_fifo_write8;
       break;
     default:
       return 0xFFFFFFFFLL;
@@ -31570,11 +31570,11 @@ __int64 __fastcall sub_94049400(unsigned __int64 a1, __int64 *a2)
   v5[3] = a1;
   v8 = (a1 >> 12) & 3;
   *(_DWORD *)(v3 + 40) = v8;
-  *(_QWORD *)(v3 + 88) = sub_940496C4;
+  *(_QWORD *)(v3 + 88) = spi_wait_tx_done;
   if ( (_DWORD)v8 == 1 )
   {
-    *(_QWORD *)(v3 + 56) = sub_94049130;
-    *(_QWORD *)(v3 + 88) = sub_94049110;
+    *(_QWORD *)(v3 + 56) = spi_set_cs;
+    *(_QWORD *)(v3 + 88) = spi_wait_done;
   }
   v5[18] = 1;
   v5[18] = 0;
@@ -31582,27 +31582,27 @@ __int64 __fastcall sub_94049400(unsigned __int64 a1, __int64 *a2)
   return 0;
 }
 
-/* ===== sub_94049540 @ 0x94049540 size 140 ===== */
-__int64 __fastcall sub_94049540(__int64 a1, __int64 a2)
+/* ===== spi_sync @ 0x94049540 size 140 ===== */
+__int64 __fastcall spi_sync(__int64 a1, __int64 a2)
 {
   __int64 v3; // x20
   int v5; // w22
 
   v3 = *(_QWORD *)(a1 + 56);
-  sub_94034308(*(_DWORD *)(a1 + 28));
+  clk_enable(*(_DWORD *)(a1 + 28));
   (*(void (__fastcall **)(__int64, __int64))(v3 + 64))(a1, a2);
   (*(void (__fastcall **)(__int64, __int64))(v3 + 72))(a1, 1);
   v5 = (*(__int64 (__fastcall **)(__int64, __int64))(v3 + 80))(a1, a2);
   (*(void (__fastcall **)(__int64, _QWORD))(v3 + 72))(a1, 0);
-  sub_940343A8(*(_DWORD *)(a1 + 28));
+  clk_disable(*(_DWORD *)(a1 + 28));
   if ( v5 == *(_DWORD *)(a2 + 16) )
     return 0;
   else
     return 0xFFFFFFFFLL;
 }
 
-/* ===== sub_940495CC @ 0x940495CC size 248 ===== */
-__int64 __fastcall sub_940495CC(__int64 a1)
+/* ===== spi_setup @ 0x940495CC size 248 ===== */
+__int64 __fastcall spi_setup(__int64 a1)
 {
   __int64 v1; // x19
   int v3; // w0
@@ -31635,7 +31635,7 @@ __int64 __fastcall sub_940495CC(__int64 a1)
     else
       *(_QWORD *)(v1 + 24) = v5 | 2;
   }
-  sub_94034308(*(_DWORD *)(a1 + 28));
+  clk_enable(*(_DWORD *)(a1 + 28));
   v6 = *(_DWORD *)(v1 + 20);
   v7 = *(_QWORD *)(v1 + 32);
   v8 = 2 * *(_DWORD *)(v1 + 16);
@@ -31652,12 +31652,12 @@ __int64 __fastcall sub_940495CC(__int64 a1)
   v10[8] = 0;
   v10[18] = 1;
   v10[18] = 0;
-  sub_940343A8(v7);
+  clk_disable(v7);
   return 0;
 }
 
-/* ===== sub_940496C4 @ 0x940496C4 size 92 ===== */
-__int64 __fastcall sub_940496C4(
+/* ===== spi_wait_tx_done @ 0x940496C4 size 92 ===== */
+__int64 __fastcall spi_wait_tx_done(
         __int64 a1,
         double a2,
         double a3,
@@ -31685,12 +31685,12 @@ __int64 __fastcall sub_940496C4(
     }
   }
   while ( v10 != 0 );
-  sub_940407DC(0, "SPI error, spi send timeout = %x!\n", a2, a3, a4, a5, a6, a7, a8, a9);
+  sprd_log(0, "SPI error, spi send timeout = %x!\n", a2, a3, a4, a5, a6, a7, a8, a9);
   return 0xFFFFFFFFLL;
 }
 
-/* ===== sub_94049720 @ 0x94049720 size 252 ===== */
-__int64 sub_94049720()
+/* ===== sprd_spi_bus_init @ 0x94049720 size 252 ===== */
+__int64 sprd_spi_bus_init()
 {
   unsigned int v0; // w20
   __int64 v1; // x19
@@ -31712,27 +31712,27 @@ __int64 sub_94049720()
   v1 = -536622664;
   do
   {
-    result = sub_94040894(0x60u);
+    result = malloc(0x60u);
     v3 = result;
     v4 = result;
     if ( result != 0 )
     {
-      *(_QWORD *)(result + 64) = sub_94049400;
-      *(_QWORD *)(result + 72) = sub_94049284;
-      *(_QWORD *)(result + 80) = sub_940492BC;
+      *(_QWORD *)(result + 64) = spi_config;
+      *(_QWORD *)(result + 72) = spi_set_clk;
+      *(_QWORD *)(result + 80) = spi_transfer;
       *(_DWORD *)(result + 20) = *(_DWORD *)(v1 + 16);
       *(_QWORD *)(result + 24) = 0;
       *(_WORD *)(v1 + 26) = 4;
       v5 = *(_QWORD *)(v1 + 8);
-      *(_QWORD *)(v1 + 32) = sub_940495CC;
+      *(_QWORD *)(v1 + 32) = spi_setup;
       v6 = *(_QWORD *)v1;
       *(_WORD *)(v1 + 24) = v0;
-      *(_QWORD *)(v1 + 40) = sub_94049540;
+      *(_QWORD *)(v1 + 40) = spi_sync;
       *(_QWORD *)(v1 + 48) = v3;
-      if ( (unsigned int)sub_940408CC(v6, v5, 0x1000u, 2u, v4) != 0 )
-        result = sub_940407DC(2u, "%s: mem map failed %d\n", v7, v8, v9, v10, v11, v12, v13, v14, "sprd_spi_bus_init");
+      if ( (unsigned int)sprd_iomap(v6, v5, 0x1000u, 2u, v4) != 0 )
+        result = sprd_log(2u, "%s: mem map failed %d\n", v7, v8, v9, v10, v11, v12, v13, v14, "sprd_spi_bus_init");
       else
-        result = sub_940407DC(2u, "spi%d init ok\n", v7, v8, v9, v10, v11, v12, v13, v14, v0);
+        result = sprd_log(2u, "spi%d init ok\n", v7, v8, v9, v10, v11, v12, v13, v14, v0);
     }
     ++v0;
     v1 += 64;
@@ -31741,10 +31741,10 @@ __int64 sub_94049720()
   return result;
 }
 
-/* ===== sub_9404981C @ 0x9404981C size 80 ===== */
-bool sub_9404981C()
+/* ===== sprd_timer_init @ 0x9404981C size 80 ===== */
+bool sprd_timer_init()
 {
-  return (unsigned int)sub_940408CC((__int64)"sprd_timer", 1076035584, 0x10000u, 2u, (__int64)&qword_94077F28) != 0;
+  return (unsigned int)sprd_iomap((__int64)"sprd_timer", 1076035584, 0x10000u, 2u, (__int64)&qword_94077F28) != 0;
 }
 
 /* ===== nullsub_7 @ 0x9404986C size 4 ===== */
@@ -31759,8 +31759,8 @@ void nullsub_8()
   ;
 }
 
-/* ===== sub_94049874 @ 0x94049874 size 40 ===== */
-unsigned __int64 __fastcall sub_94049874(__int64 a1)
+/* ===== pmm_early_alloc @ 0x94049874 size 40 ===== */
+unsigned __int64 __fastcall pmm_early_alloc(__int64 a1)
 {
   unsigned __int64 v1; // x1
   unsigned __int64 result; // x0
@@ -31771,8 +31771,8 @@ unsigned __int64 __fastcall sub_94049874(__int64 a1)
   return result;
 }
 
-/* ===== sub_9404989C @ 0x9404989C size 100 ===== */
-__int64 __fastcall sub_9404989C(unsigned __int64 a1)
+/* ===== pmm_query_page @ 0x9404989C size 100 ===== */
+__int64 __fastcall pmm_query_page(unsigned __int64 a1)
 {
   __int64 v1; // x1
   unsigned __int64 v2; // x3
@@ -31792,9 +31792,9 @@ __int64 __fastcall sub_9404989C(unsigned __int64 a1)
   return *(_QWORD *)(v1 + 56) + 24 * ((a1 - v2) >> 12);
 }
 
-/* ===== sub_94049900 @ 0x94049900 size 844 ===== */
+/* ===== pmm_add_arena @ 0x94049900 size 844 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_94049900(__int64 a1)
+__int64 __fastcall pmm_add_arena(__int64 a1)
 {
   __int64 v1; // x30
   unsigned __int64 v3; // x22
@@ -31832,7 +31832,7 @@ __int64 __fastcall sub_94049900(__int64 a1)
 
   if ( (*(_QWORD *)(a1 + 32) & 0xFFFLL) != 0 )
   {
-    sub_9404B508(
+    panic(
       v1,
       "DEBUG ASSERT FAILED at (%s:%d): %s\n",
       "external/lk/kernel/vm/pmm.c",
@@ -31844,7 +31844,7 @@ __int64 __fastcall sub_94049900(__int64 a1)
   if ( (v3 & 0xFFF) != 0 )
   {
 LABEL_17:
-    sub_9404B508(
+    panic(
       v1,
       "DEBUG ASSERT FAILED at (%s:%d): %s\n",
       "external/lk/kernel/vm/pmm.c",
@@ -31885,9 +31885,9 @@ LABEL_10:
     *(_QWORD *)(a1 + 48) = 0;
     *(_QWORD *)(a1 + 72) = a1 + 64;
     *(_QWORD *)(a1 + 64) = a1 + 64;
-    v7 = sub_94049874(24 * v6);
+    v7 = pmm_early_alloc(24 * v6);
     *(_QWORD *)(a1 + 56) = v7;
-    sub_9404CDC4(v7, 0, 24 * v6);
+    memset(v7, 0, 24 * v6);
     if ( v6 != 0 )
     {
       v8 = *(_QWORD **)(a1 + 56);
@@ -31909,7 +31909,7 @@ LABEL_10:
     return 0;
   }
 LABEL_18:
-  v13 = sub_9404B508(v1, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/vm/pmm.c", 85, "arena->size > 0");
+  v13 = panic(v1, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/vm/pmm.c", 85, "arena->size > 0");
   v16 = 0;
   v18 = v17;
   if ( v14 != 0 )
@@ -31918,7 +31918,7 @@ LABEL_18:
     v20 = v15;
     v21 = v13 & 0xFFFFFFFFFFFFF000LL;
     v22 = 0;
-    sub_940251F8((__int64)"xtum", 0xFFFFFFFFLL);
+    mutex_acquire_timeout((__int64)"xtum", 0xFFFFFFFFLL);
     v23 = &qword_9405CAB8;
     v24 = -536622408;
     if ( &qword_9405CAB8 != (__int64 *)-536622408LL )
@@ -31942,7 +31942,7 @@ LABEL_18:
                 goto LABEL_26;
               }
 LABEL_32:
-              v33 = sub_9404B508(
+              v33 = panic(
                       v18,
                       "DEBUG ASSERT FAILED at (%s:%d): %s\n",
                       "external/lk/kernel/vm/pmm.c",
@@ -31983,7 +31983,7 @@ LABEL_26:
               }
               else
               {
-                sub_9404B508(
+                panic(
                   v18,
                   "DEBUG ASSERT FAILED at (%s:%d): %s\n",
                   "external/lk/kernel/vm/pmm.c",
@@ -32002,14 +32002,14 @@ LABEL_26:
         break;
       }
     }
-    sub_9402530C((__int64)"xtum");
+    mutex_release((__int64)"xtum");
     return v22;
   }
   return v16;
 }
 
-/* ===== sub_94049C4C @ 0x94049C4C size 296 ===== */
-__int64 __fastcall sub_94049C4C(__int64 a1)
+/* ===== pmm_free_page_list @ 0x94049C4C size 296 ===== */
+__int64 __fastcall pmm_free_page_list(__int64 a1)
 {
   __int64 v1; // x30
   unsigned int v2; // w21
@@ -32024,13 +32024,13 @@ __int64 __fastcall sub_94049C4C(__int64 a1)
 
   v2 = 0;
   v4 = v1;
-  sub_940251F8((__int64)"xtum", 0xFFFFFFFFLL);
+  mutex_acquire_timeout((__int64)"xtum", 0xFFFFFFFFLL);
 LABEL_2:
   v5 = *(_QWORD *)(a1 + 8);
   if ( a1 == v5 )
   {
 LABEL_10:
-    sub_9402530C((__int64)"xtum");
+    mutex_release((__int64)"xtum");
     return v2;
   }
   else
@@ -32069,18 +32069,18 @@ LABEL_10:
       if ( a1 == v5 )
         goto LABEL_10;
     }
-    v12 = sub_9404B508(
+    v12 = panic(
             v4,
             "DEBUG ASSERT FAILED at (%s:%d): %s\n",
             "external/lk/kernel/vm/pmm.c",
             219,
             "page->flags & VM_PAGE_FLAG_NONFREE");
-    return sub_94049D74(v12);
+    return pmm_free_page_list_init(v12);
   }
 }
 
-/* ===== sub_94049D74 @ 0x94049D74 size 48 ===== */
-__int64 __fastcall sub_94049D74(_QWORD *a1)
+/* ===== pmm_free_page_list_init @ 0x94049D74 size 48 ===== */
+__int64 __fastcall pmm_free_page_list_init(_QWORD *a1)
 {
   _QWORD v2[2]; // [xsp+10h] [xbp+10h] BYREF
 
@@ -32088,11 +32088,11 @@ __int64 __fastcall sub_94049D74(_QWORD *a1)
   *a1 = v2;
   v2[0] = a1;
   v2[1] = a1;
-  return sub_94049C4C((__int64)v2);
+  return pmm_free_page_list((__int64)v2);
 }
 
-/* ===== sub_94049DA4 @ 0x94049DA4 size 688 ===== */
-__int64 __fastcall sub_94049DA4(unsigned int a1, unsigned __int8 a2, _QWORD *a3, __int64 a4)
+/* ===== pmm_alloc_pages @ 0x94049DA4 size 688 ===== */
+__int64 __fastcall pmm_alloc_pages(unsigned int a1, unsigned __int8 a2, _QWORD *a3, __int64 a4)
 {
   __int64 v4; // x30
   __int64 v5; // x19
@@ -32130,13 +32130,13 @@ __int64 __fastcall sub_94049DA4(unsigned int a1, unsigned __int8 a2, _QWORD *a3,
     return 0;
   if ( a2 <= 0xBu )
     v6 = 12;
-  sub_940251F8((__int64)"xtum", 0xFFFFFFFFLL);
+  mutex_acquire_timeout((__int64)"xtum", 0xFFFFFFFFLL);
   v10 = &qword_9405CAB8;
   v11 = -536622408;
   if ( &qword_9405CAB8 == (__int64 *)-536622408LL )
   {
 LABEL_27:
-    sub_9402530C((__int64)"xtum");
+    mutex_release((__int64)"xtum");
     return 0;
   }
   v12 = 1LL << v6;
@@ -32232,7 +32232,7 @@ LABEL_29:
       if ( (*(_BYTE *)(v28 + 16) & 1) != 0 )
         goto LABEL_33;
     }
-    v10 = (__int64 *)sub_9404B508(
+    v10 = (__int64 *)panic(
                        v5,
                        "DEBUG ASSERT FAILED at (%s:%d): %s\n",
                        "external/lk/kernel/vm/pmm.c",
@@ -32241,7 +32241,7 @@ LABEL_29:
     goto LABEL_26;
   }
 LABEL_33:
-  sub_9404B508(
+  panic(
     v5,
     "DEBUG ASSERT FAILED at (%s:%d): %s\n",
     "external/lk/kernel/vm/pmm.c",
@@ -32250,23 +32250,23 @@ LABEL_33:
 LABEL_34:
   if ( a3 != nullptr )
     *a3 = v16 + (v21 << 12);
-  sub_9402530C((__int64)"xtum");
+  mutex_release((__int64)"xtum");
   return a1;
 }
 
-/* ===== sub_9404A054 @ 0x9404A054 size 56 ===== */
-__int64 __fastcall sub_9404A054(unsigned int a1, __int64 a2)
+/* ===== pmm_alloc_page @ 0x9404A054 size 56 ===== */
+__int64 __fastcall pmm_alloc_page(unsigned int a1, __int64 a2)
 {
   __int64 v3; // [xsp+18h] [xbp+18h] BYREF
 
-  if ( (unsigned int)sub_94049DA4(a1, 0xCu, &v3, a2) != 0 )
-    return sub_9404A1F0(v3);
+  if ( (unsigned int)pmm_alloc_pages(a1, 0xCu, &v3, a2) != 0 )
+    return pmm_virt_to_phys(v3);
   else
     return 0;
 }
 
-/* ===== sub_9404A08C @ 0x9404A08C size 252 ===== */
-__int64 __fastcall sub_9404A08C(__int64 result, __int64 a2)
+/* ===== pmm_free_range @ 0x9404A08C size 252 ===== */
+__int64 __fastcall pmm_free_range(__int64 result, __int64 a2)
 {
   __int64 v2; // x30
   unsigned __int64 v3; // x20
@@ -32289,16 +32289,16 @@ __int64 __fastcall sub_9404A08C(__int64 result, __int64 a2)
       break;
     v5 = v2;
     v6 = 0;
-    while ( (sub_94022C68(v6 + v4, &v10, &v9) & 0x80000000) == 0 )
+    while ( (arch_mmu_query(v6 + v4, &v10, &v9) & 0x80000000) == 0 )
     {
       v6 += 4096LL;
       result = ((__int64 (__fastcall *)(__int64, __int64, _QWORD *))loc_94049A9C)(v10, 1, v11);
       if ( v3 <= v6 )
         return result;
     }
-    sub_9404B508(v5, (const char *)&loc_94058F00, v4);
+    panic(v5, (const char *)&loc_94058F00, v4);
     v8 = v7;
-    sub_9404A08C(-536870912, 4063232);
+    pmm_free_range(-536870912, 4063232);
     result = MEMORY[0xFFFFFFFFE003CA70];
     if ( MEMORY[0xFFFFFFFFE003CA78] == MEMORY[0xFFFFFFFFE003CA70] )
       break;
@@ -32308,14 +32308,14 @@ __int64 __fastcall sub_9404A08C(__int64 result, __int64 a2)
   return result;
 }
 
-/* ===== sub_9404A188 @ 0x9404A188 size 104 ===== */
-__int64 sub_9404A188()
+/* ===== pmm_init @ 0x9404A188 size 104 ===== */
+__int64 pmm_init()
 {
   __int64 result; // x0
   __int64 v1; // x19
   __int64 v2; // x1
 
-  sub_9404A274();
+  pmm_init_kernel_aspace();
   result = -536633344;
   v1 = -536633336;
   if ( MEMORY[0xFFFFFFFFE003A010] != 0 )
@@ -32340,8 +32340,8 @@ __int64 sub_9404A188()
   return result;
 }
 
-/* ===== sub_9404A1F0 @ 0x9404A1F0 size 88 ===== */
-__int64 __fastcall sub_9404A1F0(unsigned __int64 a1)
+/* ===== pmm_virt_to_phys @ 0x9404A1F0 size 88 ===== */
+__int64 __fastcall pmm_virt_to_phys(unsigned __int64 a1)
 {
   __int64 v1; // x1
   __int64 v2; // x2
@@ -32367,25 +32367,25 @@ __int64 __fastcall sub_9404A1F0(unsigned __int64 a1)
   return a1 + *(_QWORD *)(v1 + 8) - *(_QWORD *)v1;
 }
 
-/* ===== sub_9404A248 @ 0x9404A248 size 44 ===== */
-__int64 __fastcall sub_9404A248(unsigned __int64 a1)
+/* ===== pmm_phys_to_virt @ 0x9404A248 size 44 ===== */
+__int64 __fastcall pmm_phys_to_virt(unsigned __int64 a1)
 {
   int v1; // w0
   __int64 v2; // x1
   __int64 v4; // [xsp+18h] [xbp+18h] BYREF
 
-  v1 = sub_94022C68(a1, &v4, nullptr);
+  v1 = arch_mmu_query(a1, &v4, nullptr);
   v2 = 0;
   if ( v1 == 0 )
     return v4;
   return v2;
 }
 
-/* ===== sub_9404A274 @ 0x9404A274 size 108 ===== */
+/* ===== pmm_init_kernel_aspace @ 0x9404A274 size 108 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 *sub_9404A274()
+__int64 *pmm_init_kernel_aspace()
 {
-  sub_9404CF6C(-536460240, "kernel", 32);
+  strlcpy(-536460240, "kernel", 32);
   MEMORY[0xFFFFFFFFE0064458] = -536870912;
   MEMORY[0xFFFFFFFFE0064420] = &qword_9405CAC8;
   MEMORY[0xFFFFFFFFE0064470] = -536460184;
@@ -32397,14 +32397,14 @@ __int64 *sub_9404A274()
   return &qword_9405CAC8;
 }
 
-/* ===== sub_9404A2E0 @ 0x9404A2E0 size 20 ===== */
-__int64 __fastcall sub_9404A2E0(__int64 a1, __int64 a2, __int64 a3, __int64 a4, __int64 a5)
+/* ===== align_down_avail @ 0x9404A2E0 size 20 ===== */
+__int64 __fastcall align_down_avail(__int64 a1, __int64 a2, __int64 a3, __int64 a4, __int64 a5)
 {
   return -a5 & (a1 - 1 + a5);
 }
 
-/* ===== sub_9404A2F4 @ 0x9404A2F4 size 1412 ===== */
-__int64 __fastcall sub_9404A2F4(
+/* ===== vmm_alloc @ 0x9404A2F4 size 1412 ===== */
+__int64 __fastcall vmm_alloc(
         __int64 *a1,
         __int64 a2,
         unsigned __int64 a3,
@@ -32480,9 +32480,9 @@ __int64 __fastcall sub_9404A2F4(
   v14 = a5;
   if ( a2 == 0 )
   {
-    sub_9404B508(v9, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/vm/vmm.c", 105, "name");
+    panic(v9, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/vm/vmm.c", 105, "name");
 LABEL_54:
-    v32 = (__int64 *)sub_9404B508(
+    v32 = (__int64 *)panic(
                        v10,
                        "DEBUG ASSERT FAILED at (%s:%d): %s\n",
                        "external/lk/kernel/vm/vmm.c",
@@ -32491,11 +32491,11 @@ LABEL_54:
     goto LABEL_55;
   }
   v74 = a2;
-  v18 = sub_9404CBC4(88);
+  v18 = malloc(88);
   v8 = v18;
   if ( v18 == 0 )
     return 0;
-  sub_9404CF6C(v18 + 16, v74, 32);
+  strlcpy(v18 + 16, v74, 32);
   *(_QWORD *)(v8 + 56) = a4;
   *(_QWORD *)(v8 + 64) = a3;
   *(_DWORD *)(v8 + 48) = a7;
@@ -32560,9 +32560,9 @@ LABEL_55:
   }
   if ( a1 == nullptr )
   {
-    sub_9404B508(v10, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/vm/vmm.c", 229, "aspace");
+    panic(v10, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/vm/vmm.c", 229, "aspace");
 LABEL_59:
-    sub_9404B508(v10, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/vm/vmm.c", 125, "aspace");
+    panic(v10, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/vm/vmm.c", 125, "aspace");
     return 0;
   }
   if ( a3 == 0 || (a3 & 0xFFF) != 0 )
@@ -32590,11 +32590,11 @@ LABEL_59:
     v24 = *(unsigned int *)(i + 52);
     v25 = v23 - 1;
   }
-  v26 = sub_9404A2E0(v22, 128, v25, v24, v19);
+  v26 = align_down_avail(v22, 128, v25, v24, v19);
   if ( v26 < v22 )
   {
 LABEL_44:
-    sub_9404CC20(v8);
+    free(v8);
     return 0;
   }
   if ( v25 > v26 && a3 <= v25 + 1 - v26 )
@@ -32641,7 +32641,7 @@ LABEL_38:
     v40 = v44 - 1;
     v41 = 128;
 LABEL_43:
-    v42 = sub_9404A2E0(v38, v39, v40, v41, v19);
+    v42 = align_down_avail(v38, v39, v40, v41, v19);
     if ( v38 > v42 )
       goto LABEL_44;
     if ( v40 > v42 && a3 <= v40 + 1 - v42 )
@@ -32659,7 +32659,7 @@ LABEL_43:
     *(_QWORD *)(i + 8) = v8;
     return v8;
   }
-  v46 = sub_9404B508(v10, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/vm/vmm.c", 295, "before != NULL");
+  v46 = panic(v10, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/vm/vmm.c", 295, "before != NULL");
   v68 = v50;
   v69 = v8;
   v70 = a1;
@@ -32668,7 +32668,7 @@ LABEL_43:
   v53 = v48;
   if ( (v49 & 0xFFF) != 0 )
   {
-    sub_9404B508(
+    panic(
       v50,
       "DEBUG ASSERT FAILED at (%s:%d): %s\n",
       "external/lk/kernel/vm/vmm.c",
@@ -32705,11 +32705,11 @@ LABEL_65:
         if ( v55 - 1 <= v57 )
           v53 = v58;
         v71 = v49;
-        sub_940251F8((__int64)"xtum", 0xFFFFFFFFLL);
+        mutex_acquire_timeout((__int64)"xtum", 0xFFFFFFFFLL);
         v72 = 0;
-        sub_94022C68(v71, nullptr, (int *)&v72);
-        v59 = sub_9404A2F4(v52, v51, v53, v71, 0, 1, 1, v72, &v73, v68, v69, v70, 0, a3);
-        sub_9402530C((__int64)"xtum");
+        arch_mmu_query(v71, nullptr, (int *)&v72);
+        v59 = vmm_alloc(v52, v51, v53, v71, 0, 1, 1, v72, &v73, v68, v69, v70, 0, a3);
+        mutex_release((__int64)"xtum");
         if ( v59 == 0 )
           return 4294967291LL;
         return 0;
@@ -32717,17 +32717,17 @@ LABEL_65:
     }
     return result;
   }
-  v60 = sub_9404B508(
+  v60 = panic(
           v50,
           "DEBUG ASSERT FAILED at (%s:%d): %s\n",
           "external/lk/kernel/vm/vmm.c",
           312,
           "IS_PAGE_ALIGNED(size)");
-  return sub_9404A878(v60, v61, v62, v63, v64, v65, v66, v67);
+  return vmm_map(v60, v61, v62, v63, v64, v65, v66, v67);
 }
 
-/* ===== sub_9404A878 @ 0x9404A878 size 396 ===== */
-__int64 __fastcall sub_9404A878(
+/* ===== vmm_map @ 0x9404A878 size 396 ===== */
+__int64 __fastcall vmm_map(
         __int64 *a1,
         char *a2,
         unsigned __int64 a3,
@@ -32749,7 +32749,7 @@ __int64 __fastcall sub_9404A878(
   v11 = a2;
   if ( (a6 & 0xFFF) != 0 )
   {
-    sub_9404B508(
+    panic(
       v8,
       "DEBUG ASSERT FAILED at (%s:%d): %s\n",
       "external/lk/kernel/vm/vmm.c",
@@ -32765,8 +32765,8 @@ __int64 __fastcall sub_9404A878(
     {
       if ( (a7 & 1) == 0 )
       {
-        sub_940251F8((__int64)"xtum", 0xFFFFFFFFLL);
-        v17 = sub_9404A2F4(a1, (__int64)v11, a3, 0, a5, a7, 2, a8);
+        mutex_acquire_timeout((__int64)"xtum", 0xFFFFFFFFLL);
+        v17 = vmm_alloc(a1, (__int64)v11, a3, 0, a5, a7, 2, a8);
         if ( v17 != 0 )
         {
           if ( a4 == nullptr )
@@ -32780,9 +32780,9 @@ LABEL_9:
 LABEL_10:
           v19 = a6;
           v20 = 0;
-          sub_94023290(v18, v19, a3 >> 12, a8);
+          arm64_mmu_map_page(v18, v19, a3 >> 12, a8);
 LABEL_11:
-          sub_9402530C((__int64)"xtum");
+          mutex_release((__int64)"xtum");
           return v20;
         }
 LABEL_16:
@@ -32792,8 +32792,8 @@ LABEL_16:
       if ( a4 != nullptr )
       {
         v21 = *a4;
-        sub_940251F8((__int64)"xtum", 0xFFFFFFFFLL);
-        v17 = sub_9404A2F4(a1, (__int64)v11, a3, v21, a5, a7, 2, a8);
+        mutex_acquire_timeout((__int64)"xtum", 0xFFFFFFFFLL);
+        v17 = vmm_alloc(a1, (__int64)v11, a3, v21, a5, a7, 2, a8);
         if ( v17 != 0 )
           goto LABEL_9;
         goto LABEL_16;
@@ -32802,12 +32802,12 @@ LABEL_16:
     }
     return result;
   }
-  sub_9404B508(v8, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/vm/vmm.c", 352, "IS_PAGE_ALIGNED(size)");
+  panic(v8, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/vm/vmm.c", 352, "IS_PAGE_ALIGNED(size)");
   return 4294967288LL;
 }
 
-/* ===== sub_9404AA04 @ 0x9404AA04 size 472 ===== */
-__int64 __fastcall sub_9404AA04(
+/* ===== vmm_alloc_physical @ 0x9404AA04 size 472 ===== */
+__int64 __fastcall vmm_alloc_physical(
         __int64 *a1,
         char *a2,
         __int64 a3,
@@ -32849,21 +32849,21 @@ LABEL_7:
       v23 = 0;
       v25 = &v24;
       v24 = (__int64)&v24;
-      if ( v7 >> 12 > (unsigned int)sub_94049DA4(v7 >> 12, a5, &v23, (__int64)&v24) )
+      if ( v7 >> 12 > (unsigned int)pmm_alloc_pages(v7 >> 12, a5, &v23, (__int64)&v24) )
         return 4294967291LL;
-      sub_940251F8((__int64)"xtum", 0xFFFFFFFFLL);
-      v16 = sub_9404A2F4(a1, (__int64)v9, v7, v13, a5, a6, 2, a7);
+      mutex_acquire_timeout((__int64)"xtum", 0xFFFFFFFFLL);
+      v16 = vmm_alloc(a1, (__int64)v9, v7, v13, a5, a6, 2, a7);
       v17 = v16;
       if ( v16 == 0 )
       {
-        sub_9402530C((__int64)"xtum");
-        sub_94049C4C((__int64)&v24);
+        mutex_release((__int64)"xtum");
+        pmm_free_page_list((__int64)&v24);
         return 4294967291LL;
       }
       v18 = *(_QWORD *)(v16 + 56);
       if ( a4 != nullptr )
         *a4 = v18;
-      sub_94023290(v18, v23, v14, a7);
+      arm64_mmu_map_page(v18, v23, v14, a7);
       v19 = v25;
       if ( v25 != &v24 )
       {
@@ -32882,15 +32882,15 @@ LABEL_7:
         }
         while ( v25 != &v24 );
       }
-      sub_9402530C((__int64)"xtum");
+      mutex_release((__int64)"xtum");
       return 0;
     }
   }
   return 4294967288LL;
 }
 
-/* ===== sub_9404ABDC @ 0x9404ABDC size 256 ===== */
-__int64 __fastcall sub_9404ABDC(__int64 a1, unsigned __int64 a2)
+/* ===== vmm_free_region @ 0x9404ABDC size 256 ===== */
+__int64 __fastcall vmm_free_region(__int64 a1, unsigned __int64 a2)
 {
   __int64 v2; // x30
   __int64 v5; // x19
@@ -32901,14 +32901,14 @@ __int64 __fastcall sub_9404ABDC(__int64 a1, unsigned __int64 a2)
   __int64 v11; // x0
 
   v5 = v2;
-  sub_940251F8((__int64)"xtum", 0xFFFFFFFFLL);
+  mutex_acquire_timeout((__int64)"xtum", 0xFFFFFFFFLL);
   if ( a1 != 0 )
   {
     v6 = *(_QWORD **)(a1 + 80);
     if ( v6 == (_QWORD *)(a1 + 72) )
     {
 LABEL_6:
-      sub_9402530C((__int64)"xtum");
+      mutex_release((__int64)"xtum");
       return 4294967294LL;
     }
     else
@@ -32931,41 +32931,41 @@ LABEL_6:
       *(_QWORD *)(*v6 + 8LL) = v10;
       v6[1] = 0;
       *v6 = 0;
-      sub_94023364(v7, v8 >> 12);
-      sub_9402530C((__int64)"xtum");
-      sub_94049C4C((__int64)(v6 + 9));
-      sub_9404CC20(v6);
+      arm64_mmu_unmap_page(v7, v8 >> 12);
+      mutex_release((__int64)"xtum");
+      pmm_free_page_list((__int64)(v6 + 9));
+      free(v6);
       return 0;
     }
   }
   else
   {
-    v11 = sub_9404B508(v5, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/vm/vmm.c", 559, "aspace");
-    return sub_9404ACDC(v11);
+    v11 = panic(v5, "DEBUG ASSERT FAILED at (%s:%d): %s\n", "external/lk/kernel/vm/vmm.c", 559, "aspace");
+    return vmm_is_empty(v11);
   }
 }
 
-/* ===== sub_9404ACDC @ 0x9404ACDC size 124 ===== */
-bool sub_9404ACDC()
+/* ===== vmm_is_empty @ 0x9404ACDC size 124 ===== */
+bool vmm_is_empty()
 {
   return &qword_9405CB88 == (__int64 *)-536622200LL;
 }
 
-/* ===== sub_9404AD58 @ 0x9404AD58 size 36 ===== */
-__int64 sub_9404AD58()
+/* ===== console_getc @ 0x9404AD58 size 36 ===== */
+__int64 console_getc()
 {
   __int64 result; // x0
   unsigned __int8 v1; // [xsp+1Fh] [xbp+1Fh] BYREF
 
-  result = sub_94022058(&v1, 1);
+  result = uart_getc(&v1, 1);
   if ( (result & 0x80000000) == 0 )
     return v1;
   return result;
 }
 
-/* ===== sub_9404AD7C @ 0x9404AD7C size 412 ===== */
+/* ===== console_write @ 0x9404AD7C size 412 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_9404AD7C(unsigned __int8 *a1, unsigned __int64 a2)
+__int64 __fastcall console_write(unsigned __int8 *a1, unsigned __int64 a2)
 {
   unsigned __int8 *v2; // x19
   __int64 result; // x0
@@ -32988,7 +32988,7 @@ __int64 __fastcall sub_9404AD7C(unsigned __int8 *a1, unsigned __int64 a2)
         do
         {
           v6 = *v2++;
-          result = sub_94022000(v6);
+          result = uart_putc(v6);
         }
         while ( v2 != v5 );
       }
@@ -33012,7 +33012,7 @@ __int64 __fastcall sub_9404AD7C(unsigned __int8 *a1, unsigned __int64 a2)
     v10 = 0x2000;
     if ( a2 < 0x2000 )
       v10 = a2;
-    sub_9404CC78(qword_94077F48, a1, v10);
+    memcpy(qword_94077F48, a1, v10);
     dword_94077F40 = v10;
     result = MEMORY[0xFFFFFFFFE0059F48];
     if ( MEMORY[0xFFFFFFFFE0059F48] != 0 && a2 != 0 )
@@ -33021,7 +33021,7 @@ __int64 __fastcall sub_9404AD7C(unsigned __int8 *a1, unsigned __int64 a2)
       do
       {
         v8 = *v2++;
-        result = sub_94022000(v8);
+        result = uart_putc(v8);
       }
       while ( v2 != v7 );
     }
@@ -33029,21 +33029,21 @@ __int64 __fastcall sub_9404AD7C(unsigned __int8 *a1, unsigned __int64 a2)
   return result;
 }
 
-/* ===== sub_9404AF18 @ 0x9404AF18 size 52 ===== */
-__int64 __fastcall sub_9404AF18(unsigned __int8 *a1, __int64 a2)
+/* ===== console_write_str @ 0x9404AF18 size 52 ===== */
+__int64 __fastcall console_write_str(unsigned __int8 *a1, __int64 a2)
 {
   unsigned __int64 v3; // x0
   unsigned int v4; // w19
 
-  v3 = sub_9404D0A0(a1, a2);
+  v3 = strnlen(a1, a2);
   v4 = v3;
-  sub_9404AD7C(a1, v3);
+  console_write(a1, v3);
   return v4;
 }
 
-/* ===== sub_9404AF4C @ 0x9404AF4C size 200 ===== */
+/* ===== console_register @ 0x9404AF4C size 200 ===== */
 // write access to const memory has been detected, the output may be wrong!
-unsigned __int64 *__fastcall sub_9404AF4C(__int64 a1)
+unsigned __int64 *__fastcall console_register(__int64 a1)
 {
   char v2; // w20
   unsigned __int64 *result; // x0
@@ -33056,23 +33056,23 @@ unsigned __int64 *__fastcall sub_9404AF4C(__int64 a1)
   }
   if ( (_ReadStatusReg(DAIF) & 0x40) != 0 )
   {
-    sub_940223B4((unsigned __int64 *)&qword_94077F38);
+    spin_lock((unsigned __int64 *)&qword_94077F38);
     *(_QWORD *)(a1 + 8) = -536622200;
     *(_QWORD *)a1 = &qword_9405CB88;
     MEMORY[0xFFFFFFFFE003CB88] = a1;
     off_9405CB90 = (_UNKNOWN *)a1;
-    result = sub_940223D4((unsigned __int64 *)&qword_94077F38);
+    result = spin_unlock((unsigned __int64 *)&qword_94077F38);
   }
   else
   {
     v2 |= 2u;
     __asm { MSR             DAIFSet, #1 }
-    sub_940223B4((unsigned __int64 *)&qword_94077F38);
+    spin_lock((unsigned __int64 *)&qword_94077F38);
     *(_QWORD *)(a1 + 8) = -536622200;
     *(_QWORD *)a1 = &qword_9405CB88;
     MEMORY[0xFFFFFFFFE003CB88] = a1;
     off_9405CB90 = (_UNKNOWN *)a1;
-    result = sub_940223D4((unsigned __int64 *)&qword_94077F38);
+    result = spin_unlock((unsigned __int64 *)&qword_94077F38);
     __asm { MSR             DAIFClr, #1 }
   }
   if ( (v2 & 1) != 0 )
@@ -33080,8 +33080,8 @@ unsigned __int64 *__fastcall sub_9404AF4C(__int64 a1)
   return result;
 }
 
-/* ===== sub_9404B014 @ 0x9404B014 size 192 ===== */
-unsigned __int64 *__fastcall sub_9404B014(_QWORD *a1)
+/* ===== console_unregister @ 0x9404B014 size 192 ===== */
+unsigned __int64 *__fastcall console_unregister(_QWORD *a1)
 {
   char v2; // w20
   _QWORD *v9; // x1
@@ -33096,25 +33096,25 @@ unsigned __int64 *__fastcall sub_9404B014(_QWORD *a1)
   }
   if ( (_ReadStatusReg(DAIF) & 0x40) != 0 )
   {
-    sub_940223B4((unsigned __int64 *)&qword_94077F38);
+    spin_lock((unsigned __int64 *)&qword_94077F38);
     v13 = (_QWORD *)a1[1];
     *v13 = *a1;
     *(_QWORD *)(*a1 + 8LL) = v13;
     a1[1] = 0;
     *a1 = 0;
-    result = sub_940223D4((unsigned __int64 *)&qword_94077F38);
+    result = spin_unlock((unsigned __int64 *)&qword_94077F38);
   }
   else
   {
     v2 |= 2u;
     __asm { MSR             DAIFSet, #1 }
-    sub_940223B4((unsigned __int64 *)&qword_94077F38);
+    spin_lock((unsigned __int64 *)&qword_94077F38);
     v9 = (_QWORD *)a1[1];
     *v9 = *a1;
     *(_QWORD *)(*a1 + 8LL) = v9;
     a1[1] = 0;
     *a1 = 0;
-    result = sub_940223D4((unsigned __int64 *)&qword_94077F38);
+    result = spin_unlock((unsigned __int64 *)&qword_94077F38);
     __asm { MSR             DAIFClr, #1 }
   }
   if ( (v2 & 1) != 0 )
@@ -33122,8 +33122,8 @@ unsigned __int64 *__fastcall sub_9404B014(_QWORD *a1)
   return result;
 }
 
-/* ===== sub_9404B0D4 @ 0x9404B0D4 size 168 ===== */
-unsigned __int64 *__fastcall sub_9404B0D4(unsigned __int8 a1)
+/* ===== console_putc @ 0x9404B0D4 size 168 ===== */
+unsigned __int64 *__fastcall console_putc(unsigned __int8 a1)
 {
   char v2; // w19
   unsigned __int64 *result; // x0
@@ -33137,19 +33137,19 @@ unsigned __int64 *__fastcall sub_9404B0D4(unsigned __int8 a1)
   }
   if ( (_ReadStatusReg(DAIF) & 0x40) != 0 )
   {
-    sub_940223B4((unsigned __int64 *)&qword_94077F38);
+    spin_lock((unsigned __int64 *)&qword_94077F38);
     v12 = a1;
-    sub_9404AD7C(&v12, 1u);
-    result = sub_940223D4((unsigned __int64 *)&qword_94077F38);
+    console_write(&v12, 1u);
+    result = spin_unlock((unsigned __int64 *)&qword_94077F38);
   }
   else
   {
     v2 |= 2u;
     __asm { MSR             DAIFSet, #1 }
-    sub_940223B4((unsigned __int64 *)&qword_94077F38);
+    spin_lock((unsigned __int64 *)&qword_94077F38);
     v12 = a1;
-    sub_9404AD7C(&v12, 1u);
-    result = sub_940223D4((unsigned __int64 *)&qword_94077F38);
+    console_write(&v12, 1u);
+    result = spin_unlock((unsigned __int64 *)&qword_94077F38);
     __asm { MSR             DAIFClr, #1 }
   }
   if ( (v2 & 1) != 0 )
@@ -33157,15 +33157,15 @@ unsigned __int64 *__fastcall sub_9404B0D4(unsigned __int8 a1)
   return result;
 }
 
-/* ===== sub_9404B17C @ 0x9404B17C size 28 ===== */
-__int64 __fastcall sub_9404B17C(__int64 a1, unsigned __int8 a2)
+/* ===== console_putc_cb @ 0x9404B17C size 28 ===== */
+__int64 __fastcall console_putc_cb(__int64 a1, unsigned __int8 a2)
 {
-  sub_9404B0D4(a2);
+  console_putc(a2);
   return 0;
 }
 
-/* ===== sub_9404B198 @ 0x9404B198 size 180 ===== */
-__int64 __fastcall sub_9404B198(unsigned __int8 *a1)
+/* ===== console_puts @ 0x9404B198 size 180 ===== */
+__int64 __fastcall console_puts(unsigned __int8 *a1)
 {
   char v2; // w19
   unsigned __int64 v9; // x0
@@ -33179,19 +33179,19 @@ __int64 __fastcall sub_9404B198(unsigned __int8 *a1)
   }
   if ( (_ReadStatusReg(DAIF) & 0x40) != 0 )
   {
-    sub_940223B4((unsigned __int64 *)&qword_94077F38);
-    v13 = sub_9404CFF4(a1);
-    sub_9404AD7C(a1, v13);
-    sub_940223D4((unsigned __int64 *)&qword_94077F38);
+    spin_lock((unsigned __int64 *)&qword_94077F38);
+    v13 = strlen(a1);
+    console_write(a1, v13);
+    spin_unlock((unsigned __int64 *)&qword_94077F38);
   }
   else
   {
     v2 |= 2u;
     __asm { MSR             DAIFSet, #1 }
-    sub_940223B4((unsigned __int64 *)&qword_94077F38);
-    v9 = sub_9404CFF4(a1);
-    sub_9404AD7C(a1, v9);
-    sub_940223D4((unsigned __int64 *)&qword_94077F38);
+    spin_lock((unsigned __int64 *)&qword_94077F38);
+    v9 = strlen(a1);
+    console_write(a1, v9);
+    spin_unlock((unsigned __int64 *)&qword_94077F38);
     __asm { MSR             DAIFClr, #1 }
   }
   if ( (v2 & 1) != 0 )
@@ -33199,14 +33199,14 @@ __int64 __fastcall sub_9404B198(unsigned __int8 *a1)
   return 0;
 }
 
-/* ===== sub_9404B24C @ 0x9404B24C size 8 ===== */
-__int64 __fastcall sub_9404B24C(__int64 a1, unsigned __int8 *a2)
+/* ===== console_puts_cb @ 0x9404B24C size 8 ===== */
+__int64 __fastcall console_puts_cb(__int64 a1, unsigned __int8 *a2)
 {
-  return sub_9404B198(a2);
+  return console_puts(a2);
 }
 
-/* ===== sub_9404B254 @ 0x9404B254 size 168 ===== */
-__int64 __fastcall sub_9404B254(unsigned __int8 *a1, unsigned __int64 a2)
+/* ===== console_write_raw @ 0x9404B254 size 168 ===== */
+__int64 __fastcall console_write_raw(unsigned __int8 *a1, unsigned __int64 a2)
 {
   char v3; // w19
 
@@ -33218,17 +33218,17 @@ __int64 __fastcall sub_9404B254(unsigned __int8 *a1, unsigned __int64 a2)
   }
   if ( (_ReadStatusReg(DAIF) & 0x40) != 0 )
   {
-    sub_940223B4((unsigned __int64 *)&qword_94077F38);
-    sub_9404AD7C(a1, a2);
-    sub_940223D4((unsigned __int64 *)&qword_94077F38);
+    spin_lock((unsigned __int64 *)&qword_94077F38);
+    console_write(a1, a2);
+    spin_unlock((unsigned __int64 *)&qword_94077F38);
   }
   else
   {
     v3 |= 2u;
     __asm { MSR             DAIFSet, #1 }
-    sub_940223B4((unsigned __int64 *)&qword_94077F38);
-    sub_9404AD7C(a1, a2);
-    sub_940223D4((unsigned __int64 *)&qword_94077F38);
+    spin_lock((unsigned __int64 *)&qword_94077F38);
+    console_write(a1, a2);
+    spin_unlock((unsigned __int64 *)&qword_94077F38);
     __asm { MSR             DAIFClr, #1 }
   }
   if ( (v3 & 1) != 0 )
@@ -33236,8 +33236,8 @@ __int64 __fastcall sub_9404B254(unsigned __int8 *a1, unsigned __int64 a2)
   return 0;
 }
 
-/* ===== sub_9404B2FC @ 0x9404B2FC size 288 ===== */
-__int64 sub_9404B2FC(
+/* ===== log_printf @ 0x9404B2FC size 288 ===== */
+__int64 log_printf(
         const char *a1,
         double a2,
         double a3,
@@ -33263,19 +33263,19 @@ __int64 sub_9404B2FC(
   }
   if ( (_ReadStatusReg(DAIF) & 0x40) != 0 )
   {
-    sub_940223B4((unsigned __int64 *)&qword_94077F38);
+    spin_lock((unsigned __int64 *)&qword_94077F38);
     va_copy(va1, va);
-    v17 = sub_9404BF38(sub_9404AF18, 0, a1, va1);
-    sub_940223D4((unsigned __int64 *)&qword_94077F38);
+    v17 = vprintf_core(console_write_str, 0, a1, va1);
+    spin_unlock((unsigned __int64 *)&qword_94077F38);
   }
   else
   {
     v10 |= 2u;
     __asm { MSR             DAIFSet, #1 }
-    sub_940223B4((unsigned __int64 *)&qword_94077F38);
+    spin_lock((unsigned __int64 *)&qword_94077F38);
     va_copy(va1, va);
-    v17 = sub_9404BF38(sub_9404AF18, 0, a1, va1);
-    sub_940223D4((unsigned __int64 *)&qword_94077F38);
+    v17 = vprintf_core(console_write_str, 0, a1, va1);
+    spin_unlock((unsigned __int64 *)&qword_94077F38);
     __asm { MSR             DAIFClr, #1 }
   }
   if ( (v10 & 1) != 0 )
@@ -33283,8 +33283,8 @@ __int64 sub_9404B2FC(
   return v17;
 }
 
-/* ===== sub_9404B41C @ 0x9404B41C size 236 ===== */
-__int64 __fastcall sub_9404B41C(__int64 a1, _QWORD *a2)
+/* ===== log_vprintf @ 0x9404B41C size 236 ===== */
+__int64 __fastcall log_vprintf(__int64 a1, _QWORD *a2)
 {
   char v3; // w19
   __int64 v10; // x7
@@ -33306,7 +33306,7 @@ __int64 __fastcall sub_9404B41C(__int64 a1, _QWORD *a2)
   }
   if ( (_ReadStatusReg(DAIF) & 0x40) != 0 )
   {
-    sub_940223B4((unsigned __int64 *)&qword_94077F38);
+    spin_lock((unsigned __int64 *)&qword_94077F38);
     v17 = a2[1];
     v18 = a2[2];
     v19 = a2[3];
@@ -33314,14 +33314,14 @@ __int64 __fastcall sub_9404B41C(__int64 a1, _QWORD *a2)
     v21[1] = v17;
     v22 = v18;
     v23 = v19;
-    v13 = sub_9404BF38(sub_9404AF18, 0, a1, v21);
-    sub_940223D4((unsigned __int64 *)&qword_94077F38);
+    v13 = vprintf_core(console_write_str, 0, a1, v21);
+    spin_unlock((unsigned __int64 *)&qword_94077F38);
   }
   else
   {
     v3 |= 2u;
     __asm { MSR             DAIFSet, #1 }
-    sub_940223B4((unsigned __int64 *)&qword_94077F38);
+    spin_lock((unsigned __int64 *)&qword_94077F38);
     v10 = a2[1];
     v11 = a2[2];
     v12 = a2[3];
@@ -33329,8 +33329,8 @@ __int64 __fastcall sub_9404B41C(__int64 a1, _QWORD *a2)
     v21[1] = v10;
     v22 = v11;
     v23 = v12;
-    v13 = sub_9404BF38(sub_9404AF18, 0, a1, v21);
-    sub_940223D4((unsigned __int64 *)&qword_94077F38);
+    v13 = vprintf_core(console_write_str, 0, a1, v21);
+    spin_unlock((unsigned __int64 *)&qword_94077F38);
     __asm { MSR             DAIFClr, #1 }
   }
   if ( (v3 & 1) != 0 )
@@ -33338,8 +33338,8 @@ __int64 __fastcall sub_9404B41C(__int64 a1, _QWORD *a2)
   return v13;
 }
 
-/* ===== sub_9404B508 @ 0x9404B508 size 188 ===== */
-__int64 sub_9404B508(
+/* ===== panic @ 0x9404B508 size 188 ===== */
+__int64 panic(
         __int64 a1,
         const char *a2,
         double a3,
@@ -33364,11 +33364,11 @@ __int64 sub_9404B508(
   va_list va1; // [xsp+70h] [xbp+40h] BYREF
 
   if ( (MEMORY[0xFFFFFFFFE003CB98] & 0x8000000000000000LL) == 0 )
-    sub_9404B2FC("panic (caller %p): ", a3, a4, a5, a6, a7, a8, a9, a10, a1);
+    log_printf("panic (caller %p): ", a3, a4, a5, a6, a7, a8, a9, a10, a1);
   va_start(va1, a10);
   va_start(va, a10);
-  sub_9404B41C((__int64)a2, va);
-  sub_94028A08(0, 9);
+  log_vprintf((__int64)a2, va);
+  halt(0, 9);
   v12 = *v11;
   v13 = v11[1];
   v16 = v11 + 2;
@@ -33378,12 +33378,12 @@ __int64 sub_9404B508(
   v19[1] = v13;
   v19[2] = v14;
   v19[3] = v15;
-  return sub_9404B41C(v17, v19);
+  return log_vprintf(v17, v19);
 }
 
-/* ===== sub_9404B5C4 @ 0x9404B5C4 size 420 ===== */
+/* ===== heap_free_chunk @ 0x9404B5C4 size 420 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_9404B5C4(unsigned __int64 a1)
+__int64 __fastcall heap_free_chunk(unsigned __int64 a1)
 {
   __int64 v1; // x30
   unsigned __int64 v2; // x19
@@ -33410,7 +33410,7 @@ __int64 __fastcall sub_9404B5C4(unsigned __int64 a1)
   v2 = a1;
   v3 = v1;
   v4 = *(_QWORD *)(a1 + 16);
-  sub_940251F8((__int64)qword_94079FA0, 0xFFFFFFFFLL);
+  mutex_acquire_timeout((__int64)qword_94079FA0, 0xFFFFFFFFLL);
   v13 = *(_QWORD *)(v2 + 16);
   v14 = nullptr;
   qword_94079F90 = v13;
@@ -33441,7 +33441,7 @@ LABEL_9:
     if ( v14 == nullptr )
     {
 LABEL_12:
-      sub_9402530C((__int64)qword_94079FA0);
+      mutex_release((__int64)qword_94079FA0);
       return v2;
     }
 LABEL_10:
@@ -33478,7 +33478,7 @@ LABEL_10:
       goto LABEL_16;
     goto LABEL_9;
   }
-  v22 = sub_9404B508(
+  v22 = panic(
           v3,
           "DEBUG ASSERT FAILED at (%s:%d): %s\n",
           v5,
@@ -33492,16 +33492,16 @@ LABEL_10:
           "external/lk/lib/heap/heap.c",
           212,
           "chunk_end <= (vaddr_t)next_chunk");
-  return sub_9404B768(v22);
+  return heap_assert_len_aligned(v22);
 }
 
-/* ===== sub_9404B768 @ 0x9404B768 size 44 ===== */
-__int64 __fastcall sub_9404B768(double a1, double a2, double a3, double a4, double a5, double a6, double a7, double a8)
+/* ===== heap_assert_len_aligned @ 0x9404B768 size 44 ===== */
+__int64 __fastcall heap_assert_len_aligned(double a1, double a2, double a3, double a4, double a5, double a6, double a7, double a8)
 {
   __int64 v8; // x30
   __int64 v9; // x0
 
-  v9 = sub_9404B508(
+  v9 = panic(
          v8,
          "DEBUG ASSERT FAILED at (%s:%d): %s\n",
          a1,
@@ -33515,11 +33515,11 @@ __int64 __fastcall sub_9404B768(double a1, double a2, double a3, double a4, doub
          "external/lk/lib/heap/heap.c",
          258,
          "(len % sizeof(void *)) == 0");
-  return sub_9404B794(v9);
+  return heap_merge_free_list(v9);
 }
 
-/* ===== sub_9404B794 @ 0x9404B794 size 316 ===== */
-__int64 sub_9404B794()
+/* ===== heap_merge_free_list @ 0x9404B794 size 316 ===== */
+__int64 heap_merge_free_list()
 {
   int v5; // w21
   __int64 v6; // x2
@@ -33534,20 +33534,20 @@ __int64 sub_9404B794()
   if ( (_ReadStatusReg(DAIF) & 0x80) != 0 )
   {
     v5 = 0;
-    sub_940223B4((unsigned __int64 *)&qword_94079FF8);
+    spin_lock((unsigned __int64 *)&qword_94079FF8);
     if ( &qword_94079FE8 == nullptr )
     {
-      result = (__int64)sub_940223D4((unsigned __int64 *)&qword_94079FF8);
+      result = (__int64)spin_unlock((unsigned __int64 *)&qword_94079FF8);
       goto LABEL_7;
     }
   }
   else
   {
     __asm { MSR             DAIFSet, #2 }
-    sub_940223B4((unsigned __int64 *)&qword_94079FF8);
+    spin_lock((unsigned __int64 *)&qword_94079FF8);
     if ( &qword_94079FE8 == nullptr )
     {
-      result = (__int64)sub_940223D4((unsigned __int64 *)&qword_94079FF8);
+      result = (__int64)spin_unlock((unsigned __int64 *)&qword_94079FF8);
       __asm { MSR             DAIFClr, #2 }
       goto LABEL_7;
     }
@@ -33564,7 +33564,7 @@ __int64 sub_9404B794()
     v13 = nullptr;
   }
   while ( &qword_94079FE8 != nullptr );
-  result = (__int64)sub_940223D4((unsigned __int64 *)&qword_94079FF8);
+  result = (__int64)spin_unlock((unsigned __int64 *)&qword_94079FF8);
   if ( v5 != 0 )
     __asm { MSR             DAIFClr, #2 }
 LABEL_7:
@@ -33575,14 +33575,14 @@ LABEL_7:
     *(_QWORD *)(*i + 8) = v10;
     i[1] = 0;
     *i = 0;
-    result = sub_9404B5C4((unsigned __int64)i);
+    result = heap_free_chunk((unsigned __int64)i);
   }
   return result;
 }
 
-/* ===== sub_9404B8D0 @ 0x9404B8D0 size 768 ===== */
+/* ===== heap_alloc_aligned @ 0x9404B8D0 size 768 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_9404B8D0(__int64 a1, unsigned int a2)
+__int64 __fastcall heap_alloc_aligned(__int64 a1, unsigned int a2)
 {
   __int64 v2; // x30
   __int64 v3; // x27
@@ -33619,7 +33619,7 @@ __int64 __fastcall sub_9404B8D0(__int64 a1, unsigned int a2)
   if ( &qword_94079FE8 != nullptr )
   {
     v31 = a1;
-    sub_9404B794();
+    heap_merge_free_list();
     a1 = v31;
   }
   if ( (((_DWORD)v3 - 1) & (unsigned int)v3) != 0 )
@@ -33650,20 +33650,20 @@ LABEL_6:
     v6 = (v5 + 4095) & 0xFFFFFFFFFFFFF000LL;
   while ( 1 )
   {
-    sub_940251F8((__int64)qword_94079FA0, 0xFFFFFFFFLL);
+    mutex_acquire_timeout((__int64)qword_94079FA0, 0xFFFFFFFFLL);
     v16 = 0;
     if ( &off_94079FD8 != nullptr )
       break;
 LABEL_19:
-    sub_9402530C((__int64)qword_94079FA0);
+    mutex_release((__int64)qword_94079FA0);
     if ( v7 != 0 )
       return 0;
-    v19 = sub_9404A054(v6 >> 12, 0);
+    v19 = pmm_alloc_page(v6 >> 12, 0);
     v20 = v19;
     if ( v19 == 0 )
       goto LABEL_39;
     *(_QWORD *)(v19 + 16) = v6;
-    sub_9404B5C4(v19);
+    heap_free_chunk(v19);
     v21 = v20 + v6;
     if ( v21 != 0 )
       qword_94079F88 = v21;
@@ -33676,7 +33676,7 @@ LABEL_19:
     v17 = *(_QWORD *)(v16 + 16);
     if ( (v17 & 7) != 0 )
     {
-      sub_9404B508(
+      panic(
         v4,
         "DEBUG ASSERT FAILED at (%s:%d): %s\n",
         v8,
@@ -33715,9 +33715,9 @@ LABEL_19:
     v30 = (_QWORD *)(v16 + v5);
     if ( (v29 & 7) != 0 )
     {
-      sub_9404B768(v8, v9, v10, v11, v12, v13, v14, v15);
+      heap_assert_len_aligned(v8, v9, v10, v11, v12, v13, v14, v15);
 LABEL_39:
-      sub_9404CB4C("%s:%d: failed to grow kernel heap by 0x%zx bytes\n", "heap_grow", 518, v6);
+      printf("%s:%d: failed to grow kernel heap by 0x%zx bytes\n", "heap_grow", 518, v6);
       return 0;
     }
     v30[2] = v29;
@@ -33742,7 +33742,7 @@ LABEL_37:
   v27 = *(_QWORD *)(v16 + 16);
   if ( v5 > v27 )
   {
-    sub_9404B508(
+    panic(
       v4,
       "DEBUG ASSERT FAILED at (%s:%d): %s\n",
       v8,
@@ -33766,12 +33766,12 @@ LABEL_30:
   *(_QWORD *)(v28 - 16) = v16;
   *(_QWORD *)(v28 - 8) = v27;
   qword_94079F90 = -(__int64)v27;
-  sub_9402530C((__int64)qword_94079FA0);
+  mutex_release((__int64)qword_94079FA0);
   return v28;
 }
 
-/* ===== sub_9404BBD0 @ 0x9404BBD0 size 108 ===== */
-__int64 __fastcall sub_9404BBD0(
+/* ===== heap_free @ 0x9404BBD0 size 108 ===== */
+__int64 __fastcall heap_free(
         __int64 result,
         double a2,
         double a3,
@@ -33796,12 +33796,12 @@ __int64 __fastcall sub_9404BBD0(
       if ( (v10 & 7) == 0 )
       {
         *(_QWORD *)(v11 + 16) = v10;
-        return sub_9404B5C4(v11);
+        return heap_free_chunk(v11);
       }
     }
     else
     {
-      sub_9404B508(
+      panic(
         v9,
         "DEBUG ASSERT FAILED at (%s:%d): %s\n",
         a2,
@@ -33816,15 +33816,15 @@ __int64 __fastcall sub_9404BBD0(
         438,
         "as->magic == HEAP_MAGIC");
     }
-    v12 = sub_9404B768(a2, a3, a4, a5, a6, a7, a8, a9);
-    return sub_9404BC3C(v12);
+    v12 = heap_assert_len_aligned(a2, a3, a4, a5, a6, a7, a8, a9);
+    return heap_free_to_quarantine(v12);
   }
   return result;
 }
 
-/* ===== sub_9404BC3C @ 0x9404BC3C size 252 ===== */
+/* ===== heap_free_to_quarantine @ 0x9404BC3C size 252 ===== */
 // write access to const memory has been detected, the output may be wrong!
-unsigned __int64 *__fastcall sub_9404BC3C(
+unsigned __int64 *__fastcall heap_free_to_quarantine(
         __int64 a1,
         double a2,
         double a3,
@@ -33843,7 +33843,7 @@ unsigned __int64 *__fastcall sub_9404BC3C(
 
   if ( *(_DWORD *)(a1 - 24) != 1212498256 )
   {
-    sub_9404B508(
+    panic(
       v9,
       "DEBUG ASSERT FAILED at (%s:%d): %s\n",
       a2,
@@ -33864,36 +33864,36 @@ unsigned __int64 *__fastcall sub_9404BC3C(
   if ( (v10 & 7) != 0 )
   {
 LABEL_7:
-    v19 = sub_9404B768(a2, a3, a4, a5, a6, a7, a8, a9);
-    return (unsigned __int64 *)sub_9404BD38(v19);
+    v19 = heap_assert_len_aligned(a2, a3, a4, a5, a6, a7, a8, a9);
+    return (unsigned __int64 *)heap_init(v19);
   }
   *(_QWORD *)(v11 + 16) = v10;
   if ( (_ReadStatusReg(DAIF) & 0x80) != 0 )
   {
-    sub_940223B4((unsigned __int64 *)&qword_94079FF8);
+    spin_lock((unsigned __int64 *)&qword_94079FF8);
     *(_QWORD *)(v11 + 8) = 0;
     *(_QWORD *)v11 = &qword_94079FE8;
     MEMORY[0] = v11;
     off_94079FF0 = (_UNKNOWN *)v11;
-    return sub_940223D4((unsigned __int64 *)&qword_94079FF8);
+    return spin_unlock((unsigned __int64 *)&qword_94079FF8);
   }
   else
   {
     __asm { MSR             DAIFSet, #2 }
-    sub_940223B4((unsigned __int64 *)&qword_94079FF8);
+    spin_lock((unsigned __int64 *)&qword_94079FF8);
     *(_QWORD *)(v11 + 8) = 0;
     *(_QWORD *)v11 = &qword_94079FE8;
     MEMORY[0] = v11;
     off_94079FF0 = (_UNKNOWN *)v11;
-    result = sub_940223D4((unsigned __int64 *)&qword_94079FF8);
+    result = spin_unlock((unsigned __int64 *)&qword_94079FF8);
     __asm { MSR             DAIFClr, #2 }
   }
   return result;
 }
 
-/* ===== sub_9404BD38 @ 0x9404BD38 size 228 ===== */
+/* ===== heap_init @ 0x9404BD38 size 228 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 sub_9404BD38()
+__int64 heap_init()
 {
   __int64 v0; // x30
   __int64 v1; // x21
@@ -33913,13 +33913,13 @@ __int64 sub_9404BD38()
   unsigned __int64 v16; // x4
 
   v1 = v0;
-  sub_940251C4((__int64)qword_94079FA0);
+  mutex_init((__int64)qword_94079FA0);
   qword_94079FF8 = 0;
   off_94079FF0 = &qword_94079FE8;
   qword_94079FE8 = (__int64)&qword_94079FE8;
   qword_94079FE0 = (__int64)&off_94079FD8;
   off_94079FD8 = &off_94079FD8;
-  v2 = sub_9404A054(2u, 0);
+  v2 = pmm_alloc_page(2u, 0);
   qword_94079F80 = v2;
   qword_94079F88 = 0x2000;
   if ( v2 != 0 )
@@ -33927,11 +33927,11 @@ __int64 sub_9404BD38()
     qword_94079F90 = 0;
     qword_94079F98 = 0x2000;
     *(_QWORD *)(v2 + 16) = 0x2000;
-    return sub_9404B5C4(v2);
+    return heap_free_chunk(v2);
   }
   else
   {
-    v12 = (_BYTE *)sub_9404B508(v1, "HEAP: error allocating initial heap size\n", v3, v4, v5, v6, v7, v8, v9, v10);
+    v12 = (_BYTE *)panic(v1, "HEAP: error allocating initial heap size\n", v3, v4, v5, v6, v7, v8, v9, v10);
     if ( v13 != 0 && *v12 != 0 )
     {
       v15 = 0;
@@ -33955,8 +33955,8 @@ __int64 sub_9404BD38()
   }
 }
 
-/* ===== sub_9404BE1C @ 0x9404BE1C size 224 ===== */
-_BYTE *__fastcall sub_9404BE1C(__int64 a1, unsigned __int64 a2, __int16 a3, _BYTE *a4)
+/* ===== fmt_uint @ 0x9404BE1C size 224 ===== */
+_BYTE *__fastcall fmt_uint(__int64 a1, unsigned __int64 a2, __int16 a3, _BYTE *a4)
 {
   int v4; // w9
   __int64 v5; // x5
@@ -34017,8 +34017,8 @@ LABEL_8:
   return v8;
 }
 
-/* ===== sub_9404BEFC @ 0x9404BEFC size 60 ===== */
-_BYTE *__fastcall sub_9404BEFC(__int64 a1, unsigned __int64 a2, __int16 a3)
+/* ===== fmt_hex @ 0x9404BEFC size 60 ===== */
+_BYTE *__fastcall fmt_hex(__int64 a1, unsigned __int64 a2, __int16 a3)
 {
   char *v3; // x4
   _BYTE *v4; // x3
@@ -34042,8 +34042,8 @@ _BYTE *__fastcall sub_9404BEFC(__int64 a1, unsigned __int64 a2, __int16 a3)
   return result;
 }
 
-/* ===== sub_9404BF38 @ 0x9404BF38 size 2832 ===== */
-__int64 __fastcall sub_9404BF38(
+/* ===== vprintf_core @ 0x9404BF38 size 2832 ===== */
+__int64 __fastcall vprintf_core(
         __int64 (__fastcall *a1)(unsigned __int8 *, __int64, __int64),
         __int64 a2,
         unsigned __int8 *a3)
@@ -34126,8 +34126,8 @@ LABEL_16:
   return result;
 }
 
-/* ===== sub_9404CA48 @ 0x9404CA48 size 120 ===== */
-__int64 __fastcall sub_9404CA48(__int64 a1, unsigned __int64 a2, unsigned __int8 *a3)
+/* ===== vsnprintf @ 0x9404CA48 size 120 ===== */
+__int64 __fastcall vsnprintf(__int64 a1, unsigned __int64 a2, unsigned __int8 *a3)
 {
   __int64 result; // x0
   _QWORD v6[2]; // [xsp+48h] [xbp+48h] BYREF
@@ -34136,7 +34136,7 @@ __int64 __fastcall sub_9404CA48(__int64 a1, unsigned __int64 a2, unsigned __int8
   v6[0] = a1;
   v6[1] = a2;
   v7 = 0;
-  result = sub_9404BF38((__int64 (__fastcall *)(unsigned __int8 *, __int64, __int64))&loc_9404BDC0, (__int64)v6, a3);
+  result = vprintf_core((__int64 (__fastcall *)(unsigned __int8 *, __int64, __int64))&loc_9404BDC0, (__int64)v6, a3);
   if ( a2 <= v7 )
     *(_BYTE *)(a1 + a2 - 1) = 0;
   else
@@ -34144,8 +34144,8 @@ __int64 __fastcall sub_9404CA48(__int64 a1, unsigned __int64 a2, unsigned __int8
   return result;
 }
 
-/* ===== sub_9404CAC0 @ 0x9404CAC0 size 92 ===== */
-__int64 __fastcall sub_9404CAC0(
+/* ===== snprintf @ 0x9404CAC0 size 92 ===== */
+__int64 __fastcall snprintf(
         __int64 a1,
         unsigned __int64 a2,
         char *a3,
@@ -34155,11 +34155,11 @@ __int64 __fastcall sub_9404CAC0(
         __int64 a7,
         __int64 a8)
 {
-  return sub_9404CA48(a1, a2, (unsigned __int8 *)a3);
+  return vsnprintf(a1, a2, (unsigned __int8 *)a3);
 }
 
-/* ===== sub_9404CB1C @ 0x9404CB1C size 48 ===== */
-__int64 __fastcall sub_9404CB1C(__int64 *a1, __int64 a2, _QWORD *a3)
+/* ===== log_dispatch @ 0x9404CB1C size 48 ===== */
+__int64 __fastcall log_dispatch(__int64 *a1, __int64 a2, _QWORD *a3)
 {
   __int64 v3; // x7
   __int64 v4; // x4
@@ -34180,8 +34180,8 @@ __int64 __fastcall sub_9404CB1C(__int64 *a1, __int64 a2, _QWORD *a3)
   return v6(v7, a2, v9);
 }
 
-/* ===== sub_9404CB4C @ 0x9404CB4C size 120 ===== */
-__int64 sub_9404CB4C(
+/* ===== printf @ 0x9404CB4C size 120 ===== */
+__int64 printf(
         const char *a1,
         double a2,
         double a3,
@@ -34198,39 +34198,39 @@ __int64 sub_9404CB4C(
 
   va_start(va, a9);
   va_start(va1, a9);
-  return sub_9404CB1C((__int64 *)0xFFFFFFFFE003CB38LL, (__int64)a1, va);
+  return log_dispatch((__int64 *)0xFFFFFFFFE003CB38LL, (__int64)a1, va);
 }
 
-/* ===== sub_9404CBC4 @ 0x9404CBC4 size 8 ===== */
-__int64 __fastcall sub_9404CBC4(__int64 a1)
+/* ===== malloc @ 0x9404CBC4 size 8 ===== */
+__int64 __fastcall malloc(__int64 a1)
 {
-  return sub_9404B8D0(a1, 0);
+  return heap_alloc_aligned(a1, 0);
 }
 
-/* ===== sub_9404CBCC @ 0x9404CBCC size 16 ===== */
-__int64 __fastcall sub_9404CBCC(unsigned int a1, __int64 a2)
+/* ===== memalign @ 0x9404CBCC size 16 ===== */
+__int64 __fastcall memalign(unsigned int a1, __int64 a2)
 {
-  return sub_9404B8D0(a2, a1);
+  return heap_alloc_aligned(a2, a1);
 }
 
-/* ===== sub_9404CBDC @ 0x9404CBDC size 68 ===== */
-__int64 __fastcall sub_9404CBDC(__int64 a1, __int64 a2)
+/* ===== calloc @ 0x9404CBDC size 68 ===== */
+__int64 __fastcall calloc(__int64 a1, __int64 a2)
 {
   __int64 v2; // x0
   __int64 v3; // x19
   __int64 v5; // [xsp+28h] [xbp+28h]
 
   v5 = a1 * a2;
-  v2 = sub_9404B8D0(a1 * a2, 0);
+  v2 = heap_alloc_aligned(a1 * a2, 0);
   v3 = v2;
   if ( v2 != 0 )
-    sub_9404CDC4(v2, 0, v5);
+    memset(v2, 0, v5);
   return v3;
 }
 
-/* ===== sub_9404CC20 @ 0x9404CC20 size 4 ===== */
+/* ===== free @ 0x9404CC20 size 4 ===== */
 // attributes: thunk
-__int64 __fastcall sub_9404CC20(
+__int64 __fastcall free(
         __int64 result,
         double a2,
         double a3,
@@ -34241,11 +34241,11 @@ __int64 __fastcall sub_9404CC20(
         double a8,
         double a9)
 {
-  return sub_9404BBD0(result, a2, a3, a4, a5, a6, a7, a8, a9);
+  return heap_free(result, a2, a3, a4, a5, a6, a7, a8, a9);
 }
 
-/* ===== sub_9404CC24 @ 0x9404CC24 size 84 ===== */
-__int64 __fastcall sub_9404CC24(_BYTE *a1, _BYTE *a2, __int64 a3)
+/* ===== memcmp @ 0x9404CC24 size 84 ===== */
+__int64 __fastcall memcmp(_BYTE *a1, _BYTE *a2, __int64 a3)
 {
   char *v3; // x4
   char *v4; // x2
@@ -34272,8 +34272,8 @@ __int64 __fastcall sub_9404CC24(_BYTE *a1, _BYTE *a2, __int64 a3)
   return 0;
 }
 
-/* ===== sub_9404CC78 @ 0x9404CC78 size 332 ===== */
-_BYTE *__fastcall sub_9404CC78(_BYTE *result, _BYTE *a2, unsigned __int64 a3)
+/* ===== memcpy @ 0x9404CC78 size 332 ===== */
+_BYTE *__fastcall memcpy(_BYTE *result, _BYTE *a2, unsigned __int64 a3)
 {
   _BYTE *v3; // x5
   __int64 v4; // x3
@@ -34362,8 +34362,8 @@ LABEL_4:
   return result;
 }
 
-/* ===== sub_9404CDC4 @ 0x9404CDC4 size 276 ===== */
-__int64 __fastcall sub_9404CDC4(__int64 result, unsigned __int8 a2, unsigned __int64 a3)
+/* ===== memset @ 0x9404CDC4 size 276 ===== */
+__int64 __fastcall memset(__int64 result, unsigned __int8 a2, unsigned __int64 a3)
 {
   unsigned __int64 *v3; // x4
   unsigned __int64 v4; // x3
@@ -34453,8 +34453,8 @@ __int64 __fastcall sub_9404CDC4(__int64 result, unsigned __int8 a2, unsigned __i
   return result;
 }
 
-/* ===== sub_9404CED8 @ 0x9404CED8 size 52 ===== */
-__int64 __fastcall sub_9404CED8(__int64 a1, __int64 a2)
+/* ===== strcmp @ 0x9404CED8 size 52 ===== */
+__int64 __fastcall strcmp(__int64 a1, __int64 a2)
 {
   __int64 v2; // x3
   int v3; // w4
@@ -34474,8 +34474,8 @@ __int64 __fastcall sub_9404CED8(__int64 a1, __int64 a2)
   return 0;
 }
 
-/* ===== sub_9404CF0C @ 0x9404CF0C size 24 ===== */
-__int64 __fastcall sub_9404CF0C(__int64 result, __int64 a2)
+/* ===== strcpy @ 0x9404CF0C size 24 ===== */
+__int64 __fastcall strcpy(__int64 result, __int64 a2)
 {
   __int64 v2; // x2
   int v3; // w3
@@ -34490,23 +34490,23 @@ __int64 __fastcall sub_9404CF0C(__int64 result, __int64 a2)
   return result;
 }
 
-/* ===== sub_9404CF24 @ 0x9404CF24 size 72 ===== */
-_BYTE *__fastcall sub_9404CF24(_BYTE *a1)
+/* ===== strdup @ 0x9404CF24 size 72 ===== */
+_BYTE *__fastcall strdup(_BYTE *a1)
 {
   _BYTE *v1; // x0
   _BYTE *v2; // x19
   __int64 v5; // [xsp+28h] [xbp+28h]
 
-  v5 = sub_9404CFF4(a1) + 1;
-  v1 = (_BYTE *)sub_9404CBC4(v5);
+  v5 = strlen(a1) + 1;
+  v1 = (_BYTE *)malloc(v5);
   v2 = v1;
   if ( v1 != nullptr )
-    sub_9404CC78(v1, a1, v5);
+    memcpy(v1, a1, v5);
   return v2;
 }
 
-/* ===== sub_9404CF6C @ 0x9404CF6C size 136 ===== */
-__int64 __fastcall sub_9404CF6C(__int64 a1, _BYTE *a2, __int64 a3)
+/* ===== strlcpy @ 0x9404CF6C size 136 ===== */
+__int64 __fastcall strlcpy(__int64 a1, _BYTE *a2, __int64 a3)
 {
   __int64 v3; // x2
   __int64 v4; // x19
@@ -34516,7 +34516,7 @@ __int64 __fastcall sub_9404CF6C(__int64 a1, _BYTE *a2, __int64 a3)
   int v8; // t1
 
   if ( a3 == 0 )
-    return sub_9404CFF4(a2);
+    return strlen(a2);
   v3 = a3 - 1;
   if ( v3 != 0 )
   {
@@ -34547,11 +34547,11 @@ __int64 __fastcall sub_9404CF6C(__int64 a1, _BYTE *a2, __int64 a3)
   }
 LABEL_8:
   *(_BYTE *)(a1 + v4) = 0;
-  return sub_9404CFF4(v5) + v4;
+  return strlen(v5) + v4;
 }
 
-/* ===== sub_9404CFF4 @ 0x9404CFF4 size 40 ===== */
-__int64 __fastcall sub_9404CFF4(_BYTE *a1)
+/* ===== strlen @ 0x9404CFF4 size 40 ===== */
+__int64 __fastcall strlen(_BYTE *a1)
 {
   __int64 result; // x0
 
@@ -34564,8 +34564,8 @@ __int64 __fastcall sub_9404CFF4(_BYTE *a1)
   return result;
 }
 
-/* ===== sub_9404D01C @ 0x9404D01C size 36 ===== */
-__int64 __fastcall sub_9404D01C(__int64 result, __int64 a2, __int64 a3)
+/* ===== strncpy @ 0x9404D01C size 36 ===== */
+__int64 __fastcall strncpy(__int64 result, __int64 a2, __int64 a3)
 {
   __int64 v3; // x3
   int v4; // w4
@@ -34582,8 +34582,8 @@ __int64 __fastcall sub_9404D01C(__int64 result, __int64 a2, __int64 a3)
   return result;
 }
 
-/* ===== sub_9404D040 @ 0x9404D040 size 96 ===== */
-__int64 __fastcall sub_9404D040(_BYTE *a1, _BYTE *a2, __int64 a3)
+/* ===== strncmp @ 0x9404D040 size 96 ===== */
+__int64 __fastcall strncmp(_BYTE *a1, _BYTE *a2, __int64 a3)
 {
   char *v3; // x5
   unsigned __int8 *v4; // x4
@@ -34617,8 +34617,8 @@ __int64 __fastcall sub_9404D040(_BYTE *a1, _BYTE *a2, __int64 a3)
   return 0;
 }
 
-/* ===== sub_9404D0A0 @ 0x9404D0A0 size 68 ===== */
-__int64 __fastcall sub_9404D0A0(_BYTE *a1, __int64 a2)
+/* ===== strnlen @ 0x9404D0A0 size 68 ===== */
+__int64 __fastcall strnlen(_BYTE *a1, __int64 a2)
 {
   unsigned __int8 *v2; // x2
   unsigned __int8 *v3; // x1
@@ -34640,18 +34640,18 @@ __int64 __fastcall sub_9404D0A0(_BYTE *a1, __int64 a2)
   return v5 - a1;
 }
 
-/* ===== sub_9404D0E4 @ 0x9404D0E4 size 160 ===== */
-_BYTE *__fastcall sub_9404D0E4(_BYTE *a1, _BYTE *a2)
+/* ===== strstr @ 0x9404D0E4 size 160 ===== */
+_BYTE *__fastcall strstr(_BYTE *a1, _BYTE *a2)
 {
   int v4; // w21
   _BYTE *result; // x0
   int v6; // w19
 
-  v4 = sub_9404CFF4(a2);
+  v4 = strlen(a2);
   result = a1;
   if ( v4 != 0 )
   {
-    v6 = sub_9404CFF4(a1);
+    v6 = strlen(a1);
     if ( v4 > v6 )
     {
       return nullptr;
@@ -34661,7 +34661,7 @@ _BYTE *__fastcall sub_9404D0E4(_BYTE *a1, _BYTE *a2)
       while ( 1 )
       {
         --v6;
-        if ( (unsigned int)sub_9404CC24(a1, a2, v4) == 0 )
+        if ( (unsigned int)memcmp(a1, a2, v4) == 0 )
           break;
         ++a1;
         if ( v4 > v6 )
@@ -34673,8 +34673,8 @@ _BYTE *__fastcall sub_9404D0E4(_BYTE *a1, _BYTE *a2)
   return result;
 }
 
-/* ===== sub_9404D188 @ 0x9404D188 size 72 ===== */
-__int64 __fastcall sub_9404D188(__int64 a1)
+/* ===== syscall_dispatch @ 0x9404D188 size 72 ===== */
+__int64 __fastcall syscall_dispatch(__int64 a1)
 {
   unsigned __int64 v1; // x12
   __int64 v7; // x14
@@ -34694,8 +34694,8 @@ __int64 __fastcall sub_9404D188(__int64 a1)
   return result;
 }
 
-/* ===== sub_9404D224 @ 0x9404D224 size 32 ===== */
-__int64 __fastcall sub_9404D224(__int64 a1, unsigned __int8 *a2, unsigned __int64 a3)
+/* ===== copy_to_user @ 0x9404D224 size 32 ===== */
+__int64 __fastcall copy_to_user(__int64 a1, unsigned __int8 *a2, unsigned __int64 a3)
 {
   int v4; // t1
 
@@ -34713,8 +34713,8 @@ __int64 __fastcall sub_9404D224(__int64 a1, unsigned __int8 *a2, unsigned __int6
   return 0;
 }
 
-/* ===== sub_9404D244 @ 0x9404D244 size 32 ===== */
-__int64 __fastcall sub_9404D244(_BYTE *a1, __int64 _X1, unsigned __int64 a3)
+/* ===== copy_from_user @ 0x9404D244 size 32 ===== */
+__int64 __fastcall copy_from_user(_BYTE *a1, __int64 _X1, unsigned __int64 a3)
 {
   if ( a3 == 0 )
     JUMPOUT(0x9404D23CLL);
@@ -34728,8 +34728,8 @@ __int64 __fastcall sub_9404D244(_BYTE *a1, __int64 _X1, unsigned __int64 a3)
   return 0;
 }
 
-/* ===== sub_9404D264 @ 0x9404D264 size 44 ===== */
-__int64 __fastcall sub_9404D264(_BYTE *a1, __int64 _X1, __int64 a3)
+/* ===== copy_from_user_string @ 0x9404D264 size 44 ===== */
+__int64 __fastcall copy_from_user_string(_BYTE *a1, __int64 _X1, __int64 a3)
 {
   __int64 v3; // x10
   char v10; // w11
@@ -34753,8 +34753,8 @@ __int64 __fastcall sub_9404D264(_BYTE *a1, __int64 _X1, __int64 a3)
   return _X1 - v3;
 }
 
-/* ===== sub_9404D290 @ 0x9404D290 size 24 ===== */
-__int64 __fastcall sub_9404D290(_BYTE *a1, __int64 a2, unsigned __int64 a3)
+/* ===== user_memset @ 0x9404D290 size 24 ===== */
+__int64 __fastcall user_memset(_BYTE *a1, __int64 a2, unsigned __int64 a3)
 {
   if ( a3 != 0 )
   {
@@ -34765,8 +34765,8 @@ __int64 __fastcall sub_9404D290(_BYTE *a1, __int64 a2, unsigned __int64 a3)
   return -40;
 }
 
-/* ===== sub_9404D2A8 @ 0x9404D2A8 size 104 ===== */
-__int64 __fastcall sub_9404D2A8(
+/* ===== uthread_free_mp_list @ 0x9404D2A8 size 104 ===== */
+__int64 __fastcall uthread_free_mp_list(
         __int64 result,
         double a2,
         double a3,
@@ -34795,7 +34795,7 @@ __int64 __fastcall sub_9404D2A8(
       *(_QWORD *)(*(_QWORD *)(v9 + 24) + 8LL) = v11;
       *(_QWORD *)(v9 + 32) = 0;
       *(_QWORD *)(v9 + 24) = 0;
-      result = sub_9404CC20(v9, a2, a3, a4, a5, a6, a7, a8, a9);
+      result = free(v9, a2, a3, a4, a5, a6, a7, a8, a9);
       v11 = (_QWORD *)v12[4];
       v13 = v10 == (_QWORD)v12;
       v9 = (__int64)v12;
@@ -34806,28 +34806,28 @@ __int64 __fastcall sub_9404D2A8(
   return result;
 }
 
-/* ===== sub_9404D310 @ 0x9404D310 size 20 ===== */
+/* ===== uthread_list_init @ 0x9404D310 size 20 ===== */
 // write access to const memory has been detected, the output may be wrong!
-void sub_9404D310()
+void uthread_list_init()
 {
   qword_9407A010 = (__int64)&qword_9407A010;
   off_9407A018 = &qword_9407A010;
   JUMPOUT(0x9404DCD4LL);
 }
 
-/* ===== sub_9404D324 @ 0x9404D324 size 24 ===== */
-unsigned __int64 *__fastcall sub_9404D324(__int64 a1)
+/* ===== uthread_start @ 0x9404D324 size 24 ===== */
+unsigned __int64 *__fastcall uthread_start(__int64 a1)
 {
   _DWORD *v1; // x0
 
   if ( a1 != 0 && (v1 = *(_DWORD **)(a1 + 120)) != nullptr )
-    return sub_940260B0(v1);
+    return thread_resume_full(v1);
   else
     return (unsigned __int64 *)4294967288LL;
 }
 
-/* ===== sub_9404D33C @ 0x9404D33C size 240 ===== */
-void __fastcall __noreturn sub_9404D33C(
+/* ===== uthread_exit @ 0x9404D33C size 240 ===== */
+void __fastcall __noreturn uthread_exit(
         int a1,
         double a2,
         double a3,
@@ -34861,37 +34861,37 @@ void __fastcall __noreturn sub_9404D33C(
   v10 = *(__int64 **)(_ReadStatusReg(TPIDR_EL1) + 688);
   if ( v10 != nullptr )
   {
-    sub_9402BC98();
-    sub_9404D2A8((__int64)v10, a2, a3, a4, a5, a6, a7, a8, a9);
-    sub_9404CC20(v10[2], v11, v12, v13, v14, v15, v16, v17, v18);
-    sub_9404DDA8(v10);
+    ta_manager_noop();
+    uthread_free_mp_list((__int64)v10, a2, a3, a4, a5, a6, a7, a8, a9);
+    free(v10[2], v11, v12, v13, v14, v15, v16, v17, v18);
+    uthread_destroy_aspace(v10);
     if ( (_ReadStatusReg(DAIF) & 0x80) == 0 )
       goto LABEL_6;
-    sub_940223B4((unsigned __int64 *)&qword_9407A008);
+    spin_lock((unsigned __int64 *)&qword_9407A008);
     v19 = (_QWORD *)v10[17];
     *v19 = v10[16];
     *(_QWORD *)(v10[16] + 8) = v19;
     v10[17] = 0;
     v10[16] = 0;
-    sub_940223D4((unsigned __int64 *)&qword_9407A008);
+    spin_unlock((unsigned __int64 *)&qword_9407A008);
     while ( 1 )
     {
-      sub_9404CC20((__int64)v10, v20, v21, v22, v23, v24, v25, v26, v27);
+      free((__int64)v10, v20, v21, v22, v23, v24, v25, v26, v27);
 LABEL_5:
-      sub_9402753C(a1);
+      thread_exit(a1);
 LABEL_6:
       __asm { MSR             DAIFSet, #2 }
-      sub_940223B4((unsigned __int64 *)&qword_9407A008);
+      spin_lock((unsigned __int64 *)&qword_9407A008);
       v33 = (_QWORD *)v10[17];
       *v33 = v10[16];
       *(_QWORD *)(v10[16] + 8) = v33;
       v10[17] = 0;
       v10[16] = 0;
-      sub_940223D4((unsigned __int64 *)&qword_9407A008);
+      spin_unlock((unsigned __int64 *)&qword_9407A008);
       __asm { MSR             DAIFClr, #2 }
     }
   }
-  sub_9404CB4C(
+  printf(
     "%s:%d: WARNING: unexpected call on kernel thread %s!",
     a2,
     a3,
@@ -34907,14 +34907,14 @@ LABEL_6:
   goto LABEL_5;
 }
 
-/* ===== sub_9404D42C @ 0x9404D42C size 12 ===== */
-__int64 __fastcall sub_9404D42C(__int64 a1, __int64 a2)
+/* ===== arch_mmu_switch_aspace @ 0x9404D42C size 12 ===== */
+__int64 __fastcall arch_mmu_switch_aspace(__int64 a1, __int64 a2)
 {
-  return sub_9404DD14(*(_QWORD *)(a1 + 688), *(_QWORD *)(a2 + 688));
+  return arch_mmu_switch_ttbr(*(_QWORD *)(a1 + 688), *(_QWORD *)(a2 + 688));
 }
 
-/* ===== sub_9404D438 @ 0x9404D438 size 944 ===== */
-__int64 __fastcall sub_9404D438(
+/* ===== uthread_map @ 0x9404D438 size 944 ===== */
+__int64 __fastcall uthread_map(
         unsigned __int64 *a1,
         unsigned __int64 *a2,
         _BYTE *a3,
@@ -34990,7 +34990,7 @@ __int64 __fastcall sub_9404D438(
   v17 = v15;
   if ( a1 == nullptr )
   {
-    v55 = sub_9404B508(
+    v55 = panic(
             v15,
             "DEBUG ASSERT FAILED at (%s:%d): %s\n",
             a7,
@@ -35007,7 +35007,7 @@ __int64 __fastcall sub_9404D438(
     goto LABEL_58;
   }
   v14 = (__int64)(a1 + 5);
-  sub_940251F8((__int64)(a1 + 5), 0xFFFFFFFFLL);
+  mutex_acquire_timeout((__int64)(a1 + 5), 0xFFFFFFFFLL);
   if ( a2 == nullptr || a3 == nullptr )
     goto LABEL_61;
   if ( (a4 & 0xFFF) != 0 )
@@ -35057,7 +35057,7 @@ LABEL_7:
         if ( (a5 & 0x20) != 0 )
         {
           v32 = 1;
-          v33 = sub_9404CBC4(48);
+          v33 = malloc(48);
           v34 = v33;
           if ( v33 != 0 )
           {
@@ -35066,7 +35066,7 @@ LABEL_10:
             *(_QWORD *)(v34 + 8) = a4;
             *(_DWORD *)(v34 + 16) = a5;
             *(_DWORD *)(v34 + 20) = a6;
-            sub_9404CC78((_BYTE *)(v33 + 40), a3, 8 * v32);
+            memcpy((_BYTE *)(v33 + 40), a3, 8 * v32);
             v43 = a1[12];
             if ( (*(_DWORD *)(v34 + 16) & 0x40) != 0 && v43 > *(_QWORD *)v34 )
               v43 = *(_QWORD *)v34 & 0xFFFFFFFFFFF00000LL;
@@ -35084,7 +35084,7 @@ LABEL_42:
 LABEL_41:
                   v62 = v34;
                   v50 = -8;
-                  sub_9404CC20(v62, v35, v36, v37, v38, v39, v40, v41, v42);
+                  free(v62, v35, v36, v37, v38, v39, v40, v41, v42);
                   goto LABEL_38;
                 }
                 *(_QWORD *)(v34 + 24) = *(_QWORD *)(v45 + 24);
@@ -35117,16 +35117,16 @@ LABEL_41:
             *(_QWORD *)(v49 + 8) = v34 + 24;
             a1[3] = v34 + 24;
 LABEL_21:
-            v50 = sub_9404DE34(a1, v34);
+            v50 = uthread_arch_map(a1, v34);
 LABEL_38:
-            sub_9402530C(v14);
+            mutex_release(v14);
             return v50;
           }
         }
         else
         {
           v32 = (unsigned int)(a4 >> 12);
-          v33 = sub_9404CBC4(8 * (v32 + 5));
+          v33 = malloc(8 * (v32 + 5));
           v34 = v33;
           if ( v33 != 0 )
             goto LABEL_10;
@@ -35193,7 +35193,7 @@ LABEL_58:
       goto LABEL_37;
     goto LABEL_58;
   }
-  v71 = sub_9404B508(
+  v71 = panic(
           v17,
           "DEBUG ASSERT FAILED at (%s:%d): %s\n",
           v23,
@@ -35207,12 +35207,12 @@ LABEL_58:
           "lk/trusty/lib/uthread/uthread.c",
           91,
           "(mp->flags & UTM_NS_MEM) == 0");
-  return sub_9404D7E8(v71, v72, v73, v74, v75, v76);
+  return uthread_create(v71, v72, v73, v74, v75, v76);
 }
 
-/* ===== sub_9404D7E8 @ 0x9404D7E8 size 592 ===== */
+/* ===== uthread_create @ 0x9404D7E8 size 592 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_9404D7E8(__int64 a1, __int64 a2, unsigned int a3, __int64 a4, unsigned __int64 a5, __int64 a6)
+__int64 __fastcall uthread_create(__int64 a1, __int64 a2, unsigned int a3, __int64 a4, unsigned __int64 a5, __int64 a6)
 {
   __int64 v12; // x0
   __int64 v13; // x19
@@ -35253,42 +35253,42 @@ __int64 __fastcall sub_9404D7E8(__int64 a1, __int64 a2, unsigned int a3, __int64
   unsigned __int64 v57; // [xsp+60h] [xbp+60h] BYREF
   __int64 v58; // [xsp+68h] [xbp+68h] BYREF
 
-  v12 = sub_9404CBDC(1, 168);
+  v12 = calloc(1, 168);
   v13 = v12;
   if ( v12 == 0 )
     return 0;
   *(_QWORD *)(v12 + 32) = v12 + 24;
   *(_QWORD *)(v12 + 24) = v12 + 24;
-  sub_940251C4(v12 + 40);
+  mutex_init(v12 + 40);
   if ( (_ReadStatusReg(DAIF) & 0x80) != 0 )
   {
-    sub_940223B4((unsigned __int64 *)&qword_9407A008);
+    spin_lock((unsigned __int64 *)&qword_9407A008);
     dword_9407A000 = 1;
-    sub_940223D4((unsigned __int64 *)&qword_9407A008);
+    spin_unlock((unsigned __int64 *)&qword_9407A008);
   }
   else
   {
     __asm { MSR             DAIFSet, #2 }
-    sub_940223B4((unsigned __int64 *)&qword_9407A008);
+    spin_lock((unsigned __int64 *)&qword_9407A008);
     dword_9407A000 = 1;
-    sub_940223D4((unsigned __int64 *)&qword_9407A008);
+    spin_unlock((unsigned __int64 *)&qword_9407A008);
     __asm { MSR             DAIFClr, #2 }
   }
   *(_DWORD *)(v13 + 104) = 0;
   *(_QWORD *)(v13 + 144) = a6;
   *(_QWORD *)(v13 + 8) = a2;
   *(_QWORD *)(v13 + 96) = 0x2000000;
-  v14 = sub_9404CBCC(0x1000u, a5);
+  v14 = memalign(0x1000u, a5);
   *(_QWORD *)(v13 + 16) = v14;
   if ( v14 == 0 )
   {
 LABEL_15:
-    sub_9404CC20(v13, v15, v16, v17, v18, v19, v20, v21, v22);
+    free(v13, v15, v16, v17, v18, v19, v20, v21, v22);
     return 0;
   }
   v57 = a4 - a5;
-  v58 = sub_9404A248(v14);
-  if ( (unsigned int)sub_9404D438(
+  v58 = pmm_phys_to_virt(v14);
+  if ( (unsigned int)uthread_map(
                        (unsigned __int64 *)v13,
                        &v57,
                        &v58,
@@ -35305,44 +35305,44 @@ LABEL_15:
                        v30) != 0 )
   {
 LABEL_14:
-    sub_9404CC20(*(_QWORD *)(v13 + 16), v31, v32, v33, v34, v35, v36, v37, v38);
+    free(*(_QWORD *)(v13 + 16), v31, v32, v33, v34, v35, v36, v37, v38);
     goto LABEL_15;
   }
   *(_QWORD *)v13 = a4;
-  v39 = sub_940268B8(a1, -536683304, 0, a3, 4096);
+  v39 = thread_create_simple(a1, -536683304, 0, a3, 4096);
   *(_QWORD *)(v13 + 120) = v39;
-  if ( v39 == 0 || (unsigned int)sub_9404DD90(v13) != 0 )
+  if ( v39 == 0 || (unsigned int)uthread_set_aspace(v13) != 0 )
   {
-    sub_9404D2A8(v13, v40, v41, v42, v43, v44, v45, v46, v47);
+    uthread_free_mp_list(v13, v40, v41, v42, v43, v44, v45, v46, v47);
     goto LABEL_14;
   }
   *(_QWORD *)(*(_QWORD *)(v13 + 120) + 688LL) = v13;
   if ( (_ReadStatusReg(DAIF) & 0x80) != 0 )
   {
-    sub_940223B4((unsigned __int64 *)&qword_9407A008);
+    spin_lock((unsigned __int64 *)&qword_9407A008);
     *(_QWORD *)(v13 + 128) = &qword_9407A010;
     *(_QWORD *)(v13 + 136) = 0;
     MEMORY[0] = v13 + 128;
     off_9407A018 = (_UNKNOWN *)(v13 + 128);
-    sub_940223D4((unsigned __int64 *)&qword_9407A008);
+    spin_unlock((unsigned __int64 *)&qword_9407A008);
     return v13;
   }
   else
   {
     __asm { MSR             DAIFSet, #2 }
-    sub_940223B4((unsigned __int64 *)&qword_9407A008);
+    spin_lock((unsigned __int64 *)&qword_9407A008);
     *(_QWORD *)(v13 + 128) = &qword_9407A010;
     *(_QWORD *)(v13 + 136) = 0;
     MEMORY[0] = v13 + 128;
     off_9407A018 = (_UNKNOWN *)(v13 + 128);
-    sub_940223D4((unsigned __int64 *)&qword_9407A008);
+    spin_unlock((unsigned __int64 *)&qword_9407A008);
     __asm { MSR             DAIFClr, #2 }
     return v13;
   }
 }
 
-/* ===== sub_9404DA38 @ 0x9404DA38 size 460 ===== */
-__int64 __fastcall sub_9404DA38(
+/* ===== uthread_unmap @ 0x9404DA38 size 460 ===== */
+__int64 __fastcall uthread_unmap(
         _QWORD *a1,
         unsigned __int64 a2,
         __int64 a3,
@@ -35378,7 +35378,7 @@ __int64 __fastcall sub_9404DA38(
   v14 = v12;
   if ( a1 == nullptr )
   {
-    sub_9404B508(
+    panic(
       v12,
       "DEBUG ASSERT FAILED at (%s:%d): %s\n",
       a4,
@@ -35395,7 +35395,7 @@ __int64 __fastcall sub_9404DA38(
     goto LABEL_25;
   }
   v11 = (__int64)(a1 + 5);
-  sub_940251F8((__int64)(a1 + 5), 0xFFFFFFFFLL);
+  mutex_acquire_timeout((__int64)(a1 + 5), 0xFFFFFFFFLL);
   if ( a2 == 0 )
   {
 LABEL_25:
@@ -35407,7 +35407,7 @@ LABEL_25:
 LABEL_9:
     v18 = -2;
 LABEL_10:
-    sub_9402530C(v11);
+    mutex_release(v11);
     return v18;
   }
   while ( 1 )
@@ -35422,7 +35422,7 @@ LABEL_10:
     if ( a1 == (_QWORD *)v16 )
       goto LABEL_9;
   }
-  v18 = sub_9404DFD8(a1, v16);
+  v18 = uthread_arch_unmap(a1, v16);
   if ( v18 != 0 )
     goto LABEL_10;
   if ( (*(_DWORD *)(v16 + 16) & 0x40) == 0 )
@@ -35451,11 +35451,11 @@ LABEL_22:
     *(_QWORD *)(*(_QWORD *)(v16 + 24) + 8LL) = v29;
     *(_QWORD *)(v16 + 32) = 0;
     *(_QWORD *)(v16 + 24) = 0;
-    sub_9404CC20(v16, v20, v21, v22, v23, v24, v25, v26, v27);
-    sub_9402530C(v11);
+    free(v16, v20, v21, v22, v23, v24, v25, v26, v27);
+    mutex_release(v11);
     return 0;
   }
-  v30 = sub_9404B508(
+  v30 = panic(
           v14,
           "DEBUG ASSERT FAILED at (%s:%d): %s\n",
           v20,
@@ -35469,11 +35469,11 @@ LABEL_22:
           "lk/trusty/lib/uthread/uthread.c",
           252,
           "item->flags & UTM_NS_MEM");
-  return sub_9404DC04(v30, v31, v32);
+  return uthread_is_mapped(v30, v31, v32);
 }
 
-/* ===== sub_9404DC04 @ 0x9404DC04 size 212 ===== */
-__int64 __fastcall sub_9404DC04(
+/* ===== uthread_is_mapped @ 0x9404DC04 size 212 ===== */
+__int64 __fastcall uthread_is_mapped(
         unsigned __int64 *a1,
         unsigned __int64 a2,
         __int64 a3,
@@ -35492,7 +35492,7 @@ __int64 __fastcall sub_9404DC04(
   BOOL v16; // w19
 
   if ( a1 == nullptr )
-    return sub_9404B508(
+    return panic(
              v11,
              "DEBUG ASSERT FAILED at (%s:%d): %s\n",
              a4,
@@ -35507,7 +35507,7 @@ __int64 __fastcall sub_9404DC04(
              45,
              "ut");
   v14 = (__int64)(a1 + 5);
-  sub_940251F8((__int64)(a1 + 5), 0xFFFFFFFFLL);
+  mutex_acquire_timeout((__int64)(a1 + 5), 0xFFFFFFFFLL);
   if ( a2 > a2 + a3 || (v15 = (unsigned __int64 *)(a1[4] - 24), a1 == v15) )
   {
 LABEL_7:
@@ -35528,12 +35528,12 @@ LABEL_7:
         goto LABEL_7;
     }
   }
-  sub_9402530C(v14);
+  mutex_release(v14);
   return v16;
 }
 
-/* ===== sub_9404DCD8 @ 0x9404DCD8 size 56 ===== */
-void __noreturn sub_9404DCD8()
+/* ===== uthread_return_to_user @ 0x9404DCD8 size 56 ===== */
+void __noreturn uthread_return_to_user()
 {
   unsigned __int64 v0; // x3
 
@@ -35550,8 +35550,8 @@ void nullsub_10()
   ;
 }
 
-/* ===== sub_9404DD14 @ 0x9404DD14 size 124 ===== */
-__int64 __fastcall sub_9404DD14(__int64 result, __int64 a2)
+/* ===== arch_mmu_switch_ttbr @ 0x9404DD14 size 124 ===== */
+__int64 __fastcall arch_mmu_switch_ttbr(__int64 result, __int64 a2)
 {
   __int64 v2; // x19
 
@@ -35560,7 +35560,7 @@ __int64 __fastcall sub_9404DD14(__int64 result, __int64 a2)
     if ( a2 != 0 )
     {
       v2 = result;
-      result = sub_9404A248(*(_QWORD *)(a2 + 112)) | ((unsigned __int64)*(unsigned int *)(a2 + 152) << 48);
+      result = pmm_phys_to_virt(*(_QWORD *)(a2 + 112)) | ((unsigned __int64)*(unsigned int *)(a2 + 152) << 48);
       _WriteStatusReg(TTBR0_EL1, result);
       __isb(0xFu);
       if ( v2 == 0 )
@@ -35580,16 +35580,16 @@ __int64 __fastcall sub_9404DD14(__int64 result, __int64 a2)
   return result;
 }
 
-/* ===== sub_9404DD90 @ 0x9404DD90 size 24 ===== */
-__int64 __fastcall sub_9404DD90(__int64 a1)
+/* ===== uthread_set_aspace @ 0x9404DD90 size 24 ===== */
+__int64 __fastcall uthread_set_aspace(__int64 a1)
 {
   *(_DWORD *)(a1 + 152) = *(_DWORD *)(a1 + 104);
   *(_QWORD *)(a1 + 160) = a1;
   return 0;
 }
 
-/* ===== sub_9404DDA8 @ 0x9404DDA8 size 68 ===== */
-__int64 __fastcall sub_9404DDA8(__int64 a1)
+/* ===== uthread_destroy_aspace @ 0x9404DDA8 size 68 ===== */
+__int64 __fastcall uthread_destroy_aspace(__int64 a1)
 {
   double v2; // d0
   double v3; // d1
@@ -35600,25 +35600,25 @@ __int64 __fastcall sub_9404DDA8(__int64 a1)
   double v8; // d6
   double v9; // d7
 
-  sub_940231E0(0, 0x2000000u, 0, 25, 0x15u, 0xCu, *(_QWORD *)(a1 + 112), *(_DWORD *)(a1 + 152));
-  return sub_9404CC20(*(_QWORD *)(a1 + 112), v2, v3, v4, v5, v6, v7, v8, v9);
+  arm64_mmu_unmap(0, 0x2000000u, 0, 25, 0x15u, 0xCu, *(_QWORD *)(a1 + 112), *(_DWORD *)(a1 + 152));
+  return free(*(_QWORD *)(a1 + 112), v2, v3, v4, v5, v6, v7, v8, v9);
 }
 
-/* ===== sub_9404DDEC @ 0x9404DDEC size 72 ===== */
-__int64 __fastcall sub_9404DDEC(__int64 a1)
+/* ===== uthread_alloc_aspace @ 0x9404DDEC size 72 ===== */
+__int64 __fastcall uthread_alloc_aspace(__int64 a1)
 {
   __int64 v2; // x0
 
-  v2 = sub_9404CBCC(0x80u, 128);
+  v2 = memalign(0x80u, 128);
   *(_QWORD *)(a1 + 112) = v2;
   if ( v2 == 0 )
     return 4294967291LL;
-  sub_9404CDC4(v2, 0, 0x80u);
+  memset(v2, 0, 0x80u);
   return 0;
 }
 
-/* ===== sub_9404DE34 @ 0x9404DE34 size 420 ===== */
-__int64 __fastcall sub_9404DE34(
+/* ===== uthread_arch_map @ 0x9404DE34 size 420 ===== */
+__int64 __fastcall uthread_arch_map(
         __int64 a1,
         __int64 a2,
         double a3,
@@ -35657,7 +35657,7 @@ __int64 __fastcall sub_9404DE34(
     v15 = v14 & 0xFFF;
     if ( (v14 & 0xFFF) == 0 )
       break;
-    a1 = sub_9404B508(
+    a1 = panic(
            v13,
            "ASSERT FAILED at (%s:%d): %s\n",
            a3,
@@ -35672,7 +35672,7 @@ __int64 __fastcall sub_9404DE34(
            138,
            "!(mp->size & USER_PAGE_MASK)");
 LABEL_20:
-    result = sub_9404DDEC(a1);
+    result = uthread_alloc_aspace(a1);
     if ( (_DWORD)result != 0 )
       return result;
   }
@@ -35696,7 +35696,7 @@ LABEL_20:
   v23 = 0;
   while ( 1 )
   {
-    v24 = sub_94023114(
+    v24 = arm64_mmu_map(
             v22 + *(_QWORD *)a2,
             *v21,
             v20,
@@ -35717,16 +35717,16 @@ LABEL_20:
   }
   for ( i = 0; v23 > i; v15 = i )
   {
-    sub_940231E0(*(_QWORD *)a2 + v15 * v20, v20, 0, 25, 0x15u, 0xCu, *(_QWORD *)(v12 + 112), *(_DWORD *)(v12 + 152));
+    arm64_mmu_unmap(*(_QWORD *)a2 + v15 * v20, v20, 0, 25, 0x15u, 0xCu, *(_QWORD *)(v12 + 112), *(_DWORD *)(v12 + 152));
     ++i;
   }
   return v24;
 }
 
-/* ===== sub_9404DFD8 @ 0x9404DFD8 size 40 ===== */
-__int64 __fastcall sub_9404DFD8(__int64 a1, __int64 a2)
+/* ===== uthread_arch_unmap @ 0x9404DFD8 size 40 ===== */
+__int64 __fastcall uthread_arch_unmap(__int64 a1, __int64 a2)
 {
-  return sub_940231E0(
+  return arm64_mmu_unmap(
            *(_QWORD *)a2,
            *(_QWORD *)(a2 + 8),
            0,
@@ -35737,21 +35737,21 @@ __int64 __fastcall sub_9404DFD8(__int64 a1, __int64 a2)
            *(_DWORD *)(a1 + 152));
 }
 
-/* ===== sub_9404E298 @ 0x9404E298 size 16 ===== */
-void __fastcall __noreturn sub_9404E298(__int64 a1, char _W1)
+/* ===== invalid_exception_stub @ 0x9404E298 size 16 ===== */
+void __fastcall __noreturn invalid_exception_stub(__int64 a1, char _W1)
 {
   __asm { WHILEWR         P0.H, X1, X24 }
   __udf(0xA78u);
 }
 
-/* ===== sub_94051138 @ 0x94051138 size 24 ===== */
-void __noreturn sub_94051138()
+/* ===== invalid_handle_stub @ 0x94051138 size 24 ===== */
+void __noreturn invalid_handle_stub()
 {
   __udf(0);
 }
 
-/* ===== sub_94053770 @ 0x94053770 size 28 ===== */
-void __fastcall __noreturn sub_94053770(double a1, double a2, double a3, __n128 _Q3)
+/* ===== fp_spi_sync_stub @ 0x94053770 size 28 ===== */
+void __fastcall __noreturn fp_spi_sync_stub(double a1, double a2, double a3, __n128 _Q3)
 {
   __asm
   {
@@ -35763,8 +35763,8 @@ void __fastcall __noreturn sub_94053770(double a1, double a2, double a3, __n128 
   __udf(0xA63u);
 }
 
-/* ===== sub_94054F40 @ 0x94054F40 size 20 ===== */
-void __fastcall sub_94054F40(int a1, double a2, double a3, double a4, double a5, double a6, __n128 a7)
+/* ===== kbc_set_bit_log @ 0x94054F40 size 20 ===== */
+void __fastcall kbc_set_bit_log(int a1, double a2, double a3, double a4, double a5, double a6, __n128 a7)
 {
   __int64 v7; // x27
 
@@ -35774,8 +35774,8 @@ void __fastcall sub_94054F40(int a1, double a2, double a3, double a4, double a5,
   JUMPOUT(0x940B53F0LL);
 }
 
-/* ===== sub_94054F58 @ 0x94054F58 size 20 ===== */
-void __fastcall sub_94054F58(int a1, double a2, double a3, double a4, double a5, double a6, __n128 a7)
+/* ===== kbc_set_bit_log2 @ 0x94054F58 size 20 ===== */
+void __fastcall kbc_set_bit_log2(int a1, double a2, double a3, double a4, double a5, double a6, __n128 a7)
 {
   __int64 v7; // x27
 
@@ -35786,15 +35786,15 @@ void __fastcall sub_94054F58(int a1, double a2, double a3, double a4, double a5,
   JUMPOUT(0x940B5408LL);
 }
 
-/* ===== sub_940570A8 @ 0x940570A8 size 20 ===== */
-void __noreturn sub_940570A8()
+/* ===== kbc_read_footer_stub @ 0x940570A8 size 20 ===== */
+void __noreturn kbc_read_footer_stub()
 {
   __asm { FNMLS           Z3.H, P0/M, Z11.H, Z20.H }
   __udf(0);
 }
 
-/* ===== sub_94057450 @ 0x94057450 size 20 ===== */
-void __fastcall __noreturn sub_94057450(
+/* ===== vbmeta_check_log_stub @ 0x94057450 size 20 ===== */
+void __fastcall __noreturn vbmeta_check_log_stub(
         double a1,
         double a2,
         double a3,

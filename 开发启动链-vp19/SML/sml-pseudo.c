@@ -1,6 +1,6 @@
 // pseudo-C decompilation of sml.elf
-/* ===== start @ 0x94000000 size 212 ===== */
-__int64 __fastcall start(
+/* ===== bl31_entrypoint @ 0x94000000 size 212 ===== */
+__int64 __fastcall bl31_entrypoint(
         __int64 a1,
         __int64 a2,
         __int64 a3,
@@ -55,13 +55,13 @@ __int64 __fastcall start(
 
   _WriteStatusReg(SCTLR_EL3, _ReadStatusReg(SCTLR_EL3) & 0xFFFFFFFFFDFFFFFFLL);
   __isb(0xFu);
-  v44 = (__int64 (*)(void))sub_94007E08();
+  v44 = (__int64 (*)(void))get_zero();
   if ( v44 == nullptr )
   {
-    sub_94007614();
+    cpu_init_early();
     _WriteStatusReg(SCTLR_EL3, _ReadStatusReg(SCTLR_EL3) | 0x100A);
     __isb(0xFu);
-    sub_940075F4();
+    set_tpidr_el3_cpu();
     _WriteStatusReg(VBAR_EL3, (unsigned __int64)sub_94008000);
     __isb(0xFu);
     _WriteStatusReg(SCR_EL3, 0x238u);
@@ -69,16 +69,16 @@ __int64 __fastcall start(
     __asm { MSR             DAIFClr, #4 }
     _WriteStatusReg(CPTR_EL3, _ReadStatusReg(CPTR_EL3) & 0x7FEFFBFF);
     nullsub_7();
-    sub_94007C60(off_9400C000, 2483113984LL - (_QWORD)off_9400C000);
-    sub_94007DB8(2483081408LL, 13184);
-    v51 = sub_94007DB8(2483109888LL, 32);
+    dcache_invalidate(off_9400C000, 2483113984LL - (_QWORD)off_9400C000);
+    zeromem(2483081408LL, 13184);
+    v51 = zeromem(2483109888LL, 32);
     __asm { MSR             SPSel, #0 }
-    sub_94007250(v51);
-    v53 = sub_940001C8(0, 0);
-    v54 = sub_94001998(v53);
-    sub_94001BD0(v54);
-    sub_94007C2C(off_9400C000, (char *)qword_9400C090 - (char *)off_9400C000);
-    sub_94007C2C(2483081408LL, 13184);
+    set_tpidr_el3(v51);
+    v53 = bl31_early_setup(0, 0);
+    v54 = sprd_bl31_setup_call(v53);
+    bl31_main_init(v54);
+    dcache_clean(off_9400C000, (char *)qword_9400C090 - (char *)off_9400C000);
+    dcache_clean(2483081408LL, 13184);
     __asm { MSR             SPSel, #1 }
     a42 = &a9;
     v56 = a43;
@@ -92,18 +92,18 @@ __int64 __fastcall start(
   return v44();
 }
 
-/* ===== sub_940000F8 @ 0x940000F8 size 116 ===== */
-void sub_940000F8()
+/* ===== bl31_warm_reset_vector @ 0x940000F8 size 116 ===== */
+void bl31_warm_reset_vector()
 {
   unsigned __int64 v5; // x0
   __int64 v7; // x0
 
   if ( MEMORY[0x9400D0C0] != 0 )
-    sub_94007E40();
-  sub_94007614();
+    get_pc();
+  cpu_init_early();
   _WriteStatusReg(SCTLR_EL3, _ReadStatusReg(SCTLR_EL3) | 0x100A);
   __isb(0xFu);
-  sub_940075F4();
+  set_tpidr_el3_cpu();
   _WriteStatusReg(VBAR_EL3, (unsigned __int64)sub_94008000);
   __isb(0xFu);
   _WriteStatusReg(SCR_EL3, 0x238u);
@@ -112,81 +112,81 @@ void sub_940000F8()
   v5 = _ReadStatusReg(CPTR_EL3) & 0x7FEFFBFF;
   _WriteStatusReg(CPTR_EL3, v5);
   __asm { MSR             SPSel, #0 }
-  sub_94007250(v5);
-  v7 = sub_94006CF8(1);
-  sub_94003430(v7);
+  set_tpidr_el3(v5);
+  v7 = enable_mmu_thunk(1);
+  psci_cpu_on_handler(v7);
   JUMPOUT(0x94007A78LL);
 }
 
-/* ===== sub_940001C8 @ 0x940001C8 size 28 ===== */
-__int64 sub_940001C8()
+/* ===== bl31_early_setup @ 0x940001C8 size 28 ===== */
+__int64 bl31_early_setup()
 {
   __int64 v0; // x0
   __int64 v1; // x0
   __int64 v2; // x0
 
-  v0 = sub_94001800();
-  v1 = sub_940063CC(v0);
-  v2 = sub_940063E0(v1);
-  return sub_940063F4(v2);
+  v0 = sprd_bl31_early_platform_setup();
+  v1 = set_boot_flag(v0);
+  v2 = get_boot_flag(v1);
+  return clear_boot_flag(v2);
 }
 
-/* ===== sub_940001E4 @ 0x940001E4 size 16 ===== */
-_BYTE *__fastcall sub_940001E4(_BYTE *result)
+/* ===== set_psci_state_off @ 0x940001E4 size 16 ===== */
+_BYTE *__fastcall set_psci_state_off(_BYTE *result)
 {
   *result = 2;
   result[1] = 2;
   return result;
 }
 
-/* ===== sub_940001F4 @ 0x940001F4 size 56 ===== */
-__int64 __fastcall sub_940001F4(__int64 a1)
+/* ===== cpu_standby_wait @ 0x940001F4 size 56 ===== */
+__int64 __fastcall cpu_standby_wait(__int64 a1)
 {
-  while ( (unsigned int)sub_94000510(a1) != 7 )
+  while ( (unsigned int)get_affinity_state(a1) != 7 )
     ;
-  sub_94000788(a1);
+  gicv2_cpuif_disable_cpu(a1);
   return 0;
 }
 
-/* ===== sub_9400022C @ 0x9400022C size 28 ===== */
-void __noreturn sub_9400022C()
+/* ===== system_reset_unhandled @ 0x9400022C size 28 ===== */
+void __noreturn system_reset_unhandled()
 {
   __int64 v0; // x0
 
   __wfi();
-  v0 = sub_9400517C("ERROR:   SPRD System Reset: operation not handled.\n");
-  sub_94007BB8(v0);
+  v0 = printf_impl("ERROR:   SPRD System Reset: operation not handled.\n");
+  panic(v0);
 }
 
-/* ===== sub_94000248 @ 0x94000248 size 28 ===== */
-void __noreturn sub_94000248()
+/* ===== system_off_unhandled @ 0x94000248 size 28 ===== */
+void __noreturn system_off_unhandled()
 {
   __int64 v0; // x0
 
   __wfi();
-  v0 = sub_9400517C("ERROR:   SPRD System Off: operation not handled.\n");
-  sub_94007BB8(v0);
+  v0 = printf_impl("ERROR:   SPRD System Off: operation not handled.\n");
+  panic(v0);
 }
 
-/* ===== sub_94000264 @ 0x94000264 size 68 ===== */
-__int64 __fastcall sub_94000264(__int64 result)
+/* ===== sprd_cpu_standby @ 0x94000264 size 68 ===== */
+__int64 __fastcall sprd_cpu_standby(__int64 result)
 {
   result = (unsigned __int8)result;
   if ( (unsigned __int8)result != 1 )
-    sub_940054A8("sprd_cpu_standby", "plat/sprd/sharkle/pm.c", 137, "cpu_state == ARM_LOCAL_STATE_RET");
+    assert_fail("sprd_cpu_standby", "plat/sprd/sharkle/pm.c", 137, "cpu_state == ARM_LOCAL_STATE_RET");
   __dsb(0xFu);
   __wfi();
   return result;
 }
 
-/* ===== sub_940002A8 @ 0x940002A8 size 80 ===== */
-__int64 __fastcall sub_940002A8(__int64 a1, unsigned int a2)
+/* ===== sprd_validate_power_state @ 0x940002A8 size 80 ===== */
+__int64 __fastcall sprd_validate_power_state(__int64 a1, unsigned int a2)
 {
   __int64 v3; // x0
 
   if ( a2 > 1 )
     return 4294967294LL;
-  v3 = sub_94000510(a1);
+  v3 = get_affinity_state(a1);
   if ( (_DWORD)v3 == -1 )
     return 4294967294LL;
   if ( a2 == 1 )
@@ -194,8 +194,8 @@ __int64 __fastcall sub_940002A8(__int64 a1, unsigned int a2)
   return ((v3 ^ 0x20000000) & 0x20000000) != 0;
 }
 
-/* ===== sub_940002F8 @ 0x940002F8 size 148 ===== */
-__int64 __fastcall sub_940002F8(unsigned __int8 *a1)
+/* ===== sprd_pwr_domain_suspend @ 0x940002F8 size 148 ===== */
+__int64 __fastcall sprd_pwr_domain_suspend(unsigned __int8 *a1)
 {
   __int64 result; // x0
   __int64 v3; // x0
@@ -205,35 +205,35 @@ __int64 __fastcall sub_940002F8(unsigned __int8 *a1)
   if ( (_DWORD)result != 1 )
   {
     if ( (_DWORD)result != 2 )
-      sub_940054A8(
+      assert_fail(
         "sprd_pwr_domain_suspend",
         "plat/sprd/sharkle/pm.c",
         216,
         "target_state->pwr_domain_state[ARM_PWR_LVL0] == ARM_LOCAL_STATE_OFF");
-    v3 = sub_94000B68(_ReadStatusReg(MPIDR_EL1));
-    sub_9400178C(v3);
-    sub_94000938(_ReadStatusReg(MPIDR_EL1));
+    v3 = gicv2_enable_ppi(_ReadStatusReg(MPIDR_EL1));
+    gicv2_cpuif_disable_thunk(v3);
+    gicv2_cpuif_enable_cpu(_ReadStatusReg(MPIDR_EL1));
     result = a1[1];
     if ( (_DWORD)result == 2 )
     {
       MEMORY[0x9400D0C0] = 1;
       StatusReg = _ReadStatusReg(MPIDR_EL1);
-      sub_94006408();
-      return sub_94000C50(StatusReg);
+      read_boot_flag();
+      return sprd_gic_cpuif_init(StatusReg);
     }
   }
   return result;
 }
 
-/* ===== sub_9400038C @ 0x9400038C size 104 ===== */
-__int64 __fastcall sub_9400038C(_BYTE *a1)
+/* ===== sprd_power_domain_on_finish @ 0x9400038C size 104 ===== */
+__int64 __fastcall sprd_power_domain_on_finish(_BYTE *a1)
 {
   unsigned __int64 StatusReg; // x19
   __int64 v2; // x0
   __int64 v3; // x0
 
   if ( *a1 != 2 )
-    sub_940054A8(
+    assert_fail(
       "sprd_power_domain_on_finish_common",
       "plat/sprd/sharkle/pm.c",
       100,
@@ -241,23 +241,23 @@ __int64 __fastcall sub_9400038C(_BYTE *a1)
   StatusReg = _ReadStatusReg(MPIDR_EL1);
   if ( a1[1] == 2 )
   {
-    v2 = sub_94000788(StatusReg);
-    v3 = sub_9400056C(v2);
-    sub_940063F4(v3);
+    v2 = gicv2_cpuif_disable_cpu(StatusReg);
+    v3 = sprd_pwr_domain_suspend_finish(v2);
+    clear_boot_flag(v3);
   }
-  return sub_94000C24(StatusReg);
+  return gicv2_lock_release(StatusReg);
 }
 
-/* ===== sub_940003F4 @ 0x940003F4 size 24 ===== */
-_DWORD *__fastcall sub_940003F4(_BYTE *a1)
+/* ===== gicv2_cpuif_enable @ 0x940003F4 size 24 ===== */
+_DWORD *__fastcall gicv2_cpuif_enable(_BYTE *a1)
 {
   __int64 v1; // x0
   __int64 v2; // x2
   char *v3; // x3
   _DWORD *result; // x0
 
-  v1 = sub_9400038C(a1);
-  sub_94001790(v1);
+  v1 = sprd_power_domain_on_finish(a1);
+  gicv2_pcpu_distif_init_thunk(v1);
   if ( MEMORY[0x9400D0D0] == 0 )
   {
     v2 = 50;
@@ -270,79 +270,79 @@ _DWORD *__fastcall sub_940003F4(_BYTE *a1)
     v2 = 51;
     v3 = "driver_data->gicc_base";
 LABEL_5:
-    sub_940054A8("gicv2_cpuif_enable", "drivers/arm/gic/v2/gicv2_main.c", v2, v3);
+    assert_fail("gicv2_cpuif_enable", "drivers/arm/gic/v2/gicv2_main.c", v2, v3);
   }
   result[1] = 255;
   *result = 489;
   return result;
 }
 
-/* ===== sub_9400040C @ 0x9400040C size 40 ===== */
-_BYTE *__fastcall sub_9400040C(_BYTE *result)
+/* ===== sprd_pwr_domain_on_finish_common @ 0x9400040C size 40 ===== */
+_BYTE *__fastcall sprd_pwr_domain_on_finish_common(_BYTE *result)
 {
   if ( *result != 1 )
   {
-    sub_9400038C(result);
+    sprd_power_domain_on_finish(result);
     JUMPOUT(0x94001054LL);
   }
   return result;
 }
 
-/* ===== sub_94000434 @ 0x94000434 size 128 ===== */
-__int64 __fastcall sub_94000434(_BYTE *a1)
+/* ===== sprd_pwr_domain_off @ 0x94000434 size 128 ===== */
+__int64 __fastcall sprd_pwr_domain_off(_BYTE *a1)
 {
   __int64 v2; // x0
   __int64 result; // x0
   unsigned __int64 StatusReg; // x19
 
   if ( *a1 != 2 )
-    sub_940054A8(
+    assert_fail(
       "sprd_pwr_domain_off",
       "plat/sprd/sharkle/pm.c",
       178,
       "target_state->pwr_domain_state[ARM_PWR_LVL0] == ARM_LOCAL_STATE_OFF");
-  v2 = sub_94000B68(_ReadStatusReg(MPIDR_EL1));
-  sub_9400178C(v2);
-  sub_94000938(_ReadStatusReg(MPIDR_EL1));
+  v2 = gicv2_enable_ppi(_ReadStatusReg(MPIDR_EL1));
+  gicv2_cpuif_disable_thunk(v2);
+  gicv2_cpuif_enable_cpu(_ReadStatusReg(MPIDR_EL1));
   result = (unsigned __int8)a1[1];
   if ( (_DWORD)result == 2 )
   {
     StatusReg = _ReadStatusReg(MPIDR_EL1);
-    sub_94006408();
-    return sub_94000C50(StatusReg);
+    read_boot_flag();
+    return sprd_gic_cpuif_init(StatusReg);
   }
   return result;
 }
 
-/* ===== sub_940004B4 @ 0x940004B4 size 28 ===== */
-unsigned __int64 sub_940004B4()
+/* ===== get_power_domain_tree @ 0x940004B4 size 28 ===== */
+unsigned __int64 get_power_domain_tree()
 {
   MEMORY[0x9400E680] = 1;
   MEMORY[0x9400E681] = 4;
   return 0x9400E680;
 }
 
-/* ===== sub_940004D0 @ 0x940004D0 size 64 ===== */
-__int64 __fastcall sub_940004D0(__int64 a1)
+/* ===== psci_validate_affinity @ 0x940004D0 size 64 ===== */
+__int64 __fastcall psci_validate_affinity(__int64 a1)
 {
   if ( (a1 & 0xFF00FF0000LL) == 0 && BYTE1(a1) == 0 && (unsigned __int8)a1 <= 3u )
     JUMPOUT(0x94007E30LL);
   return 0xFFFFFFFFLL;
 }
 
-/* ===== sub_94000510 @ 0x94000510 size 92 ===== */
-__int64 __fastcall sub_94000510(char a1)
+/* ===== get_affinity_state @ 0x94000510 size 92 ===== */
+__int64 __fastcall get_affinity_state(char a1)
 {
   unsigned int v2; // w20
 
-  sub_940040A0(0x94014000);
+  bakery_lock_get(0x94014000);
   v2 = MEMORY[0x402B00BC];
-  sub_940041C8(0x94014000);
+  bakery_lock_release(0x94014000);
   return (v2 >> (5 * (a1 + 1))) & 0x1F;
 }
 
-/* ===== sub_9400056C @ 0x9400056C size 108 ===== */
-__int64 sub_9400056C()
+/* ===== sprd_pwr_domain_suspend_finish @ 0x9400056C size 108 ===== */
+__int64 sprd_pwr_domain_suspend_finish()
 {
   __int64 result; // x0
 
@@ -350,7 +350,7 @@ __int64 sub_9400056C()
   if ( MEMORY[0x9400D0C0] != 0 )
   {
     MEMORY[0x9400D0C0] = 0;
-    MEMORY[0x402E0528] = (unsigned __int64)sub_940000F8 >> 2;
+    MEMORY[0x402E0528] = (unsigned __int64)bl31_warm_reset_vector >> 2;
     MEMORY[0x402B2208] = 1;
     MEMORY[0x402B2214] = 1;
     MEMORY[0x402E1000] = 0x80000000;
@@ -360,8 +360,8 @@ __int64 sub_9400056C()
   return result;
 }
 
-/* ===== sub_940005D8 @ 0x940005D8 size 144 ===== */
-_DWORD *__fastcall sub_940005D8(_DWORD *result)
+/* ===== gicv2_raise_priority @ 0x940005D8 size 144 ===== */
+_DWORD *__fastcall gicv2_raise_priority(_DWORD *result)
 {
   __int64 v1; // x0
   int v2; // w1
@@ -393,8 +393,8 @@ LABEL_6:
   return result;
 }
 
-/* ===== sub_94000668 @ 0x94000668 size 144 ===== */
-_DWORD *__fastcall sub_94000668(_DWORD *result)
+/* ===== gicv2_set_priority @ 0x94000668 size 144 ===== */
+_DWORD *__fastcall gicv2_set_priority(_DWORD *result)
 {
   __int64 v1; // x0
   int v2; // w1
@@ -426,8 +426,8 @@ LABEL_6:
   return result;
 }
 
-/* ===== sub_940006F8 @ 0x940006F8 size 144 ===== */
-_DWORD *__fastcall sub_940006F8(_DWORD *result)
+/* ===== gicv2_clear_priority @ 0x940006F8 size 144 ===== */
+_DWORD *__fastcall gicv2_clear_priority(_DWORD *result)
 {
   __int64 v1; // x0
   unsigned int v2; // w1
@@ -459,14 +459,14 @@ LABEL_6:
   return result;
 }
 
-/* ===== sub_94000788 @ 0x94000788 size 432 ===== */
-__int64 __fastcall sub_94000788(unsigned __int16 a1)
+/* ===== gicv2_cpuif_disable_cpu @ 0x94000788 size 432 ===== */
+__int64 __fastcall gicv2_cpuif_disable_cpu(unsigned __int16 a1)
 {
   unsigned __int64 v1; // x19
   unsigned int v2; // w0
 
   v1 = a1;
-  sub_940040A0(2483109888LL);
+  bakery_lock_get(2483109888LL);
   MEMORY[0x402B0254] |= 1u;
   switch ( (int)v1 )
   {
@@ -495,18 +495,18 @@ LABEL_6:
     default:
       break;
   }
-  sub_940006F8((_DWORD *)v1);
-  return sub_940041C8(2483109888LL);
+  gicv2_clear_priority((_DWORD *)v1);
+  return bakery_lock_release(2483109888LL);
 }
 
-/* ===== sub_94000938 @ 0x94000938 size 560 ===== */
-__int64 __fastcall sub_94000938(unsigned __int16 a1)
+/* ===== gicv2_cpuif_enable_cpu @ 0x94000938 size 560 ===== */
+__int64 __fastcall gicv2_cpuif_enable_cpu(unsigned __int16 a1)
 {
   unsigned __int64 v1; // x19
   unsigned int v2; // w0
 
   v1 = a1;
-  sub_940040A0(2483109888LL);
+  bakery_lock_get(2483109888LL);
   MEMORY[0x7140000C] = -1;
   MEMORY[0x7150000C] = -1;
   MEMORY[0x7160000C] = -1;
@@ -542,18 +542,18 @@ LABEL_6:
     default:
       break;
   }
-  sub_94000668((_DWORD *)v1);
-  sub_940005D8((_DWORD *)v1);
-  return sub_940041C8(2483109888LL);
+  gicv2_set_priority((_DWORD *)v1);
+  gicv2_raise_priority((_DWORD *)v1);
+  return bakery_lock_release(2483109888LL);
 }
 
-/* ===== sub_94000B68 @ 0x94000B68 size 188 ===== */
-__int64 __fastcall sub_94000B68(__int16 a1)
+/* ===== gicv2_enable_ppi @ 0x94000B68 size 188 ===== */
+__int64 __fastcall gicv2_enable_ppi(__int16 a1)
 {
   __int64 v2; // x1
   int v3; // w0
 
-  sub_940040A0(2483109888LL);
+  bakery_lock_get(2483109888LL);
   switch ( a1 )
   {
     case 0:
@@ -575,25 +575,25 @@ LABEL_6:
       *(_DWORD *)(v2 & 0xFFFFFFFF0000FFFFLL | 0x402B0000) = v3;
       break;
     default:
-      return sub_940041C8(2483109888LL);
+      return bakery_lock_release(2483109888LL);
   }
-  return sub_940041C8(2483109888LL);
+  return bakery_lock_release(2483109888LL);
 }
 
-/* ===== sub_94000C24 @ 0x94000C24 size 44 ===== */
-__int64 sub_94000C24()
+/* ===== gicv2_lock_release @ 0x94000C24 size 44 ===== */
+__int64 gicv2_lock_release()
 {
-  sub_940040A0(0x94014000);
-  return sub_940041C8(0x94014000);
+  bakery_lock_get(0x94014000);
+  return bakery_lock_release(0x94014000);
 }
 
-/* ===== sub_94000C50 @ 0x94000C50 size 324 ===== */
-__int64 __fastcall sub_94000C50(__int16 a1)
+/* ===== sprd_gic_cpuif_init @ 0x94000C50 size 324 ===== */
+__int64 __fastcall sprd_gic_cpuif_init(__int16 a1)
 {
   unsigned __int8 v1; // x20^1
 
   v1 = HIBYTE(a1);
-  sub_940040A0(2483109888LL);
+  bakery_lock_get(2483109888LL);
   if ( v1 == 0 )
   {
     MEMORY[0x402B0000] |= 0x1000000u;
@@ -614,11 +614,11 @@ __int64 __fastcall sub_94000C50(__int16 a1)
       MEMORY[0x402E0528] = v1;
     }
   }
-  return sub_940041C8(2483109888LL);
+  return bakery_lock_release(2483109888LL);
 }
 
-/* ===== sub_94000D94 @ 0x94000D94 size 148 ===== */
-__int64 sub_94000D94()
+/* ===== sprd_platform_init @ 0x94000D94 size 148 ===== */
+__int64 sprd_platform_init()
 {
   unsigned int v0; // w1
 
@@ -634,24 +634,24 @@ __int64 sub_94000D94()
   return 1076691600;
 }
 
-/* ===== sub_94000E28 @ 0x94000E28 size 76 ===== */
-__int64 sub_94000E28()
+/* ===== sprd_spinlock_init @ 0x94000E28 size 76 ===== */
+__int64 sprd_spinlock_init()
 {
   MEMORY[0] = -721215457;
   MEMORY[4] = -721215457;
   MEMORY[8] = -721215457;
   MEMORY[0xC] = -721215457;
-  return sub_940054E0(16, &dword_94000178, (char *)sub_940001C8 - (char *)&dword_94000178);
+  return memcpy_simple(16, &dword_94000178, (char *)bl31_early_setup - (char *)&dword_94000178);
 }
 
-/* ===== sub_94000F88 @ 0x94000F88 size 20 ===== */
-__int64 __fastcall sub_94000F88(__int64 a1, unsigned int a2)
+/* ===== gicd_get_isenabler @ 0x94000F88 size 20 ===== */
+__int64 __fastcall gicd_get_isenabler(__int64 a1, unsigned int a2)
 {
   return *(unsigned int *)(a1 + 128 + 4LL * (a2 >> 5));
 }
 
-/* ===== sub_94000F9C @ 0x94000F9C size 20 ===== */
-__int64 __fastcall sub_94000F9C(__int64 a1, unsigned int a2, int a3)
+/* ===== gicd_set_isenabler @ 0x94000F9C size 20 ===== */
+__int64 __fastcall gicd_set_isenabler(__int64 a1, unsigned int a2, int a3)
 {
   __int64 result; // x0
 
@@ -660,8 +660,8 @@ __int64 __fastcall sub_94000F9C(__int64 a1, unsigned int a2, int a3)
   return result;
 }
 
-/* ===== sub_94000FC4 @ 0x94000FC4 size 20 ===== */
-__int64 __fastcall sub_94000FC4(__int64 a1, unsigned int a2, int a3)
+/* ===== gicd_set_icenabler @ 0x94000FC4 size 20 ===== */
+__int64 __fastcall gicd_set_icenabler(__int64 a1, unsigned int a2, int a3)
 {
   __int64 result; // x0
 
@@ -670,8 +670,8 @@ __int64 __fastcall sub_94000FC4(__int64 a1, unsigned int a2, int a3)
   return result;
 }
 
-/* ===== sub_94000FD8 @ 0x94000FD8 size 16 ===== */
-__int64 __fastcall sub_94000FD8(__int64 a1, int a2, int a3)
+/* ===== gicd_set_icfgr @ 0x94000FD8 size 16 ===== */
+__int64 __fastcall gicd_set_icfgr(__int64 a1, int a2, int a3)
 {
   __int64 result; // x0
 
@@ -680,8 +680,8 @@ __int64 __fastcall sub_94000FD8(__int64 a1, int a2, int a3)
   return result;
 }
 
-/* ===== sub_94000FE8 @ 0x94000FE8 size 20 ===== */
-__int64 __fastcall sub_94000FE8(__int64 a1, unsigned int a2, int a3)
+/* ===== gicd_set_ipriorityr @ 0x94000FE8 size 20 ===== */
+__int64 __fastcall gicd_set_ipriorityr(__int64 a1, unsigned int a2, int a3)
 {
   __int64 result; // x0
 
@@ -690,17 +690,17 @@ __int64 __fastcall sub_94000FE8(__int64 a1, unsigned int a2, int a3)
   return result;
 }
 
-/* ===== sub_94000FFC @ 0x94000FFC size 56 ===== */
-__int64 __fastcall sub_94000FFC(__int64 a1, unsigned int a2)
+/* ===== gicd_clear_enable @ 0x94000FFC size 56 ===== */
+__int64 __fastcall gicd_clear_enable(__int64 a1, unsigned int a2)
 {
   int v4; // w0
 
-  v4 = sub_94000F88(a1, a2);
-  return sub_94000F9C(a1, a2, v4 & (unsigned int)~(1 << a2));
+  v4 = gicd_get_isenabler(a1, a2);
+  return gicd_set_isenabler(a1, a2, v4 & (unsigned int)~(1 << a2));
 }
 
-/* ===== sub_94001034 @ 0x94001034 size 12 ===== */
-__int64 __fastcall sub_94001034(__int64 a1, unsigned int a2)
+/* ===== gicd_set_pending @ 0x94001034 size 12 ===== */
+__int64 __fastcall gicd_set_pending(__int64 a1, unsigned int a2)
 {
   __int64 result; // x0
 
@@ -709,8 +709,8 @@ __int64 __fastcall sub_94001034(__int64 a1, unsigned int a2)
   return result;
 }
 
-/* ===== sub_94001040 @ 0x94001040 size 20 ===== */
-__int64 __fastcall sub_94001040(__int64 a1, unsigned int a2, char a3)
+/* ===== gicd_set_itargetsr @ 0x94001040 size 20 ===== */
+__int64 __fastcall gicd_set_itargetsr(__int64 a1, unsigned int a2, char a3)
 {
   __int64 result; // x0
 
@@ -719,8 +719,8 @@ __int64 __fastcall sub_94001040(__int64 a1, unsigned int a2, char a3)
   return result;
 }
 
-/* ===== sub_940010CC @ 0x940010CC size 120 ===== */
-unsigned int *sub_940010CC()
+/* ===== gicv2_cpuif_disable @ 0x940010CC size 120 ===== */
+unsigned int *gicv2_cpuif_disable()
 {
   __int64 v0; // x2
   char *v1; // x3
@@ -738,14 +738,14 @@ unsigned int *sub_940010CC()
     v0 = 74;
     v1 = "driver_data->gicc_base";
 LABEL_5:
-    sub_940054A8("gicv2_cpuif_disable", "drivers/arm/gic/v2/gicv2_main.c", v0, v1);
+    assert_fail("gicv2_cpuif_disable", "drivers/arm/gic/v2/gicv2_main.c", v0, v1);
   }
   *result = *result & 0xFFFFFE1C | 0x1E0;
   return result;
 }
 
-/* ===== sub_94001144 @ 0x94001144 size 148 ===== */
-__int64 sub_94001144()
+/* ===== gicv2_pcpu_distif_init @ 0x94001144 size 148 ===== */
+__int64 gicv2_pcpu_distif_init()
 {
   __int64 v0; // x2
   char *v1; // x3
@@ -767,13 +767,13 @@ __int64 sub_94001144()
     v0 = 92;
     v1 = "driver_data->g0_interrupt_array";
 LABEL_5:
-    sub_940054A8("gicv2_pcpu_distif_init", "drivers/arm/gic/v2/gicv2_main.c", v0, v1);
+    assert_fail("gicv2_pcpu_distif_init", "drivers/arm/gic/v2/gicv2_main.c", v0, v1);
   }
-  return sub_940015FC();
+  return gicv2_secure_ppi_sgi_setup();
 }
 
-/* ===== sub_940011D8 @ 0x940011D8 size 204 ===== */
-__int64 sub_940011D8()
+/* ===== gicv2_distif_init @ 0x940011D8 size 204 ===== */
+__int64 gicv2_distif_init()
 {
   __int64 v0; // x2
   char *v1; // x3
@@ -799,12 +799,12 @@ __int64 sub_940011D8()
     v0 = 110;
     v1 = "driver_data->g0_interrupt_array";
 LABEL_5:
-    sub_940054A8("gicv2_distif_init", "drivers/arm/gic/v2/gicv2_main.c", v0, v1);
+    assert_fail("gicv2_distif_init", "drivers/arm/gic/v2/gicv2_main.c", v0, v1);
   }
   v3 = *v2;
   *v2 &= 0xFFFFFFFC;
-  sub_940014A0();
-  sub_94001540(
+  gicv2_distif_clear_config();
+  gicv2_secure_spis_configure(
     *MEMORY[0x9400D0D0],
     *(unsigned int *)(MEMORY[0x9400D0D0] + 16LL),
     *(_QWORD *)(MEMORY[0x9400D0D0] + 24LL));
@@ -813,8 +813,8 @@ LABEL_5:
   return result;
 }
 
-/* ===== sub_940012A4 @ 0x940012A4 size 272 ===== */
-__int64 __fastcall sub_940012A4(__int64 result)
+/* ===== gicv2_driver_init @ 0x940012A4 size 272 ===== */
+__int64 __fastcall gicv2_driver_init(__int64 result)
 {
   __int64 v1; // x2
   const char *v2; // x3
@@ -854,14 +854,14 @@ __int64 __fastcall sub_940012A4(__int64 result)
     v1 = 157;
     v2 = "gic_version == ARCH_REV_GICV2";
 LABEL_5:
-    sub_940054A8("gicv2_driver_init", "drivers/arm/gic/v2/gicv2_main.c", v1, v2);
+    assert_fail("gicv2_driver_init", "drivers/arm/gic/v2/gicv2_main.c", v1, v2);
   }
   MEMORY[0x9400D0D0] = result;
   return result;
 }
 
-/* ===== sub_940013B4 @ 0x940013B4 size 112 ===== */
-bool sub_940013B4()
+/* ===== gicv2_is_fiq_enabled @ 0x940013B4 size 112 ===== */
+bool gicv2_is_fiq_enabled()
 {
   __int64 v0; // x2
   char *v1; // x3
@@ -879,13 +879,13 @@ bool sub_940013B4()
     v0 = 172;
     v1 = "driver_data->gicc_base";
 LABEL_5:
-    sub_940054A8("gicv2_is_fiq_enabled", "drivers/arm/gic/v2/gicv2_main.c", v0, v1);
+    assert_fail("gicv2_is_fiq_enabled", "drivers/arm/gic/v2/gicv2_main.c", v0, v1);
   }
   return (*v2 & 8LL) != 0;
 }
 
-/* ===== sub_94001424 @ 0x94001424 size 112 ===== */
-__int64 sub_94001424()
+/* ===== gicv2_get_pending_interrupt_type @ 0x94001424 size 112 ===== */
+__int64 gicv2_get_pending_interrupt_type()
 {
   __int64 v0; // x2
   char *v1; // x3
@@ -903,19 +903,19 @@ __int64 sub_94001424()
     v0 = 189;
     v1 = "driver_data->gicc_base";
 LABEL_5:
-    sub_940054A8("gicv2_get_pending_interrupt_type", "drivers/arm/gic/v2/gicv2_main.c", v0, v1);
+    assert_fail("gicv2_get_pending_interrupt_type", "drivers/arm/gic/v2/gicv2_main.c", v0, v1);
   }
   return *(_DWORD *)(v2 + 24) & 0x3FF;
 }
 
-/* ===== sub_94001494 @ 0x94001494 size 12 ===== */
-__int64 __fastcall sub_94001494(__int64 a1)
+/* ===== gicv2_get_interrupt_priority @ 0x94001494 size 12 ===== */
+__int64 __fastcall gicv2_get_interrupt_priority(__int64 a1)
 {
   return (unsigned __int8)*(_DWORD *)(a1 + 2048);
 }
 
-/* ===== sub_940014A0 @ 0x940014A0 size 160 ===== */
-__int64 __fastcall sub_940014A0(__int64 result)
+/* ===== gicv2_distif_clear_config @ 0x940014A0 size 160 ===== */
+__int64 __fastcall gicv2_distif_clear_config(__int64 result)
 {
   __int64 v1; // x19
   unsigned int v2; // w21
@@ -931,23 +931,23 @@ __int64 __fastcall sub_940014A0(__int64 result)
   for ( i = 32; i < v2; i += 32 )
   {
     v4 = i;
-    result = sub_94000F9C(v1, v4, -1);
+    result = gicd_set_isenabler(v1, v4, -1);
   }
   for ( j = 32; j < v2; j += 4 )
   {
     v6 = j;
-    result = sub_94000FD8(v1, v6, -2139062144);
+    result = gicd_set_icfgr(v1, v6, -2139062144);
   }
   for ( k = 32; k < v2; k += 16 )
   {
     v8 = k;
-    result = sub_94000FE8(v1, v8, 0);
+    result = gicd_set_ipriorityr(v1, v8, 0);
   }
   return result;
 }
 
-/* ===== sub_94001540 @ 0x94001540 size 188 ===== */
-__int64 __fastcall sub_94001540(__int64 result, unsigned int a2, __int64 a3)
+/* ===== gicv2_secure_spis_configure @ 0x94001540 size 188 ===== */
+__int64 __fastcall gicv2_secure_spis_configure(__int64 result, unsigned int a2, __int64 a3)
 {
   __int64 v3; // x19
   __int64 i; // x21
@@ -955,7 +955,7 @@ __int64 __fastcall sub_94001540(__int64 result, unsigned int a2, __int64 a3)
 
   v3 = result;
   if ( a3 == 0 && a2 != 0 )
-    sub_940054A8(
+    assert_fail(
       "gicv2_secure_spis_configure",
       "drivers/arm/gic/v2/gicv2_helpers.c",
       158,
@@ -965,17 +965,17 @@ __int64 __fastcall sub_94001540(__int64 result, unsigned int a2, __int64 a3)
     v7 = *(_DWORD *)(a3 + 4 * i);
     if ( v7 > 0x1F )
     {
-      sub_94000FFC(v3, v7);
-      sub_94001040(v3, v7, 0);
-      *(_BYTE *)(v3 + 2048 + v7) = sub_94001494(v3);
-      result = sub_94001034(v3, v7);
+      gicd_clear_enable(v3, v7);
+      gicd_set_itargetsr(v3, v7, 0);
+      *(_BYTE *)(v3 + 2048 + v7) = gicv2_get_interrupt_priority(v3);
+      result = gicd_set_pending(v3, v7);
     }
   }
   return result;
 }
 
-/* ===== sub_940015FC @ 0x940015FC size 228 ===== */
-__int64 __fastcall sub_940015FC(__int64 a1, unsigned int a2, __int64 a3)
+/* ===== gicv2_secure_ppi_sgi_setup @ 0x940015FC size 228 ===== */
+__int64 __fastcall gicv2_secure_ppi_sgi_setup(__int64 a1, unsigned int a2, __int64 a3)
 {
   int v7; // w20
   int v8; // w1
@@ -984,18 +984,18 @@ __int64 __fastcall sub_940015FC(__int64 a1, unsigned int a2, __int64 a3)
   unsigned int v11; // w1
 
   if ( a3 == 0 && a2 != 0 )
-    sub_940054A8(
+    assert_fail(
       "gicv2_secure_ppi_sgi_setup",
       "drivers/arm/gic/v2/gicv2_helpers.c",
       192,
       "num_ints ? (uintptr_t)sec_intr_list : 1");
   v7 = 0;
-  sub_94000FC4(a1, 0, -1);
+  gicd_set_icenabler(a1, 0, -1);
   do
   {
     v8 = v7;
     v7 += 4;
-    sub_94000FD8(a1, v8, -2139062144);
+    gicd_set_icfgr(a1, v8, -2139062144);
   }
   while ( v7 != 32 );
   v9 = 0;
@@ -1006,22 +1006,22 @@ __int64 __fastcall sub_940015FC(__int64 a1, unsigned int a2, __int64 a3)
     if ( v11 <= 0x1F )
     {
       v10 |= 1 << v11;
-      sub_94001040(a1, v11, 0);
+      gicd_set_itargetsr(a1, v11, 0);
     }
     ++v9;
   }
-  sub_94000F9C(a1, 0, ~v10);
+  gicd_set_isenabler(a1, 0, ~v10);
   *(_DWORD *)(a1 + 256) = v10;
   return a1 + 256;
 }
 
-/* ===== sub_940016E0 @ 0x940016E0 size 52 ===== */
-__int64 sub_940016E0()
+/* ===== gicv2_get_interrupt_type @ 0x940016E0 size 52 ===== */
+__int64 gicv2_get_interrupt_type()
 {
   unsigned int v0; // w1
   __int64 result; // x0
 
-  v0 = sub_94001424();
+  v0 = gicv2_get_pending_interrupt_type();
   result = 0;
   if ( v0 > 0x3FD )
   {
@@ -1033,15 +1033,15 @@ __int64 sub_940016E0()
   return result;
 }
 
-/* ===== sub_94001714 @ 0x94001714 size 80 ===== */
-__int64 __fastcall sub_94001714(unsigned int a1)
+/* ===== plat_interrupt_type_to_line @ 0x94001714 size 80 ===== */
+__int64 __fastcall plat_interrupt_type_to_line(unsigned int a1)
 {
   bool v1; // zf
   __int64 result; // x0
 
   v1 = a1 == 2;
   if ( a1 > 2 )
-    sub_940054A8(
+    assert_fail(
       "plat_interrupt_type_to_line",
       "plat/common/plat_gicv2.c",
       136,
@@ -1049,7 +1049,7 @@ __int64 __fastcall sub_94001714(unsigned int a1)
   result = 1;
   if ( !v1 )
   {
-    if ( sub_940013B4() )
+    if ( gicv2_is_fiq_enabled() )
       return 2;
     else
       return 1;
@@ -1057,21 +1057,21 @@ __int64 __fastcall sub_94001714(unsigned int a1)
   return result;
 }
 
-/* ===== sub_94001764 @ 0x94001764 size 12 ===== */
-__int64 sub_94001764()
+/* ===== sprd_gic_driver_init @ 0x94001764 size 12 ===== */
+__int64 sprd_gic_driver_init()
 {
-  return sub_940012A4((__int64)qword_94009490);
+  return gicv2_driver_init((__int64)qword_94009490);
 }
 
-/* ===== sub_94001770 @ 0x94001770 size 24 ===== */
-_DWORD *sub_94001770()
+/* ===== gicv2_cpuif_enable_all @ 0x94001770 size 24 ===== */
+_DWORD *gicv2_cpuif_enable_all()
 {
   __int64 v0; // x2
   char *v1; // x3
   _DWORD *result; // x0
 
-  sub_940011D8();
-  sub_94001144();
+  gicv2_distif_init();
+  gicv2_pcpu_distif_init();
   if ( MEMORY[0x9400D0D0] == 0 )
   {
     v0 = 50;
@@ -1084,25 +1084,25 @@ _DWORD *sub_94001770()
     v0 = 51;
     v1 = "driver_data->gicc_base";
 LABEL_5:
-    sub_940054A8("gicv2_cpuif_enable", "drivers/arm/gic/v2/gicv2_main.c", v0, v1);
+    assert_fail("gicv2_cpuif_enable", "drivers/arm/gic/v2/gicv2_main.c", v0, v1);
   }
   result[1] = 255;
   *result = 489;
   return result;
 }
 
-/* ===== sub_9400178C @ 0x9400178C size 4 ===== */
+/* ===== gicv2_cpuif_disable_thunk @ 0x9400178C size 4 ===== */
 // attributes: thunk
-unsigned int *__fastcall sub_9400178C()
+unsigned int *__fastcall gicv2_cpuif_disable_thunk()
 {
-  return sub_940010CC();
+  return gicv2_cpuif_disable();
 }
 
-/* ===== sub_94001790 @ 0x94001790 size 4 ===== */
+/* ===== gicv2_pcpu_distif_init_thunk @ 0x94001790 size 4 ===== */
 // attributes: thunk
-__int64 __fastcall sub_94001790()
+__int64 __fastcall gicv2_pcpu_distif_init_thunk()
 {
-  return sub_94001144();
+  return gicv2_pcpu_distif_init();
 }
 
 /* ===== nullsub_1 @ 0x940017A0 size 4 ===== */
@@ -1111,13 +1111,13 @@ void nullsub_1()
   ;
 }
 
-/* ===== sub_940017A4 @ 0x940017A4 size 92 ===== */
-unsigned __int64 __fastcall sub_940017A4(unsigned int a1)
+/* ===== bl31_get_next_image_ep @ 0x940017A4 size 92 ===== */
+unsigned __int64 __fastcall bl31_get_next_image_ep(unsigned int a1)
 {
   unsigned __int64 result; // x0
 
   if ( a1 > 1 )
-    sub_940054A8(
+    assert_fail(
       "bl31_plat_get_next_image_ep_info",
       "plat/sprd/common/sprd_bl31_setup.c",
       83,
@@ -1131,14 +1131,14 @@ unsigned __int64 __fastcall sub_940017A4(unsigned int a1)
   return result;
 }
 
-/* ===== sub_94001800 @ 0x94001800 size 236 ===== */
-__int64 __fastcall sub_94001800(__int64 a1, __int64 a2)
+/* ===== sprd_bl31_early_platform_setup @ 0x94001800 size 236 ===== */
+__int64 __fastcall sprd_bl31_early_platform_setup(__int64 a1, __int64 a2)
 {
   __int64 v4; // x2
   char *v5; // x3
   __int64 result; // x0
 
-  sub_94007E64(1880096768, 26000000, 115200);
+  uart_init(1880096768, 26000000, 115200);
   if ( a1 != 0 )
   {
     v4 = 118;
@@ -1150,38 +1150,38 @@ __int64 __fastcall sub_94001800(__int64 a1, __int64 a2)
     v4 = 119;
     v5 = "plat_params_from_bl2 == NULL";
 LABEL_5:
-    sub_940054A8("sprd_bl31_early_platform_setup", "plat/sprd/common/sprd_bl31_setup.c", v4, v5);
+    assert_fail("sprd_bl31_early_platform_setup", "plat/sprd/common/sprd_bl31_setup.c", v4, v5);
   }
   MEMORY[0x9400D0D8] = 1;
   MEMORY[0x9400D0D9] = 1;
   MEMORY[0x9400D0DC] = 0;
   MEMORY[0x9400D0DA] = 88;
   MEMORY[0x9400D0E0] = 2483159040LL;
-  MEMORY[0x9400D0E8] = sub_94006BB0();
+  MEMORY[0x9400D0E8] = get_secure_ep();
   MEMORY[0x9400D130] = 1;
   MEMORY[0x9400D132] = 88;
   MEMORY[0x9400D134] = 0;
   MEMORY[0x9400D131] = 1;
-  MEMORY[0x9400D138] = sub_94006BA8();
-  MEMORY[0x9400D140] = sub_94006BB8();
+  MEMORY[0x9400D138] = get_non_secure_ep();
+  MEMORY[0x9400D140] = get_scr_el3_config();
   result = MEMORY[0x9400D134] | 1u;
   MEMORY[0x9400D134] |= 1u;
   return result;
 }
 
-/* ===== sub_940018EC @ 0x940018EC size 44 ===== */
-__int64 sub_940018EC()
+/* ===== sprd_bl31_platform_setup @ 0x940018EC size 44 ===== */
+__int64 sprd_bl31_platform_setup()
 {
-  sub_94001764();
-  sub_94001770();
+  sprd_gic_driver_init();
+  gicv2_cpuif_enable_all();
   nullsub_1();
   MEMORY[0x32000000] = 1;
   nullsub_5();
   MEMORY[0x9400D0C8] = &dword_94000178;
-  MEMORY[0x402E0528] = (unsigned __int64)sub_940000F8 >> 2;
-  MEMORY[0x402E052C] = (unsigned __int64)sub_940000F8 >> 2;
-  MEMORY[0x402E0530] = (unsigned __int64)sub_940000F8 >> 2;
-  MEMORY[0x402E0534] = (unsigned __int64)sub_940000F8 >> 2;
+  MEMORY[0x402E0528] = (unsigned __int64)bl31_warm_reset_vector >> 2;
+  MEMORY[0x402E052C] = (unsigned __int64)bl31_warm_reset_vector >> 2;
+  MEMORY[0x402E0530] = (unsigned __int64)bl31_warm_reset_vector >> 2;
+  MEMORY[0x402E0534] = (unsigned __int64)bl31_warm_reset_vector >> 2;
   MEMORY[0x71300000] |= 0x80000u;
   MEMORY[0x71300000] |= 0x100000u;
   MEMORY[0x71300000] |= 0x200000u;
@@ -1189,50 +1189,50 @@ __int64 sub_940018EC()
   MEMORY[0x402E00B0] &= ~0x8000u;
   MEMORY[0x402B0230] |= 1u;
   MEMORY[0x402B00C8] |= 0xFu;
-  sub_94000D94();
-  sub_94000E28();
+  sprd_platform_init();
+  sprd_spinlock_init();
   MEMORY[0x402B1018] = 0x1000000;
   MEMORY[0x402B2018] = 0x2000000;
   return 1076568088;
 }
 
-/* ===== sub_94001930 @ 0x94001930 size 4 ===== */
+/* ===== sprd_bl31_setup_thunk @ 0x94001930 size 4 ===== */
 // attributes: thunk
-__int64 sub_94001930()
+__int64 sprd_bl31_setup_thunk()
 {
-  return sub_940018EC();
+  return sprd_bl31_platform_setup();
 }
 
-/* ===== sub_94001938 @ 0x94001938 size 96 ===== */
-__int64 sub_94001938()
+/* ===== sprd_bl31_main_setup @ 0x94001938 size 96 ===== */
+__int64 sprd_bl31_main_setup()
 {
-  sub_94006C54(
+  plat_setup_mmap(
     2483027968LL,
     0x15000u,
-    start,
+    bl31_entrypoint,
     "sprd_cpu_standby",
     "sprd_cpu_standby",
     off_9400C000,
     0x94014000,
     0x94015000);
-  return sub_94006AD0(0);
+  return enable_mmu_el3(0);
 }
 
-/* ===== sub_94001998 @ 0x94001998 size 4 ===== */
+/* ===== sprd_bl31_setup_call @ 0x94001998 size 4 ===== */
 // attributes: thunk
-__int64 __fastcall sub_94001998()
+__int64 __fastcall sprd_bl31_setup_call()
 {
-  return sub_94001938();
+  return sprd_bl31_main_setup();
 }
 
-/* ===== sub_9400199C @ 0x9400199C size 132 ===== */
-__int64 __fastcall sub_9400199C(unsigned __int64 a1, _BYTE *a2)
+/* ===== sprd_validate_power_state_req @ 0x9400199C size 132 ===== */
+__int64 __fastcall sprd_validate_power_state_req(unsigned __int64 a1, _BYTE *a2)
 {
   __int64 v2; // x2
 
   v2 = (a1 >> 24) & 3;
   if ( a2 == nullptr )
-    sub_940054A8(&loc_94009558, "plat/sprd/common/sprd_pm.c", 63, "req_state");
+    assert_fail(&loc_94009558, "plat/sprd/common/sprd_pm.c", 63, "req_state");
   if ( ((a1 >> 24) & 3) <= 1 )
   {
     if ( (a1 & 0x10000) != 0 )
@@ -1255,8 +1255,8 @@ LABEL_9:
   return 4294967294LL;
 }
 
-/* ===== sub_94001A20 @ 0x94001A20 size 64 ===== */
-__int64 __fastcall sub_94001A20(__int64 a1)
+/* ===== sprd_check_image_range @ 0x94001A20 size 64 ===== */
+__int64 __fastcall sprd_check_image_range(__int64 a1)
 {
   bool v1; // cc
   __int64 result; // x0
@@ -1273,16 +1273,16 @@ __int64 __fastcall sub_94001A20(__int64 a1)
   return result;
 }
 
-/* ===== sub_94001A60 @ 0x94001A60 size 32 ===== */
-__int64 __fastcall sub_94001A60(__int64 a1, _QWORD *a2)
+/* ===== sprd_plat_pm_ops_init @ 0x94001A60 size 32 ===== */
+__int64 __fastcall sprd_plat_pm_ops_init(__int64 a1, _QWORD *a2)
 {
   *a2 = off_9400C000;
   MEMORY[0x9401F000] = a1;
   return 0;
 }
 
-/* ===== sub_94001A80 @ 0x94001A80 size 88 ===== */
-__int64 __fastcall sub_94001A80(__int64 a1, __int64 a2, int a3)
+/* ===== plat_get_target_pwr_state @ 0x94001A80 size 88 ===== */
+__int64 __fastcall plat_get_target_pwr_state(__int64 a1, __int64 a2, int a3)
 {
   __int64 v3; // x3
   __int64 result; // x0
@@ -1291,7 +1291,7 @@ __int64 __fastcall sub_94001A80(__int64 a1, __int64 a2, int a3)
   v3 = 0;
   LODWORD(result) = 2;
   if ( a3 == 0 )
-    sub_940054A8("plat_get_target_pwr_state", "plat/common/plat_psci_common.c", 54, "ncpu");
+    assert_fail("plat_get_target_pwr_state", "plat/common/plat_psci_common.c", 54, "ncpu");
   do
   {
     v5 = *(unsigned __int8 *)(a2 + v3++);
@@ -1303,16 +1303,16 @@ __int64 __fastcall sub_94001A80(__int64 a1, __int64 a2, int a3)
   return result;
 }
 
-/* ===== sub_94001AD8 @ 0x94001AD8 size 68 ===== */
-__int64 *__fastcall sub_94001AD8(int a1)
+/* ===== get_arm_std_svc_args @ 0x94001AD8 size 68 ===== */
+__int64 *__fastcall get_arm_std_svc_args(int a1)
 {
   if ( a1 != 65504 )
-    sub_940054A8("get_arm_std_svc_args", "bl31/bl31_main.c", 73, "svc_mask == PSCI_FID_MASK");
+    assert_fail("get_arm_std_svc_args", "bl31/bl31_main.c", 73, "svc_mask == PSCI_FID_MASK");
   return &qword_94009718;
 }
 
-/* ===== sub_94001B1C @ 0x94001B1C size 180 ===== */
-__int64 sub_94001B1C()
+/* ===== bl31_main_loop @ 0x94001B1C size 180 ===== */
+__int64 bl31_main_loop()
 {
   __int64 v0; // x0
   unsigned __int64 v1; // x0
@@ -1322,10 +1322,10 @@ __int64 sub_94001B1C()
 
   if ( (unsigned __int8)_ReadStatusReg(ID_AA64PFR0_EL1) >> 4 == 1 )
   {
-    v0 = sub_9400517C("ERROR:   EL1 supports AArch64-only. Please set build flag CTX_INCLUDE_AARCH32_REGS = 0");
-    sub_94007BB8(v0);
+    v0 = printf_impl("ERROR:   EL1 supports AArch64-only. Please set build flag CTX_INCLUDE_AARCH32_REGS = 0");
+    panic(v0);
   }
-  v1 = sub_940017A4(1u);
+  v1 = bl31_get_next_image_ep(1u);
   v2 = v1;
   if ( v1 == 0 )
   {
@@ -1338,37 +1338,37 @@ __int64 sub_94001B1C()
     v3 = 186;
     v4 = "image_type == GET_SECURITY_STATE(next_image_info->h.attr)";
 LABEL_7:
-    sub_940054A8(&loc_94009608, "bl31/bl31_main.c", v3, v4);
+    assert_fail(&loc_94009608, "bl31/bl31_main.c", v3, v4);
   }
   nullsub_3();
-  sub_9400236C(v2);
-  return sub_94002394(1);
+  cm_init_context(v2);
+  return cm_prepare_el3_exit(1);
 }
 
-/* ===== sub_94001BD0 @ 0x94001BD0 size 52 ===== */
-__int64 sub_94001BD0()
+/* ===== bl31_main_init @ 0x94001BD0 size 52 ===== */
+__int64 bl31_main_init()
 {
   __int64 v1; // x0
   __int64 v2; // x0
 
-  v1 = sub_94001930();
+  v1 = sprd_bl31_setup_thunk();
   v2 = nullsub_2(v1);
-  sub_94001F68(v2);
+  runtime_svc_init(v2);
   if ( MEMORY[0x9400D188] != nullptr )
     MEMORY[0x9400D188]();
-  sub_94001B1C();
-  return sub_94007E64(1880096768, 26000000, 115200);
+  bl31_main_loop();
+  return uart_init(1880096768, 26000000, 115200);
 }
 
-/* ===== sub_94001C04 @ 0x94001C04 size 16 ===== */
-__int64 (*__fastcall sub_94001C04(__int64 (*result)(void)))(void)
+/* ===== bl31_register_runtime_callback @ 0x94001C04 size 16 ===== */
+__int64 (*__fastcall bl31_register_runtime_callback(__int64 (*result)(void)))(void)
 {
   MEMORY[0x9400D188] = result;
   return result;
 }
 
-/* ===== sub_94001C14 @ 0x94001C14 size 136 ===== */
-__int64 __fastcall sub_94001C14(unsigned int a1, unsigned int a2, unsigned int a3)
+/* ===== interrupt_routing_set @ 0x94001C14 size 136 ===== */
+__int64 __fastcall interrupt_routing_set(unsigned int a1, unsigned int a2, unsigned int a3)
 {
   unsigned int v3; // w20
   __int64 v5; // x21
@@ -1378,26 +1378,26 @@ __int64 __fastcall sub_94001C14(unsigned int a1, unsigned int a2, unsigned int a
 
   v3 = (a2 >> a3) & 1;
   v5 = a1;
-  v6 = sub_94001714(a1);
+  v6 = plat_interrupt_type_to_line(a1);
   *(_DWORD *)(0x9400D190 + 4 * (6 * v5 + a3) + 12) = v3 << v6;
   v8 = v6;
-  result = sub_94001E50(a3);
+  result = cm_get_context(a3);
   if ( result != 0 )
-    return sub_94002598(a3, v8, v3);
+    return cm_write_scr_el3_bit(a3, v8, v3);
   return result;
 }
 
-/* ===== sub_94001C9C @ 0x94001C9C size 96 ===== */
-__int64 __fastcall sub_94001C9C(unsigned int a1)
+/* ===== get_scr_el3_from_routing_model @ 0x94001C9C size 96 ===== */
+__int64 __fastcall get_scr_el3_from_routing_model(unsigned int a1)
 {
   if ( a1 > 1 )
-    sub_940054A8("get_scr_el3_from_routing_model", "bl31/interrupt_mgmt.c", 110, "sec_state_is_valid(security_state)");
+    assert_fail("get_scr_el3_from_routing_model", "bl31/interrupt_mgmt.c", 110, "sec_state_is_valid(security_state)");
   return (unsigned int)(*(_DWORD *)(0x9400D190 + 4LL * a1 + 60) | *(_DWORD *)(0x9400D190 + 4LL * a1 + 12))
        | *(_DWORD *)(0x9400D190 + 4LL * a1 + 36);
 }
 
-/* ===== sub_94001CFC @ 0x94001CFC size 188 ===== */
-__int64 __fastcall sub_94001CFC(unsigned int a1, unsigned int a2)
+/* ===== interrupt_routing_model_init @ 0x94001CFC size 188 ===== */
+__int64 __fastcall interrupt_routing_model_init(unsigned int a1, unsigned int a2)
 {
   BOOL v2; // w2
   BOOL v5; // w0
@@ -1424,13 +1424,13 @@ LABEL_10:
     return 4294967274LL;
 LABEL_13:
   *(_DWORD *)(0x9400D190 + 24LL * a1 + 8) = a2;
-  sub_94001C14(a1, a2, 0);
-  sub_94001C14(a1, a2, 1u);
+  interrupt_routing_set(a1, a2, 0);
+  interrupt_routing_set(a1, a2, 1u);
   return 0;
 }
 
-/* ===== sub_94001DB8 @ 0x94001DB8 size 108 ===== */
-__int64 __fastcall sub_94001DB8(unsigned int a1, __int64 a2, unsigned int a3)
+/* ===== interrupt_register_handler @ 0x94001DB8 size 108 ===== */
+__int64 __fastcall interrupt_register_handler(unsigned int a1, __int64 a2, unsigned int a3)
 {
   __int64 v4; // x20
   __int64 result; // x0
@@ -1440,14 +1440,14 @@ __int64 __fastcall sub_94001DB8(unsigned int a1, __int64 a2, unsigned int a3)
   v4 = 24LL * a1;
   if ( *(_QWORD *)(0x9400D190LL + v4) != 0 )
     return 4294967259LL;
-  result = sub_94001CFC(a1, a3);
+  result = interrupt_routing_model_init(a1, a3);
   if ( (_DWORD)result == 0 )
     *(_QWORD *)(0x9400D190LL + v4) = a2;
   return result;
 }
 
-/* ===== sub_94001E24 @ 0x94001E24 size 44 ===== */
-__int64 __fastcall sub_94001E24(unsigned int a1)
+/* ===== interrupt_get_handler @ 0x94001E24 size 44 ===== */
+__int64 __fastcall interrupt_get_handler(unsigned int a1)
 {
   if ( a1 <= 2 )
     return *(_QWORD *)(0x9400D190 + 24LL * a1);
@@ -1455,45 +1455,45 @@ __int64 __fastcall sub_94001E24(unsigned int a1)
     return 0;
 }
 
-/* ===== sub_94001E50 @ 0x94001E50 size 64 ===== */
-__int64 __fastcall sub_94001E50(unsigned int a1)
+/* ===== cm_get_context @ 0x94001E50 size 64 ===== */
+__int64 __fastcall cm_get_context(unsigned int a1)
 {
   if ( a1 > 1 )
-    sub_940054A8("cm_get_context", "bl31/bl31_context_mgmt.c", 47, "security_state <= NON_SECURE");
+    assert_fail("cm_get_context", "bl31/bl31_context_mgmt.c", 47, "security_state <= NON_SECURE");
   return *(_QWORD *)(_ReadStatusReg(TPIDR_EL3) + 8LL * a1);
 }
 
-/* ===== sub_94001E90 @ 0x94001E90 size 64 ===== */
-__int64 __fastcall sub_94001E90(__int64 result, unsigned int a2)
+/* ===== cm_set_context @ 0x94001E90 size 64 ===== */
+__int64 __fastcall cm_set_context(__int64 result, unsigned int a2)
 {
   if ( a2 > 1 )
-    sub_940054A8("cm_set_context", "bl31/bl31_context_mgmt.c", 58, "security_state <= NON_SECURE");
+    assert_fail("cm_set_context", "bl31/bl31_context_mgmt.c", 58, "security_state <= NON_SECURE");
   *(_QWORD *)(_ReadStatusReg(TPIDR_EL3) + 8LL * a2) = result;
   return result;
 }
 
-/* ===== sub_94001ED0 @ 0x94001ED0 size 72 ===== */
-__int64 __fastcall sub_94001ED0(__int64 a1, unsigned int a2)
+/* ===== cm_get_context_by_index @ 0x94001ED0 size 72 ===== */
+__int64 __fastcall cm_get_context_by_index(__int64 a1, unsigned int a2)
 {
   if ( a2 > 1 )
-    sub_940054A8("cm_get_context_by_index", "bl31/bl31_context_mgmt.c", 72, "sec_state_is_valid(security_state)");
-  return *(_QWORD *)(sub_94007608() + 8LL * a2);
+    assert_fail("cm_get_context_by_index", "bl31/bl31_context_mgmt.c", 72, "sec_state_is_valid(security_state)");
+  return *(_QWORD *)(get_cpu_context_ptr() + 8LL * a2);
 }
 
-/* ===== sub_94001F18 @ 0x94001F18 size 80 ===== */
-__int64 __fastcall sub_94001F18(__int64 a1, __int64 a2, unsigned int a3)
+/* ===== cm_set_context_by_index @ 0x94001F18 size 80 ===== */
+__int64 __fastcall cm_set_context_by_index(__int64 a1, __int64 a2, unsigned int a3)
 {
   __int64 result; // x0
 
   if ( a3 > 1 )
-    sub_940054A8("cm_set_context_by_index", "bl31/bl31_context_mgmt.c", 84, "sec_state_is_valid(security_state)");
-  result = sub_94007608();
+    assert_fail("cm_set_context_by_index", "bl31/bl31_context_mgmt.c", 84, "sec_state_is_valid(security_state)");
+  result = get_cpu_context_ptr();
   *(_QWORD *)(result + 8LL * a3) = a2;
   return result;
 }
 
-/* ===== sub_94001F68 @ 0x94001F68 size 364 ===== */
-void sub_94001F68()
+/* ===== runtime_svc_init @ 0x94001F68 size 364 ===== */
+void runtime_svc_init()
 {
   unsigned __int64 v0; // x19
   unsigned __int64 v1; // x23
@@ -1512,7 +1512,7 @@ void sub_94001F68()
     || (v0 = (char *)qword_9400B528 - (char *)&qword_9400B468,
         (unsigned __int64)((char *)qword_9400B528 - (char *)&qword_9400B468) > 0xFFF) )
   {
-    sub_940054A8(
+    assert_fail(
       "runtime_svc_init",
       &loc_94009838,
       119,
@@ -1520,7 +1520,7 @@ void sub_94001F68()
   }
   if ( v0 > 0x1F )
   {
-    sub_940054C4(0x9400E688, 0xFFFFFFFFLL, 128);
+    memset_simple(0x9400E688, 0xFFFFFFFFLL, 128);
     v1 = v0 >> 5;
     MEMORY[0x9400D1D8] = &qword_9400B468;
     v2 = 0;
@@ -1533,8 +1533,8 @@ void sub_94001F68()
         || *(unsigned __int8 *)(v3 + 2) > 1u )
       {
 LABEL_20:
-        v10 = sub_9400517C("ERROR:   Invalid runtime service descriptor %p\n", (const void *)v3);
-        sub_94007BB8(v10);
+        v10 = printf_impl("ERROR:   Invalid runtime service descriptor %p\n", (const void *)v3);
+        panic(v10);
       }
       v5 = *(__int64 (**)(void))(v3 + 16);
       if ( v5 == nullptr )
@@ -1544,7 +1544,7 @@ LABEL_20:
       v3 = v11;
       if ( v6 == 0 )
         goto LABEL_15;
-      sub_9400517C("ERROR:   Error initializing runtime service %s\n");
+      printf_impl("ERROR:   Error initializing runtime service %s\n");
 LABEL_18:
       if ( ++v2 == v1 )
         return;
@@ -1561,14 +1561,14 @@ LABEL_15:
   }
 }
 
-/* ===== sub_940020D4 @ 0x940020D4 size 176 ===== */
-__int64 *__fastcall sub_940020D4(int a1, __int64 a2, __int64 a3, __int64 a4, __int64 a5, __int64 a6, __int64 *a7)
+/* ===== std_svc_handler @ 0x940020D4 size 176 ===== */
+__int64 *__fastcall std_svc_handler(int a1, __int64 a2, __int64 a3, __int64 a4, __int64 a5, __int64 a6, __int64 *a7)
 {
   __int64 v8; // x0
 
   if ( (a1 & 0xFFE0) == 0 )
   {
-    v8 = sub_94003B1C();
+    v8 = psci_smc_handler();
 LABEL_10:
     *a7 = v8;
     return a7;
@@ -1594,16 +1594,16 @@ LABEL_10:
   return a7;
 }
 
-/* ===== sub_94002184 @ 0x94002184 size 60 ===== */
-__int64 sub_94002184()
+/* ===== std_svc_setup @ 0x94002184 size 60 ===== */
+__int64 std_svc_setup()
 {
-  if ( sub_94001AD8(65504) == nullptr )
-    sub_940054A8("std_svc_setup", "services/std_svc/std_svc_setup.c", 54, "svc_arg");
-  return sub_94003C54();
+  if ( get_arm_std_svc_args(65504) == nullptr )
+    assert_fail("std_svc_setup", "services/std_svc/std_svc_setup.c", 54, "svc_arg");
+  return psci_setup();
 }
 
-/* ===== sub_940021C0 @ 0x940021C0 size 312 ===== */
-__int64 __fastcall sub_940021C0(_QWORD *a1, __int64 a2)
+/* ===== cm_init_context_common @ 0x940021C0 size 312 ===== */
+__int64 __fastcall cm_init_context_common(_QWORD *a1, __int64 a2)
 {
   unsigned int v4; // w21
   int v5; // w2
@@ -1616,16 +1616,16 @@ __int64 __fastcall sub_940021C0(_QWORD *a1, __int64 a2)
   bool v12; // zf
 
   if ( a1 == nullptr )
-    sub_940054A8("cm_init_context_common", "lib/el3_runtime/aarch64/context_mgmt.c", 89, "ctx");
+    assert_fail("cm_init_context_common", "lib/el3_runtime/aarch64/context_mgmt.c", 89, "ctx");
   v4 = *(_DWORD *)(a2 + 4) & 1;
-  sub_940054C4(a1, 0, 1056);
+  memset_simple(a1, 0, 1056);
   v5 = _ReadStatusReg(SCR_EL3) & 0xFFFFF2F8 | v4;
   if ( (*(_DWORD *)(a2 + 16) & 0x10LL) == 0 )
     v5 |= 0x400u;
   if ( (*(_DWORD *)(a2 + 4) & 4) != 0 )
     v5 |= 0x800u;
   v6 = v5 & 0xFFFFFFF7;
-  v7 = sub_94001C9C(v4);
+  v7 = get_scr_el3_from_routing_model(v4);
   v8 = 0x2000000;
   v9 = *(unsigned int *)(a2 + 16);
   v10 = v6 | v7;
@@ -1652,14 +1652,14 @@ __int64 __fastcall sub_940021C0(_QWORD *a1, __int64 a2)
   a1[32] = v10;
   a1[35] = *(_QWORD *)(a2 + 8);
   a1[34] = (unsigned int)v9;
-  return sub_940054E0(a1, a2 + 24, 64);
+  return memcpy_simple(a1, a2 + 24, 64);
 }
 
-/* ===== sub_940022F8 @ 0x940022F8 size 68 ===== */
-void sub_940022F8()
+/* ===== cm_set_next_context @ 0x940022F8 size 68 ===== */
+void cm_set_next_context()
 {
   if ( _ReadStatusReg(SPSel) != 0 )
-    sub_940054A8("cm_set_next_context", "include/lib/el3_runtime/context_mgmt.h", 98, "sp_mode == MODE_SP_EL0");
+    assert_fail("cm_set_next_context", "include/lib/el3_runtime/context_mgmt.h", 98, "sp_mode == MODE_SP_EL0");
   __asm { MSR             SPSel, #1 }
   __asm { MSR             SPSel, #0 }
 }
@@ -1670,26 +1670,26 @@ void nullsub_2()
   ;
 }
 
-/* ===== sub_94002340 @ 0x94002340 size 44 ===== */
-__int64 __fastcall sub_94002340(__int64 a1, __int64 a2)
+/* ===== cm_init_context_by_index @ 0x94002340 size 44 ===== */
+__int64 __fastcall cm_init_context_by_index(__int64 a1, __int64 a2)
 {
   _QWORD *v3; // x0
 
-  v3 = (_QWORD *)sub_94001ED0(a1, *(_DWORD *)(a2 + 4) & 1);
-  return sub_940021C0(v3, a2);
+  v3 = (_QWORD *)cm_get_context_by_index(a1, *(_DWORD *)(a2 + 4) & 1);
+  return cm_init_context_common(v3, a2);
 }
 
-/* ===== sub_9400236C @ 0x9400236C size 40 ===== */
-__int64 __fastcall sub_9400236C(__int64 a1)
+/* ===== cm_init_context @ 0x9400236C size 40 ===== */
+__int64 __fastcall cm_init_context(__int64 a1)
 {
   _QWORD *v1; // x0
 
-  v1 = (_QWORD *)sub_94001E50(*(_DWORD *)(a1 + 4) & 1);
-  return sub_940021C0(v1, a1);
+  v1 = (_QWORD *)cm_get_context(*(_DWORD *)(a1 + 4) & 1);
+  return cm_init_context_common(v1, a1);
 }
 
-/* ===== sub_94002394 @ 0x94002394 size 244 ===== */
-void __fastcall sub_94002394(unsigned int a1)
+/* ===== cm_prepare_el3_exit @ 0x94002394 size 244 ===== */
+void __fastcall cm_prepare_el3_exit(unsigned int a1)
 {
   __int64 v2; // x0
   __int64 v3; // x19
@@ -1697,10 +1697,10 @@ void __fastcall sub_94002394(unsigned int a1)
   bool v5; // zf
   unsigned __int64 v6; // x0
 
-  v2 = sub_94001E50(a1);
+  v2 = cm_get_context(a1);
   v3 = v2;
   if ( v2 == 0 )
-    sub_940054A8("cm_prepare_el3_exit", "lib/el3_runtime/aarch64/context_mgmt.c", 220, "ctx");
+    assert_fail("cm_prepare_el3_exit", "lib/el3_runtime/aarch64/context_mgmt.c", 220, "ctx");
   if ( a1 == 1 )
   {
     v4 = *(_QWORD *)(v2 + 256);
@@ -1726,12 +1726,12 @@ void __fastcall sub_94002394(unsigned int a1)
       _WriteStatusReg(CNTHP_CTL_EL2, 0);
     }
   }
-  sub_94007888(v3 + 288);
-  sub_940022F8();
+  el1_sysregs_restore(v3 + 288);
+  cm_set_next_context();
 }
 
-/* ===== sub_94002488 @ 0x94002488 size 60 ===== */
-unsigned __int64 *__fastcall sub_94002488(unsigned int a1)
+/* ===== cm_el1_sysregs_context_save @ 0x94002488 size 60 ===== */
+unsigned __int64 *__fastcall cm_el1_sysregs_context_save(unsigned int a1)
 {
   __int64 v1; // x0
   unsigned __int64 *result; // x0
@@ -1764,9 +1764,9 @@ unsigned __int64 *__fastcall sub_94002488(unsigned int a1)
   unsigned __int64 v29; // x15
   unsigned __int64 v30; // x16
 
-  v1 = sub_94001E50(a1);
+  v1 = cm_get_context(a1);
   if ( v1 == 0 )
-    sub_940054A8("cm_el1_sysregs_context_save", "lib/el3_runtime/aarch64/context_mgmt.c", 302, "ctx");
+    assert_fail("cm_el1_sysregs_context_save", "lib/el3_runtime/aarch64/context_mgmt.c", 302, "ctx");
   result = (unsigned __int64 *)(v1 + 288);
   StatusReg = _ReadStatusReg(SPSR_EL1);
   v4 = _ReadStatusReg(ELR_EL1);
@@ -1828,50 +1828,50 @@ unsigned __int64 *__fastcall sub_94002488(unsigned int a1)
   return result;
 }
 
-/* ===== sub_940024C4 @ 0x940024C4 size 60 ===== */
-__int64 __fastcall sub_940024C4(unsigned int a1)
+/* ===== cm_el1_sysregs_context_restore @ 0x940024C4 size 60 ===== */
+__int64 __fastcall cm_el1_sysregs_context_restore(unsigned int a1)
 {
   __int64 v1; // x0
 
-  v1 = sub_94001E50(a1);
+  v1 = cm_get_context(a1);
   if ( v1 == 0 )
-    sub_940054A8("cm_el1_sysregs_context_restore", "lib/el3_runtime/aarch64/context_mgmt.c", 312, "ctx");
-  return sub_94007888(v1 + 288);
+    assert_fail("cm_el1_sysregs_context_restore", "lib/el3_runtime/aarch64/context_mgmt.c", 312, "ctx");
+  return el1_sysregs_restore(v1 + 288);
 }
 
-/* ===== sub_94002500 @ 0x94002500 size 68 ===== */
-__int64 __fastcall sub_94002500(unsigned int a1, __int64 a2)
+/* ===== cm_set_elr_el3 @ 0x94002500 size 68 ===== */
+__int64 __fastcall cm_set_elr_el3(unsigned int a1, __int64 a2)
 {
   __int64 result; // x0
 
-  result = sub_94001E50(a1);
+  result = cm_get_context(a1);
   if ( result == 0 )
-    sub_940054A8("cm_set_elr_el3", "lib/el3_runtime/aarch64/context_mgmt.c", 327, "ctx");
+    assert_fail("cm_set_elr_el3", "lib/el3_runtime/aarch64/context_mgmt.c", 327, "ctx");
   *(_QWORD *)(result + 280) = a2;
   return result;
 }
 
-/* ===== sub_94002544 @ 0x94002544 size 84 ===== */
-__int64 __fastcall sub_94002544(unsigned int a1, __int64 a2, unsigned int a3)
+/* ===== cm_set_elr_spsr_el3 @ 0x94002544 size 84 ===== */
+__int64 __fastcall cm_set_elr_spsr_el3(unsigned int a1, __int64 a2, unsigned int a3)
 {
   __int64 result; // x0
 
-  result = sub_94001E50(a1);
+  result = cm_get_context(a1);
   if ( result == 0 )
-    sub_940054A8("cm_set_elr_spsr_el3", "lib/el3_runtime/aarch64/context_mgmt.c", 345, "ctx");
+    assert_fail("cm_set_elr_spsr_el3", "lib/el3_runtime/aarch64/context_mgmt.c", 345, "ctx");
   *(_QWORD *)(result + 280) = a2;
   *(_QWORD *)(result + 272) = a3;
   return result;
 }
 
-/* ===== sub_94002598 @ 0x94002598 size 184 ===== */
-__int64 __fastcall sub_94002598(unsigned int a1, char a2, unsigned int a3)
+/* ===== cm_write_scr_el3_bit @ 0x94002598 size 184 ===== */
+__int64 __fastcall cm_write_scr_el3_bit(unsigned int a1, char a2, unsigned int a3)
 {
   __int64 result; // x0
   __int64 v4; // x2
   const char *v5; // x3
 
-  result = sub_94001E50(a1);
+  result = cm_get_context(a1);
   if ( result == 0 )
   {
     v4 = 367;
@@ -1889,22 +1889,22 @@ __int64 __fastcall sub_94002598(unsigned int a1, char a2, unsigned int a3)
     v4 = 373;
     v5 = "value <= 1";
 LABEL_5:
-    sub_940054A8("cm_write_scr_el3_bit", "lib/el3_runtime/aarch64/context_mgmt.c", v4, v5);
+    assert_fail("cm_write_scr_el3_bit", "lib/el3_runtime/aarch64/context_mgmt.c", v4, v5);
   }
   *(_QWORD *)(result + 256) = (unsigned int)*(_QWORD *)(result + 256) & ~(1 << a2) | (a3 << a2);
   return result;
 }
 
-/* ===== sub_94002650 @ 0x94002650 size 56 ===== */
-void __fastcall sub_94002650(unsigned int a1)
+/* ===== cm_set_next_eret_context @ 0x94002650 size 56 ===== */
+void __fastcall cm_set_next_eret_context(unsigned int a1)
 {
-  if ( sub_94001E50(a1) == 0 )
-    sub_940054A8("cm_set_next_eret_context", "lib/el3_runtime/aarch64/context_mgmt.c", 413, "ctx");
-  sub_940022F8();
+  if ( cm_get_context(a1) == 0 )
+    assert_fail("cm_set_next_eret_context", "lib/el3_runtime/aarch64/context_mgmt.c", 413, "ctx");
+  cm_set_next_context();
 }
 
-/* ===== sub_94002688 @ 0x94002688 size 316 ===== */
-__int64 __fastcall sub_94002688(unsigned int a1)
+/* ===== psci_do_cpu_off @ 0x94002688 size 316 ===== */
+__int64 __fastcall psci_do_cpu_off(unsigned int a1)
 {
   unsigned int v2; // w22
   __int64 v3; // x0
@@ -1913,41 +1913,41 @@ __int64 __fastcall sub_94002688(unsigned int a1)
   void (__fastcall *v6)(_BYTE *); // x1
   _BYTE v8[8]; // [xsp+38h] [xbp+38h] BYREF
 
-  v2 = sub_94007E28();
+  v2 = get_cpu_id();
   if ( *(_QWORD *)(MEMORY[0x9400E980] + 16LL) == 0 )
-    sub_940054A8("psci_do_cpu_off", "lib/psci/psci_off.c", 74, "psci_plat_pm_ops->pwr_domain_off");
-  sub_94003228(a1, v2);
+    assert_fail("psci_do_cpu_off", "lib/psci/psci_off.c", 74, "psci_plat_pm_ops->pwr_domain_off");
+  psci_acquire_pwr_domain_locks(a1, v2);
   if ( MEMORY[0x9400E988] == 0
     || (v5 = *(__int64 (__fastcall **)(_QWORD))(MEMORY[0x9400E988] + 8LL)) == nullptr
     || (v4 = v5(0)) == 0 )
   {
     v8[0] = 2;
     v8[1] = 2;
-    sub_94003030(a1, v8);
-    sub_940043A4(a1, v8);
-    v3 = sub_94003124(v8);
-    sub_94007748(v3);
+    psci_do_state_coordination(a1, v8);
+    psci_stats_update_pwr_down(a1, v8);
+    v3 = psci_get_max_off_lvl(v8);
+    cpu_context_save(v3);
     (*(void (__fastcall **)(_BYTE *))(MEMORY[0x9400E980] + 16LL))(v8);
     v4 = 0;
-    sub_940042FC(0, _ReadStatusReg(CNTPCT_EL0));
+    pmf_capture_timestamp(0, _ReadStatusReg(CNTPCT_EL0));
   }
-  sub_940032A4(a1, v2);
+  psci_release_pwr_domain_locks(a1, v2);
   if ( v4 == 0 )
   {
-    sub_94007BF8(_ReadStatusReg(TPIDR_EL3) + 88, 4);
+    dcache_clean_invalidate(_ReadStatusReg(TPIDR_EL3) + 88, 4);
     *(_DWORD *)(_ReadStatusReg(TPIDR_EL3) + 88) = 1;
     __dsb(0xBu);
-    sub_94007C60(_ReadStatusReg(TPIDR_EL3) + 88, 4);
+    dcache_invalidate(_ReadStatusReg(TPIDR_EL3) + 88, 4);
     v6 = *(void (__fastcall **)(_BYTE *))(MEMORY[0x9400E980] + 48LL);
     if ( v6 != nullptr )
       v6(v8);
-    sub_940077C8();
+    cpu_power_down();
   }
   return v4;
 }
 
-/* ===== sub_940027C4 @ 0x940027C4 size 628 ===== */
-__int64 __fastcall sub_940027C4(__int64 a1, __int64 a2)
+/* ===== psci_cpu_on_start @ 0x940027C4 size 628 ===== */
+__int64 __fastcall psci_cpu_on_start(__int64 a1, __int64 a2)
 {
   unsigned int v4; // w19
   const char *v5; // x0
@@ -1961,7 +1961,7 @@ __int64 __fastcall sub_940027C4(__int64 a1, __int64 a2)
   unsigned int v13; // w20
   __int64 v14; // x0
 
-  v4 = sub_940004D0(a1);
+  v4 = psci_validate_affinity(a1);
   if ( (v4 & 0x80000000) != 0 )
   {
     v5 = "psci_cpu_on_start";
@@ -1983,8 +1983,8 @@ __int64 __fastcall sub_940027C4(__int64 a1, __int64 a2)
     v7 = "psci_plat_pm_ops->pwr_domain_on && psci_plat_pm_ops->pwr_domain_on_finish";
     goto LABEL_5;
   }
-  sub_94007720(16LL * v4 + 0x9400E940LL + 12);
-  v8 = *(_DWORD *)(sub_94007608(v4) + 88);
+  spin_lock(16LL * v4 + 0x9400E940LL + 12);
+  v8 = *(_DWORD *)(get_cpu_context_ptr(v4) + 88);
   if ( v8 != 0 )
   {
     if ( v8 == 2 )
@@ -2002,10 +2002,10 @@ __int64 __fastcall sub_940027C4(__int64 a1, __int64 a2)
       }
       if ( MEMORY[0x9400E988] != 0 && *MEMORY[0x9400E988] != 0 )
         ((void (__fastcall *)(__int64))*MEMORY[0x9400E988])(a1);
-      *(_DWORD *)(sub_94007608(v4) + 88) = 2;
-      v9 = sub_94007608(v4);
-      sub_94007BF8(v9 + 88, 4);
-      v10 = *(_DWORD *)(sub_94007608(v4) + 88);
+      *(_DWORD *)(get_cpu_context_ptr(v4) + 88) = 2;
+      v9 = get_cpu_context_ptr(v4);
+      dcache_clean_invalidate(v9 + 88, 4);
+      v10 = *(_DWORD *)(get_cpu_context_ptr(v4) + 88);
       if ( v10 != 2 )
       {
         if ( v10 != 1 )
@@ -2015,10 +2015,10 @@ __int64 __fastcall sub_940027C4(__int64 a1, __int64 a2)
           v7 = "target_aff_state == AFF_STATE_OFF";
           goto LABEL_5;
         }
-        *(_DWORD *)(sub_94007608(v4) + 88) = 2;
-        v11 = sub_94007608(v4);
-        sub_94007BF8(v11 + 88, 4);
-        if ( *(_DWORD *)(sub_94007608(v4) + 88) != 2 )
+        *(_DWORD *)(get_cpu_context_ptr(v4) + 88) = 2;
+        v11 = get_cpu_context_ptr(v4);
+        dcache_clean_invalidate(v11 + 88, 4);
+        if ( *(_DWORD *)(get_cpu_context_ptr(v4) + 88) != 2 )
         {
           v5 = "psci_cpu_on_start";
           v6 = 124;
@@ -2034,17 +2034,17 @@ __int64 __fastcall sub_940027C4(__int64 a1, __int64 a2)
         v6 = 136;
         v7 = "rc == PSCI_E_SUCCESS || rc == PSCI_E_INTERN_FAIL";
 LABEL_5:
-        sub_940054A8(v5, "lib/psci/psci_on.c", v6, v7);
+        assert_fail(v5, "lib/psci/psci_on.c", v6, v7);
       }
       if ( v12 != 0 )
       {
-        *(_DWORD *)(sub_94007608(v4) + 88) = 1;
-        v14 = sub_94007608(v4);
-        sub_94007BF8(v14 + 88, 4);
+        *(_DWORD *)(get_cpu_context_ptr(v4) + 88) = 1;
+        v14 = get_cpu_context_ptr(v4);
+        dcache_clean_invalidate(v14 + 88, 4);
       }
       else
       {
-        sub_94002340(v4, a2);
+        cm_init_context_by_index(v4, a2);
       }
     }
   }
@@ -2052,12 +2052,12 @@ LABEL_5:
   {
     v13 = -4;
   }
-  sub_94007740(16LL * v4 + 0x9400E940LL + 12);
+  spin_unlock(16LL * v4 + 0x9400E940LL + 12);
   return v13;
 }
 
-/* ===== sub_94002A38 @ 0x94002A38 size 204 ===== */
-void __fastcall sub_94002A38(unsigned int a1, __int64 a2)
+/* ===== psci_cpu_on_finish @ 0x94002A38 size 204 ===== */
+void __fastcall psci_cpu_on_finish(unsigned int a1, __int64 a2)
 {
   __int64 v2; // x19
   __int64 v3; // x0
@@ -2066,12 +2066,12 @@ void __fastcall sub_94002A38(unsigned int a1, __int64 a2)
 
   v2 = a1;
   v3 = (*(__int64 (__fastcall **)(__int64))(MEMORY[0x9400E980] + 32LL))(a2);
-  v4 = sub_94007794(v3);
-  sub_94003C38(v4);
-  sub_94007720(0x9400E940LL + 16 * v2 + 12);
-  sub_94007740(0x9400E940LL + 16 * v2 + 12);
+  v4 = cpu_context_restore(v3);
+  psci_timer_init(v4);
+  spin_lock(0x9400E940LL + 16 * v2 + 12);
+  spin_unlock(0x9400E940LL + 16 * v2 + 12);
   if ( *(_DWORD *)(_ReadStatusReg(TPIDR_EL3) + 88) != 2 )
-    sub_940054A8("psci_cpu_on_finish", "lib/psci/psci_on.c", 190, "psci_get_aff_info_state() == AFF_STATE_ON_PENDING");
+    assert_fail("psci_cpu_on_finish", "lib/psci/psci_on.c", 190, "psci_get_aff_info_state() == AFF_STATE_ON_PENDING");
   if ( MEMORY[0x9400E988] != 0 )
   {
     v5 = *(void (__fastcall **)(_QWORD))(MEMORY[0x9400E988] + 24LL);
@@ -2079,11 +2079,11 @@ void __fastcall sub_94002A38(unsigned int a1, __int64 a2)
       v5(0);
   }
   *(_QWORD *)(0x9400E940LL + 16 * v2) = _ReadStatusReg(MPIDR_EL1) & 0xFF00FFFFFFLL;
-  sub_94002394(1u);
+  cm_prepare_el3_exit(1u);
 }
 
-/* ===== sub_94002B04 @ 0x94002B04 size 400 ===== */
-__int64 __fastcall sub_94002B04(__int64 a1, unsigned int a2, __int64 a3, int a4)
+/* ===== psci_cpu_suspend_start @ 0x94002B04 size 400 ===== */
+__int64 __fastcall psci_cpu_suspend_start(__int64 a1, unsigned int a2, __int64 a3, int a4)
 {
   unsigned int v8; // w21
   int v9; // w24
@@ -2093,38 +2093,38 @@ __int64 __fastcall sub_94002B04(__int64 a1, unsigned int a2, __int64 a3, int a4)
   void (__fastcall *v13)(__int64); // x1
   char v14; // [xsp+58h] [xbp+58h] BYREF
 
-  v8 = sub_94007E28();
+  v8 = get_cpu_id();
   if ( *(_QWORD *)(MEMORY[0x9400E980] + 24LL) == 0 || *(_QWORD *)(MEMORY[0x9400E980] + 40LL) == 0 )
-    sub_940054A8(
+    assert_fail(
       "psci_cpu_suspend_start",
       "lib/psci/psci_suspend.c",
       153,
       "psci_plat_pm_ops->pwr_domain_suspend && psci_plat_pm_ops->pwr_domain_suspend_finish");
-  sub_94003228(a2, v8);
+  psci_acquire_pwr_domain_locks(a2, v8);
   v9 = 1;
   if ( _ReadStatusReg(ISR_EL1) == 0 )
   {
-    sub_94003030(a2, a3);
-    sub_940043A4(a2, a3);
+    psci_do_state_coordination(a2, a3);
+    psci_stats_update_pwr_down(a2, a3);
     if ( a4 != 0 )
     {
-      v10 = sub_94003124(a3);
+      v10 = psci_get_max_off_lvl(a3);
       *(_BYTE *)(_ReadStatusReg(TPIDR_EL3) + 92) = a2;
-      sub_94007BF8(_ReadStatusReg(TPIDR_EL3) + 92, 1);
+      dcache_clean_invalidate(_ReadStatusReg(TPIDR_EL3) + 92, 1);
       if ( MEMORY[0x9400E988] != 0 )
       {
         v11 = *(void (__fastcall **)(_QWORD))(MEMORY[0x9400E988] + 16LL);
         if ( v11 != nullptr )
           v11(v10);
       }
-      sub_9400236C(a1);
-      sub_94007748(v10);
+      cm_init_context(a1);
+      cpu_context_save(v10);
     }
     (*(void (__fastcall **)(__int64))(MEMORY[0x9400E980] + 24LL))(a3);
     v9 = 0;
-    sub_940042FC(0, _ReadStatusReg(CNTPCT_EL0));
+    pmf_capture_timestamp(0, _ReadStatusReg(CNTPCT_EL0));
   }
-  result = sub_940032A4(a2, v8);
+  result = psci_release_pwr_domain_locks(a2, v8);
   if ( v9 == 0 )
   {
     if ( a4 != 0 )
@@ -2132,20 +2132,20 @@ __int64 __fastcall sub_94002B04(__int64 a1, unsigned int a2, __int64 a3, int a4)
       v13 = *(void (__fastcall **)(__int64))(MEMORY[0x9400E980] + 48LL);
       if ( v13 != nullptr )
         v13(a3);
-      sub_940077C8();
+      cpu_power_down();
     }
     __wfi();
-    sub_94003228(a2, v8);
-    sub_94002ED0(a2, &v14);
+    psci_acquire_pwr_domain_locks(a2, v8);
+    psci_get_target_pwr_state(a2, &v14);
     (*(void (__fastcall **)(char *))(MEMORY[0x9400E980] + 40LL))(&v14);
-    sub_94002FA0(a2);
-    return sub_940032A4(a2, v8);
+    psci_do_state_coordination_finish(a2);
+    return psci_release_pwr_domain_locks(a2, v8);
   }
   return result;
 }
 
-/* ===== sub_94002C94 @ 0x94002C94 size 224 ===== */
-void __fastcall sub_94002C94(__int64 a1, _BYTE *a2)
+/* ===== psci_cpu_suspend_finish @ 0x94002C94 size 224 ===== */
+void __fastcall psci_cpu_suspend_finish(__int64 a1, _BYTE *a2)
 {
   __int64 v2; // x2
   const char *v3; // x3
@@ -2160,32 +2160,32 @@ void __fastcall sub_94002C94(__int64 a1, _BYTE *a2)
     goto LABEL_8;
   }
   v4 = (*(__int64 (__fastcall **)(_BYTE *))(MEMORY[0x9400E980] + 40LL))(a2);
-  v5 = sub_94007794(v4);
-  _WriteStatusReg(CNTFRQ_EL0, (unsigned int)sub_94006CEC(v5));
+  v5 = cpu_context_restore(v4);
+  _WriteStatusReg(CNTFRQ_EL0, (unsigned int)get_uart_clock(v5));
   if ( MEMORY[0x9400E988] != 0 && *(_QWORD *)(MEMORY[0x9400E988] + 16LL) != 0 )
   {
-    v6 = sub_94003124(a2);
+    v6 = psci_get_max_off_lvl(a2);
     if ( v6 == 2 )
     {
       v2 = 305;
       v3 = "max_off_lvl != PSCI_INVALID_PWR_LVL";
 LABEL_8:
-      sub_940054A8("psci_cpu_suspend_finish", "lib/psci/psci_suspend.c", v2, v3);
+      assert_fail("psci_cpu_suspend_finish", "lib/psci/psci_suspend.c", v2, v3);
     }
     (*(void (__fastcall **)(_QWORD))(MEMORY[0x9400E988] + 32LL))(v6);
   }
   *(_BYTE *)(_ReadStatusReg(TPIDR_EL3) + 92) = 2;
-  sub_94002394(1u);
+  cm_prepare_el3_exit(1u);
 }
 
-/* ===== sub_94002D74 @ 0x94002D74 size 40 ===== */
-void __noreturn sub_94002D74()
+/* ===== psci_set_req_local_pwr_state @ 0x94002D74 size 40 ===== */
+void __noreturn psci_set_req_local_pwr_state()
 {
-  sub_940054A8("psci_set_req_local_pwr_state", "lib/psci/psci_common.c", 219, "pwrlvl > PSCI_CPU_PWR_LVL");
+  assert_fail("psci_set_req_local_pwr_state", "lib/psci/psci_common.c", 219, "pwrlvl > PSCI_CPU_PWR_LVL");
 }
 
-/* ===== sub_94002D9C @ 0x94002D9C size 88 ===== */
-__int64 __fastcall sub_94002D9C(int a1)
+/* ===== psci_validate_power_state @ 0x94002D9C size 88 ===== */
+__int64 __fastcall psci_validate_power_state(int a1)
 {
   __int64 (*v1)(void); // x2
 
@@ -2193,18 +2193,18 @@ __int64 __fastcall sub_94002D9C(int a1)
     return 4294967294LL;
   v1 = *(__int64 (**)(void))(MEMORY[0x9400E980] + 72LL);
   if ( v1 == nullptr )
-    sub_940054A8("psci_validate_power_state", "lib/psci/psci_common.c", 142, "psci_plat_pm_ops->validate_power_state");
+    assert_fail("psci_validate_power_state", "lib/psci/psci_common.c", 142, "psci_plat_pm_ops->validate_power_state");
   return v1();
 }
 
-/* ===== sub_94002DF4 @ 0x94002DF4 size 68 ===== */
-__int64 sub_94002DF4()
+/* ===== psci_query_sys_suspend_pwrstate @ 0x94002DF4 size 68 ===== */
+__int64 psci_query_sys_suspend_pwrstate()
 {
   __int64 (*v0)(void); // x1
 
   v0 = *(__int64 (**)(void))(MEMORY[0x9400E980] + 88LL);
   if ( v0 == nullptr )
-    sub_940054A8(
+    assert_fail(
       "psci_query_sys_suspend_pwrstate",
       "lib/psci/psci_common.c",
       158,
@@ -2212,23 +2212,23 @@ __int64 sub_94002DF4()
   return v0();
 }
 
-/* ===== sub_94002E38 @ 0x94002E38 size 132 ===== */
-__int64 sub_94002E38()
+/* ===== psci_is_last_on_cpu @ 0x94002E38 size 132 ===== */
+__int64 psci_is_last_on_cpu()
 {
   unsigned int v0; // w19
   int v1; // w20
 
   v0 = 0;
-  v1 = sub_94007E28();
+  v1 = get_cpu_id();
   while ( 1 )
   {
     if ( v0 == v1 )
     {
       if ( *(_DWORD *)(_ReadStatusReg(TPIDR_EL3) + 88) != 0 )
-        sub_940054A8("psci_is_last_on_cpu", "lib/psci/psci_common.c", 178, "psci_get_aff_info_state() == AFF_STATE_ON");
+        assert_fail("psci_is_last_on_cpu", "lib/psci/psci_common.c", 178, "psci_get_aff_info_state() == AFF_STATE_ON");
       goto LABEL_4;
     }
-    if ( *(_DWORD *)(sub_94007608(v0) + 88) != 1 )
+    if ( *(_DWORD *)(get_cpu_context_ptr(v0) + 88) != 1 )
       return 0;
 LABEL_4:
     if ( ++v0 == 4 )
@@ -2236,14 +2236,14 @@ LABEL_4:
   }
 }
 
-/* ===== sub_94002EBC @ 0x94002EBC size 20 ===== */
-__int64 sub_94002EBC()
+/* ===== psci_clear_aff_info @ 0x94002EBC size 20 ===== */
+__int64 psci_clear_aff_info()
 {
-  return sub_940054C4(0x9400D1E0, 2, 4);
+  return memset_simple(0x9400D1E0, 2, 4);
 }
 
-/* ===== sub_94002ED0 @ 0x94002ED0 size 140 ===== */
-unsigned __int64 __fastcall sub_94002ED0(unsigned int a1, _BYTE *a2)
+/* ===== psci_get_target_pwr_state @ 0x94002ED0 size 140 ===== */
+unsigned __int64 __fastcall psci_get_target_pwr_state(unsigned int a1, _BYTE *a2)
 {
   unsigned int v3; // w0
   unsigned int v4; // w2
@@ -2252,7 +2252,7 @@ unsigned __int64 __fastcall sub_94002ED0(unsigned int a1, _BYTE *a2)
   __int64 v7; // x3
 
   *a2 = *(_BYTE *)(_ReadStatusReg(TPIDR_EL3) + 93);
-  v3 = sub_94007E28();
+  v3 = get_cpu_id();
   v4 = 1;
   v5 = *(_DWORD *)(0x9400E940 + 16LL * v3 + 8);
   result = 0x94014010;
@@ -2267,8 +2267,8 @@ unsigned __int64 __fastcall sub_94002ED0(unsigned int a1, _BYTE *a2)
   return result;
 }
 
-/* ===== sub_94002F5C @ 0x94002F5C size 68 ===== */
-__int64 __fastcall sub_94002F5C(unsigned int a1, unsigned int a2, unsigned int *a3)
+/* ===== psci_get_parent_pwr_lvl @ 0x94002F5C size 68 ===== */
+__int64 __fastcall psci_get_parent_pwr_lvl(unsigned int a1, unsigned int a2, unsigned int *a3)
 {
   unsigned int v3; // w3
   __int64 result; // x0
@@ -2284,13 +2284,13 @@ __int64 __fastcall sub_94002F5C(unsigned int a1, unsigned int a2, unsigned int *
   return result;
 }
 
-/* ===== sub_94002FA0 @ 0x94002FA0 size 144 ===== */
-__int64 __fastcall sub_94002FA0(unsigned int a1)
+/* ===== psci_do_state_coordination_finish @ 0x94002FA0 size 144 ===== */
+__int64 __fastcall psci_do_state_coordination_finish(unsigned int a1)
 {
   unsigned int v2; // w0
   __int64 v3; // x2
 
-  v2 = sub_94007E28();
+  v2 = get_cpu_id();
   if ( a1 != 0 )
   {
     v3 = 0x94014010 + 16LL * *(unsigned int *)(0x9400E940 + 16LL * v2 + 8);
@@ -2299,16 +2299,16 @@ __int64 __fastcall sub_94002FA0(unsigned int a1)
     if ( a1 > 1 )
     {
       *(_BYTE *)(0x94014010 + 16LL * *(unsigned int *)(v3 + 8) + 12) = 0;
-      sub_94002D74();
+      psci_set_req_local_pwr_state();
     }
   }
   *(_DWORD *)(_ReadStatusReg(TPIDR_EL3) + 88) = 0;
   *(_BYTE *)(_ReadStatusReg(TPIDR_EL3) + 93) = 0;
-  return sub_94007BF8(_ReadStatusReg(TPIDR_EL3) + 88, 8);
+  return dcache_clean_invalidate(_ReadStatusReg(TPIDR_EL3) + 88, 8);
 }
 
-/* ===== sub_94003030 @ 0x94003030 size 244 ===== */
-__int64 __fastcall sub_94003030(unsigned int a1, _BYTE *a2)
+/* ===== psci_do_state_coordination @ 0x94003030 size 244 ===== */
+__int64 __fastcall psci_do_state_coordination(unsigned int a1, _BYTE *a2)
 {
   unsigned int v4; // w0
   __int64 v5; // x2
@@ -2316,22 +2316,22 @@ __int64 __fastcall sub_94003030(unsigned int a1, _BYTE *a2)
   __int64 v7; // x0
   __int64 result; // x0
 
-  v4 = ((__int64 (*)(void))sub_94007E28)();
+  v4 = ((__int64 (*)(void))get_cpu_id)();
   if ( a1 > 1 )
-    sub_940054A8("psci_do_state_coordination", "lib/psci/psci_common.c", 396, "end_pwrlvl <= PLAT_MAX_PWR_LVL");
+    assert_fail("psci_do_state_coordination", "lib/psci/psci_common.c", 396, "end_pwrlvl <= PLAT_MAX_PWR_LVL");
   v5 = v4;
   v6 = *(_DWORD *)(0x9400E940 + 16LL * v4 + 8);
   if ( a1 != 0 )
   {
     *(_BYTE *)(0x9400D1E0LL + v5) = a2[1];
-    a2[1] = sub_94001A80(
+    a2[1] = plat_get_target_pwr_state(
               1,
               0x9400D1E0LL + *(unsigned int *)(0x94014010 + 16LL * v6),
               *(_DWORD *)(0x94014010 + 16LL * v6 + 4));
   }
   *(_BYTE *)(_ReadStatusReg(TPIDR_EL3) + 93) = *a2;
-  v7 = sub_94007BF8(_ReadStatusReg(TPIDR_EL3) + 93, 1);
-  result = 16LL * (unsigned int)sub_94007E28(v7);
+  v7 = dcache_clean_invalidate(_ReadStatusReg(TPIDR_EL3) + 93, 1);
+  result = 16LL * (unsigned int)get_cpu_id(v7);
   if ( a1 != 0 )
   {
     result = 0x94014010 + 16LL * *(unsigned int *)(0x9400E940LL + result + 8);
@@ -2340,8 +2340,8 @@ __int64 __fastcall sub_94003030(unsigned int a1, _BYTE *a2)
   return result;
 }
 
-/* ===== sub_94003124 @ 0x94003124 size 44 ===== */
-__int64 __fastcall sub_94003124(unsigned __int8 *a1)
+/* ===== psci_get_max_off_lvl @ 0x94003124 size 44 ===== */
+__int64 __fastcall psci_get_max_off_lvl(unsigned __int8 *a1)
 {
   int v1; // w1
   __int64 result; // x0
@@ -2355,8 +2355,8 @@ __int64 __fastcall sub_94003124(unsigned __int8 *a1)
   return result;
 }
 
-/* ===== sub_94003150 @ 0x94003150 size 36 ===== */
-__int64 __fastcall sub_94003150(unsigned __int8 *a1)
+/* ===== psci_find_target_suspend_lvl @ 0x94003150 size 36 ===== */
+__int64 __fastcall psci_find_target_suspend_lvl(unsigned __int8 *a1)
 {
   unsigned int v1; // w1
   int v2; // w2
@@ -2372,8 +2372,8 @@ __int64 __fastcall sub_94003150(unsigned __int8 *a1)
   return result;
 }
 
-/* ===== sub_94003174 @ 0x94003174 size 180 ===== */
-__int64 __fastcall sub_94003174(unsigned __int8 *a1, int a2)
+/* ===== psci_validate_suspend_req @ 0x94003174 size 180 ===== */
+__int64 __fastcall psci_validate_suspend_req(unsigned __int8 *a1, int a2)
 {
   int v4; // w0
   int v5; // w19
@@ -2383,7 +2383,7 @@ __int64 __fastcall sub_94003174(unsigned __int8 *a1, int a2)
   int v9; // w1
   __int64 result; // x0
 
-  v4 = sub_94003150(a1);
+  v4 = psci_find_target_suspend_lvl(a1);
   v5 = v4;
   if ( v4 == 2 )
     return 4294967294LL;
@@ -2408,7 +2408,7 @@ LABEL_9:
     --v6;
     v7 = v8;
   }
-  v9 = sub_94003124(a1);
+  v9 = psci_get_max_off_lvl(a1);
   if ( v5 == v9 )
     v5 = 2;
   result = 0;
@@ -2421,8 +2421,8 @@ LABEL_9:
   return result;
 }
 
-/* ===== sub_94003228 @ 0x94003228 size 124 ===== */
-__int64 __fastcall sub_94003228(unsigned int a1, unsigned int a2)
+/* ===== psci_acquire_pwr_domain_locks @ 0x94003228 size 124 ===== */
+__int64 __fastcall psci_acquire_pwr_domain_locks(unsigned int a1, unsigned int a2)
 {
   __int64 result; // x0
   unsigned int v4; // w20
@@ -2434,14 +2434,14 @@ __int64 __fastcall sub_94003228(unsigned int a1, unsigned int a2)
   for ( i = 1; i <= a1; ++i )
   {
     v6 = 0x94014010 + 16LL * v4;
-    result = sub_940040A0(0x94014008 + 8LL * *(unsigned __int8 *)(v6 + 14));
+    result = bakery_lock_get(0x94014008 + 8LL * *(unsigned __int8 *)(v6 + 14));
     v4 = *(_DWORD *)(v6 + 8);
   }
   return result;
 }
 
-/* ===== sub_940032A4 @ 0x940032A4 size 116 ===== */
-__int64 __fastcall sub_940032A4(unsigned int a1, unsigned int a2)
+/* ===== psci_release_pwr_domain_locks @ 0x940032A4 size 116 ===== */
+__int64 __fastcall psci_release_pwr_domain_locks(unsigned int a1, unsigned int a2)
 {
   int v2; // w19
   __int64 result; // x0
@@ -2449,20 +2449,20 @@ __int64 __fastcall sub_940032A4(unsigned int a1, unsigned int a2)
 
   v2 = a1;
   v4[0] = 0;
-  result = sub_94002F5C(a2, a1, v4);
+  result = psci_get_parent_pwr_lvl(a2, a1, v4);
   while ( v2 > 0 )
-    result = sub_940041C8(0x94014008 + 8LL * *(unsigned __int8 *)(0x94014010 + 16LL * v4[--v2] + 14));
+    result = bakery_lock_release(0x94014008 + 8LL * *(unsigned __int8 *)(0x94014010 + 16LL * v4[--v2] + 14));
   return result;
 }
 
-/* ===== sub_94003318 @ 0x94003318 size 8 ===== */
-__int64 sub_94003318()
+/* ===== psci_validate_cpu_on @ 0x94003318 size 8 ===== */
+__int64 psci_validate_cpu_on()
 {
   return 0;
 }
 
-/* ===== sub_94003320 @ 0x94003320 size 272 ===== */
-__int64 __fastcall sub_94003320(__int64 a1, __int64 a2, __int64 a3)
+/* ===== psci_setup_ep_info @ 0x94003320 size 272 ===== */
+__int64 __fastcall psci_setup_ep_info(__int64 a1, __int64 a2, __int64 a3)
 {
   unsigned int (__fastcall *v5)(__int64); // x1
   __int16 StatusReg; // w21
@@ -2490,7 +2490,7 @@ __int64 __fastcall sub_94003320(__int64 a1, __int64 a2, __int64 a3)
   *(_DWORD *)(a1 + 4) = v10;
   *(_WORD *)(a1 + 2) = 88;
   *(_QWORD *)(a1 + 8) = a2;
-  sub_940054C4(a1 + 24, 0, 64);
+  memset_simple(a1 + 24, 0, 64);
   *(_QWORD *)(a1 + 24) = a3;
   result = StatusReg & 0x400;
   if ( (StatusReg & 0x400) != 0 )
@@ -2515,8 +2515,8 @@ __int64 __fastcall sub_94003320(__int64 a1, __int64 a2, __int64 a3)
   return result;
 }
 
-/* ===== sub_94003430 @ 0x94003430 size 192 ===== */
-__int64 __fastcall sub_94003430(__int64 a1)
+/* ===== psci_cpu_on_handler @ 0x94003430 size 192 ===== */
+__int64 __fastcall psci_cpu_on_handler(__int64 a1)
 {
   unsigned int v1; // w20
   __int64 v2; // x0
@@ -2524,34 +2524,34 @@ __int64 __fastcall sub_94003430(__int64 a1)
   __int16 v5; // [xsp+28h] [xbp+28h] BYREF
 
   v5 = 0;
-  v1 = sub_94007E28(a1);
+  v1 = get_cpu_id(a1);
   if ( *(_DWORD *)(_ReadStatusReg(TPIDR_EL3) + 88) == 1 )
   {
-    v2 = sub_9400517C("ERROR:   Unexpected affinity info state");
-    sub_94007BB8(v2);
+    v2 = printf_impl("ERROR:   Unexpected affinity info state");
+    panic(v2);
   }
   v3 = *(unsigned __int8 *)(_ReadStatusReg(TPIDR_EL3) + 92);
   if ( v3 == 2 )
     v3 = 1;
-  sub_94003228(v3, v1);
-  sub_940042FC(1, _ReadStatusReg(CNTPCT_EL0));
-  sub_94002ED0(v3, &v5);
+  psci_acquire_pwr_domain_locks(v3, v1);
+  pmf_capture_timestamp(1, _ReadStatusReg(CNTPCT_EL0));
+  psci_get_target_pwr_state(v3, &v5);
   if ( *(_DWORD *)(_ReadStatusReg(TPIDR_EL3) + 88) == 2 )
-    sub_94002A38(v1, (__int64)&v5);
+    psci_cpu_on_finish(v1, (__int64)&v5);
   else
-    sub_94002C94(v1, &v5);
-  sub_94002FA0(v3);
-  sub_94004440(v3, &v5, 1);
-  return sub_940032A4(v3, v1);
+    psci_cpu_suspend_finish(v1, &v5);
+  psci_do_state_coordination_finish(v3);
+  psci_stats_update_pwr_up(v3, &v5, 1);
+  return psci_release_pwr_domain_locks(v3, v1);
 }
 
-/* ===== sub_940034F0 @ 0x940034F0 size 108 ===== */
-unsigned __int64 __fastcall sub_940034F0(__int64 a1)
+/* ===== psci_register_spd_pm_hook @ 0x940034F0 size 108 ===== */
+unsigned __int64 __fastcall psci_register_spd_pm_hook(__int64 a1)
 {
   unsigned __int64 result; // x0
 
   if ( a1 == 0 )
-    sub_940054A8("psci_register_spd_pm_hook", "lib/psci/psci_common.c", 822, "pm");
+    assert_fail("psci_register_spd_pm_hook", "lib/psci/psci_common.c", 822, "pm");
   MEMORY[0x9400E988] = a1;
   if ( *(_QWORD *)(a1 + 40) != 0 )
     MEMORY[0x9400E990] |= 0x20u;
@@ -2564,8 +2564,8 @@ unsigned __int64 __fastcall sub_940034F0(__int64 a1)
   return result;
 }
 
-/* ===== sub_9400355C @ 0x9400355C size 88 ===== */
-__int64 sub_9400355C()
+/* ===== psci_spd_migrate_info @ 0x9400355C size 88 ===== */
+__int64 psci_spd_migrate_info()
 {
   __int64 (*v0)(void); // x1
   __int64 result; // x0
@@ -2577,7 +2577,7 @@ __int64 sub_9400355C()
     return 0xFFFFFFFFLL;
   result = v0();
   if ( (unsigned int)(result + 1) > 3 )
-    sub_940054A8(
+    assert_fail(
       "psci_spd_migrate_info",
       "lib/psci/psci_common.c",
       850,
@@ -2591,22 +2591,22 @@ void nullsub_8()
   ;
 }
 
-/* ===== sub_940035B8 @ 0x940035B8 size 84 ===== */
-__int64 __fastcall sub_940035B8(__int64 a1, __int64 a2, __int64 a3)
+/* ===== psci_cpu_on @ 0x940035B8 size 84 ===== */
+__int64 __fastcall psci_cpu_on(__int64 a1, __int64 a2, __int64 a3)
 {
   __int64 result; // x0
   _BYTE v7[88]; // [xsp+38h] [xbp+38h] BYREF
 
-  if ( (unsigned int)sub_94003318() != 0 )
+  if ( (unsigned int)psci_validate_cpu_on() != 0 )
     return 4294967294LL;
-  result = sub_94003320((__int64)v7, a2, a3);
+  result = psci_setup_ep_info((__int64)v7, a2, a3);
   if ( (_DWORD)result == 0 )
-    return sub_940027C4(a1, (__int64)v7);
+    return psci_cpu_on_start(a1, (__int64)v7);
   return result;
 }
 
-/* ===== sub_9400360C @ 0x9400360C size 368 ===== */
-__int64 __fastcall sub_9400360C(int a1, __int64 a2, __int64 a3)
+/* ===== psci_cpu_suspend @ 0x9400360C size 368 ===== */
+__int64 __fastcall psci_cpu_suspend(int a1, __int64 a2, __int64 a3)
 {
   int v6; // w0
   unsigned int v7; // w19
@@ -2622,7 +2622,7 @@ __int64 __fastcall sub_9400360C(int a1, __int64 a2, __int64 a3)
   _BYTE v18[88]; // [xsp+48h] [xbp+48h] BYREF
 
   *(_WORD *)v17 = 0;
-  v6 = sub_94002D9C(a1);
+  v6 = psci_validate_power_state(a1);
   if ( v6 != 0 )
   {
     if ( v6 == -2 )
@@ -2630,22 +2630,22 @@ __int64 __fastcall sub_9400360C(int a1, __int64 a2, __int64 a3)
     v8 = 90;
     v9 = "rc == PSCI_E_INVALID_PARAMS";
 LABEL_7:
-    sub_940054A8("psci_cpu_suspend", "lib/psci/psci_main.c", v8, v9);
+    assert_fail("psci_cpu_suspend", "lib/psci/psci_main.c", v8, v9);
   }
   v10 = (*(_QWORD *)&a1 & 0x10000LL) != 0;
-  v7 = sub_94003174(v17, v10);
+  v7 = psci_validate_suspend_req(v17, v10);
   if ( v7 != 0 )
   {
     v8 = 101;
     v9 = "psci_validate_suspend_req(&state_info, is_power_down_state) == PSCI_E_SUCCESS";
     goto LABEL_7;
   }
-  v11 = sub_94003150(v17);
+  v11 = psci_find_target_suspend_lvl(v17);
   v12 = v11;
   if ( v11 == 2 )
   {
-    v13 = sub_9400517C("ERROR:   Invalid target power level for suspend operation\n");
-    sub_94007BB8(v13);
+    v13 = printf_impl("ERROR:   Invalid target power level for suspend operation\n");
+    panic(v13);
   }
   if ( (v11 | v10) == 0 )
   {
@@ -2653,24 +2653,24 @@ LABEL_7:
     {
       v14 = v17[0];
       *(_BYTE *)(_ReadStatusReg(TPIDR_EL3) + 93) = v17[0];
-      sub_940042FC(0, _ReadStatusReg(CNTPCT_EL0));
+      pmf_capture_timestamp(0, _ReadStatusReg(CNTPCT_EL0));
       ((void (__fastcall *)(_QWORD))*MEMORY[0x9400E980])(v14);
       *(_BYTE *)(_ReadStatusReg(TPIDR_EL3) + 93) = 0;
-      sub_940042FC(1, _ReadStatusReg(CNTPCT_EL0));
-      sub_94004440(0, v17, 0);
+      pmf_capture_timestamp(1, _ReadStatusReg(CNTPCT_EL0));
+      psci_stats_update_pwr_up(0, v17, 0);
       return v7;
     }
     return (unsigned int)-2;
   }
-  if ( v10 && (v15 = sub_94003320((__int64)v18, a2, a3)) != 0 )
+  if ( v10 && (v15 = psci_setup_ep_info((__int64)v18, a2, a3)) != 0 )
     return v15;
   else
-    sub_94002B04((__int64)v18, v12, (__int64)v17, v10);
+    psci_cpu_suspend_start((__int64)v18, v12, (__int64)v17, v10);
   return v7;
 }
 
-/* ===== sub_9400377C @ 0x9400377C size 276 ===== */
-__int64 __fastcall sub_9400377C(__int64 a1, __int64 a2)
+/* ===== psci_system_suspend @ 0x9400377C size 276 ===== */
+__int64 __fastcall psci_system_suspend(__int64 a1, __int64 a2)
 {
   unsigned int v4; // w19
   __int64 v5; // x2
@@ -2678,20 +2678,20 @@ __int64 __fastcall sub_9400377C(__int64 a1, __int64 a2)
   unsigned __int8 v8[8]; // [xsp+20h] [xbp+20h] BYREF
   _BYTE v9[88]; // [xsp+28h] [xbp+28h] BYREF
 
-  sub_94007E64(1880096768, 26000000, 115200);
-  if ( (unsigned int)sub_94002E38() != 0 )
+  uart_init(1880096768, 26000000, 115200);
+  if ( (unsigned int)psci_is_last_on_cpu() != 0 )
   {
-    v4 = sub_94003320((__int64)v9, a1, a2);
+    v4 = psci_setup_ep_info((__int64)v9, a1, a2);
     if ( v4 == 0 )
     {
-      sub_94002DF4();
-      if ( (unsigned int)sub_94003150(v8) != 1 )
+      psci_query_sys_suspend_pwrstate();
+      if ( (unsigned int)psci_find_target_suspend_lvl(v8) != 1 )
       {
         v5 = 209;
         v6 = "psci_find_target_suspend_lvl(&state_info) == PLAT_MAX_PWR_LVL";
         goto LABEL_7;
       }
-      v4 = sub_94003174(v8, 1);
+      v4 = psci_validate_suspend_req(v8, 1);
       if ( v4 != 0 )
       {
         v5 = 211;
@@ -2703,9 +2703,9 @@ __int64 __fastcall sub_9400377C(__int64 a1, __int64 a2)
         v5 = 212;
         v6 = "is_local_state_off(state_info.pwr_domain_state[PLAT_MAX_PWR_LVL])";
 LABEL_7:
-        sub_940054A8("psci_system_suspend", "lib/psci/psci_main.c", v5, v6);
+        assert_fail("psci_system_suspend", "lib/psci/psci_main.c", v5, v6);
       }
-      sub_94002B04((__int64)v9, 1u, (__int64)v8, 1);
+      psci_cpu_suspend_start((__int64)v9, 1u, (__int64)v8, 1);
     }
   }
   else
@@ -2715,34 +2715,34 @@ LABEL_7:
   return v4;
 }
 
-/* ===== sub_94003890 @ 0x94003890 size 88 ===== */
-__int64 sub_94003890()
+/* ===== psci_cpu_off @ 0x94003890 size 88 ===== */
+__int64 psci_cpu_off()
 {
   __int64 result; // x0
 
-  sub_94007E64(1880096768, 26000000, 115200);
-  result = sub_94002688(1u);
+  uart_init(1880096768, 26000000, 115200);
+  result = psci_do_cpu_off(1u);
   if ( (_DWORD)result != -3 )
-    sub_940054A8("psci_cpu_off", "lib/psci/psci_main.c", 249, "rc == PSCI_E_DENIED");
+    assert_fail("psci_cpu_off", "lib/psci/psci_main.c", 249, "rc == PSCI_E_DENIED");
   return result;
 }
 
-/* ===== sub_940038E8 @ 0x940038E8 size 48 ===== */
-__int64 __fastcall sub_940038E8(__int64 a1, int a2)
+/* ===== psci_affinity_info @ 0x940038E8 size 48 ===== */
+__int64 __fastcall psci_affinity_info(__int64 a1, int a2)
 {
   __int64 v3; // x0
 
   if ( a2 != 0 )
     return 4294967294LL;
-  v3 = sub_940004D0(a1);
+  v3 = psci_validate_affinity(a1);
   if ( (_DWORD)v3 == -1 )
     return 4294967294LL;
   else
-    return *(unsigned int *)(sub_94007608(v3) + 88);
+    return *(unsigned int *)(get_cpu_context_ptr(v3) + 88);
 }
 
-/* ===== sub_94003918 @ 0x94003918 size 204 ===== */
-__int64 __fastcall sub_94003918(__int64 a1)
+/* ===== psci_migrate @ 0x94003918 size 204 ===== */
+__int64 __fastcall psci_migrate(__int64 a1)
 {
   int v2; // w0
   __int64 result; // x0
@@ -2751,7 +2751,7 @@ __int64 __fastcall sub_94003918(__int64 a1)
   const char *v6; // x3
   __int64 v7; // [xsp+28h] [xbp+28h]
 
-  v2 = sub_9400355C();
+  v2 = psci_spd_migrate_info();
   if ( v2 != 0 )
   {
     if ( v2 == 1 )
@@ -2761,7 +2761,7 @@ __int64 __fastcall sub_94003918(__int64 a1)
   }
   if ( v7 != _ReadStatusReg(MPIDR_EL1) )
     return 4294967289LL;
-  if ( (unsigned int)sub_94003318() != 0 )
+  if ( (unsigned int)psci_validate_cpu_on() != 0 )
     return 4294967294LL;
   if ( MEMORY[0x9400E988] == 0
     || (v4 = *(__int64 (__fastcall **)(unsigned __int64, __int64))(MEMORY[0x9400E988] + 40LL)) == nullptr )
@@ -2776,40 +2776,40 @@ __int64 __fastcall sub_94003918(__int64 a1)
     v5 = 296;
     v6 = "rc == PSCI_E_SUCCESS || rc == PSCI_E_INTERN_FAIL";
 LABEL_13:
-    sub_940054A8("psci_migrate", "lib/psci/psci_main.c", v5, v6);
+    assert_fail("psci_migrate", "lib/psci/psci_main.c", v5, v6);
   }
   return result;
 }
 
-/* ===== sub_940039E4 @ 0x940039E4 size 24 ===== */
-__int64 sub_940039E4()
+/* ===== psci_migrate_info_type @ 0x940039E4 size 24 ===== */
+__int64 psci_migrate_info_type()
 {
-  return sub_9400355C();
+  return psci_spd_migrate_info();
 }
 
-/* ===== sub_940039FC @ 0x940039FC size 40 ===== */
-__int64 sub_940039FC()
+/* ===== psci_migrate_info_up_cpu @ 0x940039FC size 40 ===== */
+__int64 psci_migrate_info_up_cpu()
 {
   bool v0; // cc
   __int64 result; // x0
   __int64 v2; // [xsp+18h] [xbp+18h]
 
-  v0 = (unsigned int)sub_9400355C() > 1;
+  v0 = (unsigned int)psci_spd_migrate_info() > 1;
   result = -2;
   if ( !v0 )
     return v2;
   return result;
 }
 
-/* ===== sub_94003A24 @ 0x94003A24 size 164 ===== */
-__int64 __fastcall sub_94003A24(__int64 a1, unsigned int a2)
+/* ===== psci_node_hw_state @ 0x94003A24 size 164 ===== */
+__int64 __fastcall psci_node_hw_state(__int64 a1, unsigned int a2)
 {
   __int64 (__fastcall *v3)(__int64); // x2
   __int64 v4; // x2
   const char *v5; // x3
   __int64 result; // x0
 
-  if ( (unsigned int)sub_94003318() != 0 || a2 > 1 )
+  if ( (unsigned int)psci_validate_cpu_on() != 0 || a2 > 1 )
     return 4294967294LL;
   v3 = *(__int64 (__fastcall **)(__int64))(MEMORY[0x9400E980] + 112LL);
   if ( v3 == nullptr )
@@ -2826,15 +2826,15 @@ __int64 __fastcall sub_94003A24(__int64 a1, unsigned int a2)
       v4 = 345;
       v5 = "(rc >= HW_ON && rc <= HW_STANDBY) || rc == PSCI_E_NOT_SUPPORTED || rc == PSCI_E_INVALID_PARAMS";
 LABEL_8:
-      sub_940054A8("psci_node_hw_state", "lib/psci/psci_main.c", v4, v5);
+      assert_fail("psci_node_hw_state", "lib/psci/psci_main.c", v4, v5);
     }
     return 4294967294LL;
   }
   return result;
 }
 
-/* ===== sub_94003AC8 @ 0x94003AC8 size 84 ===== */
-__int64 __fastcall sub_94003AC8(unsigned __int64 a1)
+/* ===== psci_validate_fid @ 0x94003AC8 size 84 ===== */
+__int64 __fastcall psci_validate_fid(unsigned __int64 a1)
 {
   int v1; // w1
 
@@ -2848,8 +2848,8 @@ __int64 __fastcall sub_94003AC8(unsigned __int64 a1)
   return 0xFFFFFFFFLL;
 }
 
-/* ===== sub_94003B1C @ 0x94003B1C size 284 ===== */
-__int64 __fastcall sub_94003B1C(
+/* ===== psci_smc_handler @ 0x94003B1C size 284 ===== */
+__int64 __fastcall psci_smc_handler(
         int a1,
         __int64 a2,
         __int64 a3,
@@ -2879,32 +2879,32 @@ __int64 __fastcall sub_94003B1C(
       case -2080374784:
         return 0x10000;
       case -2080374783:
-        return (int)sub_9400360C(a2, v11, v12);
+        return (int)psci_cpu_suspend(a2, v11, v12);
       case -2080374782:
-        return (int)sub_94003890();
+        return (int)psci_cpu_off();
       case -2080374781:
-        return (int)sub_940035B8(a2, v11, v12);
+        return (int)psci_cpu_on(a2, v11, v12);
       case -2080374780:
-        return (int)sub_940038E8(a2, v11);
+        return (int)psci_affinity_info(a2, v11);
       case -2080374779:
-        return (int)sub_94003918(a2);
+        return (int)psci_migrate(a2);
       case -2080374778:
-        return (int)sub_940039E4();
+        return (int)psci_migrate_info_type();
       case -2080374777:
         goto LABEL_16;
       case -2080374776:
-        a2 = sub_94003FD0((unsigned int)a2, (unsigned int)v11, (unsigned int)a4);
+        a2 = psci_system_off((unsigned int)a2, (unsigned int)v11, (unsigned int)a4);
         goto LABEL_9;
       case -2080374775:
 LABEL_9:
-        a2 = sub_94004038(a2, v11, v12);
+        a2 = psci_system_reset(a2, v11, v12);
         break;
       case -2080374774:
-        return (int)sub_94003AC8(a2);
+        return (int)psci_validate_fid(a2);
       case -2080374771:
-        return (int)sub_94003A24(a2, v11);
+        return (int)psci_node_hw_state(a2, v11);
       case -2080374770:
-        return (int)sub_9400377C(a2, v11);
+        return (int)psci_system_suspend(a2, v11);
       case -2080374768:
         goto LABEL_20;
       case -2080374767:
@@ -2912,33 +2912,33 @@ LABEL_9:
       default:
         return 0xFFFFFFFFLL;
     }
-    return (int)sub_94003AC8(a2);
+    return (int)psci_validate_fid(a2);
   }
   switch ( a1 )
   {
     case -1006632959:
-      return (int)sub_9400360C(a2, v11, v12);
+      return (int)psci_cpu_suspend(a2, v11, v12);
     case -1006632957:
-      return (int)sub_940035B8(a2, v11, v12);
+      return (int)psci_cpu_on(a2, v11, v12);
     case -1006632956:
-      return (int)sub_940038E8(a2, v11);
+      return (int)psci_affinity_info(a2, v11);
     case -1006632955:
-      return (int)sub_94003918(a2);
+      return (int)psci_migrate(a2);
     case -1006632953:
 LABEL_16:
-      result = sub_940039FC();
+      result = psci_migrate_info_up_cpu();
       break;
     case -1006632947:
-      return (int)sub_94003A24(a2, v11);
+      return (int)psci_node_hw_state(a2, v11);
     case -1006632946:
-      return (int)sub_9400377C(a2, v11);
+      return (int)psci_system_suspend(a2, v11);
     case -1006632944:
 LABEL_20:
-      result = sub_940047F4(a2, v11, v12);
+      result = psci_stat_residency(a2, v11, v12);
       break;
     case -1006632943:
 LABEL_21:
-      result = sub_94004818(a2, v11, v12);
+      result = psci_stat_count(a2, v11, v12);
       break;
     default:
       return 0xFFFFFFFFLL;
@@ -2946,8 +2946,8 @@ LABEL_21:
   return result;
 }
 
-/* ===== sub_94003C38 @ 0x94003C38 size 28 ===== */
-__int64 __fastcall sub_94003C38(__int64 a1)
+/* ===== psci_timer_init @ 0x94003C38 size 28 ===== */
+__int64 __fastcall psci_timer_init(__int64 a1)
 {
   __int64 result; // x0
   __int64 v2; // x6
@@ -2959,23 +2959,23 @@ __int64 __fastcall sub_94003C38(__int64 a1)
   unsigned __int64 v8; // x5
   unsigned __int64 v9; // x6
 
-  _WriteStatusReg(CNTFRQ_EL0, (unsigned int)sub_94006CEC(a1));
+  _WriteStatusReg(CNTFRQ_EL0, (unsigned int)get_uart_clock(a1));
   result = *(_QWORD *)(_ReadStatusReg(TPIDR_EL3) + 16);
   if ( result == 0 )
   {
-    result = sub_940076E4();
+    result = get_cpu_ops();
     if ( result == 0 )
     {
-      if ( sub_94007E40() != 0 )
+      if ( get_pc() != 0 )
       {
-        v3 = ((__int64 (*)(void))sub_94007B70)();
-        v4 = sub_94007B70(v3);
-        sub_94007B70(v4);
+        v3 = ((__int64 (*)(void))puts)();
+        v4 = puts(v3);
+        puts(v4);
         if ( (v5 & 0xFFFFFFFFFFFF0000LL) == 0 )
         {
           v6 = v5;
           for ( i = 10000; i != 0; i = v8 / v9 )
-            sub_94007E58(v6 / i + 48);
+            putc(v6 / i + 48);
         }
       }
       while ( 1 )
@@ -2986,8 +2986,8 @@ __int64 __fastcall sub_94003C38(__int64 a1)
   return result;
 }
 
-/* ===== sub_94003C54 @ 0x94003C54 size 892 ===== */
-__int64 __fastcall sub_94003C54(_QWORD *a1)
+/* ===== psci_setup @ 0x94003C54 size 892 ===== */
+__int64 __fastcall psci_setup(_QWORD *a1)
 {
   __int64 v2; // x0
   const char *v3; // x0
@@ -3022,10 +3022,10 @@ __int64 __fastcall sub_94003C54(_QWORD *a1)
     v5 = "VERIFY_PSCI_LIB_ARGS_V1(lib_args)";
     goto LABEL_12;
   }
-  sub_94003C38(v2);
+  psci_timer_init(v2);
   v6 = 1;
   v7 = 0;
-  v8 = sub_940004B4();
+  v8 = get_power_domain_tree();
   v9 = 1;
   i = 0;
   v11 = 0x94014010;
@@ -3062,12 +3062,12 @@ __int64 __fastcall sub_94003C54(_QWORD *a1)
           v25 = v14;
           v26 = v8;
           v24 = v11;
-          v17 = sub_94007608(i);
+          v17 = get_cpu_context_ptr(i);
           *(_DWORD *)(v17 + 88) = 1;
           *(_BYTE *)(v17 + 92) = 2;
           *(_BYTE *)(v17 + 93) = 2;
-          sub_94007BF8(v17 + 88, 8);
-          sub_94001F18(i, 0x9400D1F0 + 1056LL * i, 1u);
+          dcache_clean_invalidate(v17 + 88, 8);
+          cm_set_context_by_index(i, 0x9400D1F0 + 1056LL * i, 1u);
           v11 = v24;
           v8 = v26;
           v14 = v25;
@@ -3092,7 +3092,7 @@ __int64 __fastcall sub_94003C54(_QWORD *a1)
   v19 = 0;
   while ( 1 )
   {
-    sub_94002F5C(v19, 1u, &v27);
+    psci_get_parent_pwr_lvl(v19, 1u, &v27);
     v20 = v27;
     if ( v27 != v18 )
       *(_DWORD *)(0x94014010 + 16LL * v27) = v19;
@@ -3102,20 +3102,20 @@ __int64 __fastcall sub_94003C54(_QWORD *a1)
       break;
     v18 = v20;
   }
-  v21 = sub_94007E28(v20);
+  v21 = get_cpu_id(v20);
   *(_QWORD *)(0x9400E940 + 16LL * v21) = _ReadStatusReg(MPIDR_EL1) & 0xFF00FFFFFFLL;
-  sub_94002EBC();
-  sub_94002FA0(1u);
-  sub_94001A60(a1[1], (_QWORD *)0x9400E980LL);
+  psci_clear_aff_info();
+  psci_do_state_coordination_finish(1u);
+  sprd_plat_pm_ops_init(a1[1], (_QWORD *)0x9400E980LL);
   if ( MEMORY[0x9400E980] == 0 )
   {
     v3 = "psci_setup";
     v4 = 240;
     v5 = "psci_plat_pm_ops";
 LABEL_12:
-    sub_940054A8(v3, "lib/psci/psci_setup.c", v4, v5);
+    assert_fail(v3, "lib/psci/psci_setup.c", v4, v5);
   }
-  sub_94007BF8(0x9400E980, 8);
+  dcache_clean_invalidate(0x9400E980, 8);
   MEMORY[0x9400E990] = 1041;
   if ( *(_QWORD *)(MEMORY[0x9400E980] + 16LL) != 0 )
     MEMORY[0x9400E990] = 1045;
@@ -3138,8 +3138,8 @@ LABEL_12:
   return 0;
 }
 
-/* ===== sub_94003FD0 @ 0x94003FD0 size 104 ===== */
-__int64 sub_94003FD0()
+/* ===== psci_system_off @ 0x94003FD0 size 104 ===== */
+__int64 psci_system_off()
 {
   void (*v0)(void); // x0
   __int64 v1; // x0
@@ -3148,7 +3148,7 @@ __int64 sub_94003FD0()
 
   nullsub_8();
   if ( *(_QWORD *)(MEMORY[0x9400E980] + 56LL) == 0 )
-    sub_940054A8("psci_system_off", "lib/psci/psci_system_off.c", 42, "psci_plat_pm_ops->system_off");
+    assert_fail("psci_system_off", "lib/psci/psci_system_off.c", 42, "psci_plat_pm_ops->system_off");
   if ( MEMORY[0x9400E988] != 0 )
   {
     v0 = *(void (**)(void))(MEMORY[0x9400E988] + 56LL);
@@ -3156,18 +3156,18 @@ __int64 sub_94003FD0()
       v0();
   }
   v1 = (*(__int64 (**)(void))(MEMORY[0x9400E980] + 56LL))();
-  return sub_94004038(v1, v2, v3);
+  return psci_system_reset(v1, v2, v3);
 }
 
-/* ===== sub_94004038 @ 0x94004038 size 104 ===== */
-__int64 sub_94004038()
+/* ===== psci_system_reset @ 0x94004038 size 104 ===== */
+__int64 psci_system_reset()
 {
   void (*v0)(void); // x0
   __int64 v1; // x0
 
   nullsub_8();
   if ( *(_QWORD *)(MEMORY[0x9400E980] + 64LL) == 0 )
-    sub_940054A8("psci_system_reset", "lib/psci/psci_system_off.c", 59, "psci_plat_pm_ops->system_reset");
+    assert_fail("psci_system_reset", "lib/psci/psci_system_off.c", 59, "psci_plat_pm_ops->system_reset");
   if ( MEMORY[0x9400E988] != 0 )
   {
     v0 = *(void (**)(void))(MEMORY[0x9400E988] + 64LL);
@@ -3175,11 +3175,11 @@ __int64 sub_94004038()
       v0();
   }
   v1 = (*(__int64 (**)(void))(MEMORY[0x9400E980] + 64LL))();
-  return sub_940040A0(v1);
+  return bakery_lock_get(v1);
 }
 
-/* ===== sub_940040A0 @ 0x940040A0 size 296 ===== */
-__int64 __fastcall sub_940040A0(__int64 a1)
+/* ===== bakery_lock_get @ 0x940040A0 size 296 ===== */
+__int64 __fastcall bakery_lock_get(__int64 a1)
 {
   __int64 result; // x0
   const char *v3; // x0
@@ -3196,7 +3196,7 @@ __int64 __fastcall sub_940040A0(__int64 a1)
   unsigned int v14; // w2
   unsigned int v15; // w2
 
-  result = sub_94007E28(a1);
+  result = get_cpu_id(a1);
   if ( a1 == 0 )
   {
     v3 = "bakery_lock_get";
@@ -3219,7 +3219,7 @@ __int64 __fastcall sub_940040A0(__int64 a1)
     v4 = 73;
     v5 = "!bakery_ticket_number(bakery->lock_data[me])";
 LABEL_5:
-    sub_940054A8(v3, "lib/locks/bakery/bakery_lock_coherent.c", v4, v5);
+    assert_fail(v3, "lib/locks/bakery/bakery_lock_coherent.c", v4, v5);
   }
   *(_WORD *)(a1 + 2LL * (unsigned int)result) = 1;
   v8 = v7;
@@ -3253,15 +3253,15 @@ LABEL_5:
   return result;
 }
 
-/* ===== sub_940041C8 @ 0x940041C8 size 168 ===== */
-__int64 __fastcall sub_940041C8(__int64 a1)
+/* ===== bakery_lock_release @ 0x940041C8 size 168 ===== */
+__int64 __fastcall bakery_lock_release(__int64 a1)
 {
   unsigned int v2; // w0
   __int64 v3; // x2
   char *v4; // x3
   __int64 result; // x0
 
-  v2 = sub_94007E28(a1);
+  v2 = get_cpu_id(a1);
   if ( a1 == 0 )
   {
     v3 = 169;
@@ -3280,7 +3280,7 @@ __int64 __fastcall sub_940041C8(__int64 a1)
     v3 = 170;
     v4 = "bakery_ticket_number(bakery->lock_data[me])";
 LABEL_5:
-    sub_940054A8("bakery_lock_release", "lib/locks/bakery/bakery_lock_coherent.c", v3, v4);
+    assert_fail("bakery_lock_release", "lib/locks/bakery/bakery_lock_coherent.c", v3, v4);
   }
   *(_WORD *)(a1 + result) = 0;
   __dsb(0xFu);
@@ -3288,8 +3288,8 @@ LABEL_5:
   return result;
 }
 
-/* ===== sub_94004270 @ 0x94004270 size 140 ===== */
-__int64 __fastcall sub_94004270(unsigned __int8 a1)
+/* ===== psci_get_stat_idx @ 0x94004270 size 140 ===== */
+__int64 __fastcall psci_get_stat_idx(unsigned __int8 a1)
 {
   int v1; // w3
   __int64 (__fastcall *v2)(_QWORD); // x2
@@ -3307,7 +3307,7 @@ __int64 __fastcall sub_94004270(unsigned __int8 a1)
       v4 = 105;
       v5 = "(idx >= 0) && (idx < PLAT_MAX_PWR_LVL_STATES)";
 LABEL_7:
-      sub_940054A8("get_stat_idx", "lib/psci/psci_stat.c", v4, v5);
+      assert_fail("get_stat_idx", "lib/psci/psci_stat.c", v4, v5);
     }
   }
   else if ( a1 == 1 )
@@ -3327,32 +3327,32 @@ LABEL_7:
   return result;
 }
 
-/* ===== sub_940042FC @ 0x940042FC size 80 ===== */
-__int64 __fastcall sub_940042FC(unsigned int a1, __int64 a2)
+/* ===== pmf_capture_timestamp @ 0x940042FC size 80 ===== */
+__int64 __fastcall pmf_capture_timestamp(unsigned int a1, __int64 a2)
 {
   if ( (unsigned __int8)a1 > 1u )
-    sub_940054A8(
+    assert_fail(
       "pmf_capture_timestamp_psci_svc",
       "lib/psci/psci_stat.c",
       67,
       "(tid & PMF_TID_MASK) < (ARRAY_SIZE(pmf_ts_mem_psci_svc))");
-  return sub_940048F0(0x94010340, a1, a2);
+  return pmf_set_timestamp(0x94010340, a1, a2);
 }
 
-/* ===== sub_9400434C @ 0x9400434C size 88 ===== */
-__int64 __fastcall sub_9400434C(unsigned int a1, unsigned int a2, unsigned int a3)
+/* ===== pmf_get_timestamp @ 0x9400434C size 88 ===== */
+__int64 __fastcall pmf_get_timestamp(unsigned int a1, unsigned int a2, unsigned int a3)
 {
   if ( (unsigned __int8)a1 > 1u )
-    sub_940054A8(
+    assert_fail(
       "pmf_get_timestamp_by_index_psci_svc",
       "lib/psci/psci_stat.c",
       67,
       "(tid & PMF_TID_MASK) < (ARRAY_SIZE(pmf_ts_mem_psci_svc))");
-  return sub_9400492C(0x94010340, a1, a2, a3);
+  return pmf_get_timestamp_by_index(0x94010340, a1, a2, a3);
 }
 
-/* ===== sub_940043A4 @ 0x940043A4 size 156 ===== */
-__int64 __fastcall sub_940043A4(__int64 a1, __int64 a2)
+/* ===== psci_stats_update_pwr_down @ 0x940043A4 size 156 ===== */
+__int64 __fastcall psci_stats_update_pwr_down(__int64 a1, __int64 a2)
 {
   unsigned int v2; // w19
   __int64 result; // x0
@@ -3360,7 +3360,7 @@ __int64 __fastcall sub_940043A4(__int64 a1, __int64 a2)
   const char *v5; // x3
 
   v2 = a1;
-  result = sub_94007E28(a1);
+  result = get_cpu_id(a1);
   if ( v2 > 1 )
   {
     v4 = 125;
@@ -3372,15 +3372,15 @@ __int64 __fastcall sub_940043A4(__int64 a1, __int64 a2)
     v4 = 126;
     v5 = "state_info";
 LABEL_5:
-    sub_940054A8("psci_stats_update_pwr_down", "lib/psci/psci_stat.c", v4, v5);
+    assert_fail("psci_stats_update_pwr_down", "lib/psci/psci_stat.c", v4, v5);
   }
   if ( v2 != 0 && *(_BYTE *)(a2 + 1) != 0 )
     *((_DWORD *)&qword_9400C080 + *(int *)(0x9400E940LL + 16LL * (int)result + 8)) = result;
   return result;
 }
 
-/* ===== sub_94004440 @ 0x94004440 size 604 ===== */
-_QWORD *__fastcall sub_94004440(__int64 a1, unsigned __int8 *a2, unsigned int a3)
+/* ===== psci_stats_update_pwr_up @ 0x94004440 size 604 ===== */
+_QWORD *__fastcall psci_stats_update_pwr_up(__int64 a1, unsigned __int8 *a2, unsigned int a3)
 {
   unsigned int v3; // w24
   __int64 v6; // x20
@@ -3405,7 +3405,7 @@ _QWORD *__fastcall sub_94004440(__int64 a1, unsigned __int8 *a2, unsigned int a3
   unsigned __int64 v25; // [xsp+78h] [xbp+78h]
 
   v3 = a1;
-  v6 = (int)sub_94007E28(a1);
+  v6 = (int)get_cpu_id(a1);
   if ( v3 > 1 )
   {
     v7 = 162;
@@ -3428,12 +3428,12 @@ _QWORD *__fastcall sub_94004440(__int64 a1, unsigned __int8 *a2, unsigned int a3
       goto LABEL_5;
     }
   }
-  result = (_QWORD *)sub_9400434C(0, v6, a3);
+  result = (_QWORD *)pmf_get_timestamp(0, v6, a3);
   v10 = result;
   if ( result != nullptr )
   {
-    v11 = sub_9400434C(1u, v6, a3);
-    v12 = sub_94004270(*a2);
+    v11 = pmf_get_timestamp(1u, v6, a3);
+    v12 = psci_get_stat_idx(*a2);
     __SET_PAIR__(v13, v13, __PAIR128__(v11, v11) - __PAIR128__((unsigned __int64)v10, (unsigned __int64)v10));
     v14 = (_QWORD *)(0x9400E290LL + 16 * (2 * v6 + v12));
     v15 = a2;
@@ -3456,10 +3456,10 @@ _QWORD *__fastcall sub_94004440(__int64 a1, unsigned __int8 *a2, unsigned int a3
         break;
       v24 = v16;
       v23 = v19;
-      v22 = sub_9400434C(0, v21, a3);
+      v22 = pmf_get_timestamp(0, v21, a3);
       *((_DWORD *)&qword_9400C080 + v17) = -1;
       v25 = v22;
-      result = (_QWORD *)(0x9400E270LL + 16 * (2LL * v17 + (int)sub_94004270(v20)));
+      result = (_QWORD *)(0x9400E270LL + 16 * (2LL * v17 + (int)psci_get_stat_idx(v20)));
       v19 = v23;
       *result += (v11 - (v25 + (v11 < v25))) / MEMORY[0x9400E998];
       v17 = *(_DWORD *)(v23 + 16LL * v17 + 8);
@@ -3471,13 +3471,13 @@ _QWORD *__fastcall sub_94004440(__int64 a1, unsigned __int8 *a2, unsigned int a3
     v7 = 208;
     v8 = "last_cpu_in_non_cpu_pd[parent_idx] != -1";
 LABEL_5:
-    sub_940054A8("psci_stats_update_pwr_up", "lib/psci/psci_stat.c", v7, v8);
+    assert_fail("psci_stats_update_pwr_up", "lib/psci/psci_stat.c", v7, v8);
   }
   return result;
 }
 
-/* ===== sub_9400469C @ 0x9400469C size 344 ===== */
-__int64 __fastcall sub_9400469C(__int64 a1, __int64 a2, _QWORD *a3)
+/* ===== psci_stat_get @ 0x9400469C size 344 ===== */
+__int64 __fastcall psci_stat_get(__int64 a1, __int64 a2, _QWORD *a3)
 {
   int v5; // w0
   __int64 v6; // x23
@@ -3495,22 +3495,22 @@ __int64 __fastcall sub_9400469C(__int64 a1, __int64 a2, _QWORD *a3)
   unsigned __int8 v20[8]; // [xsp+58h] [xbp+58h] BYREF
 
   *(_WORD *)v20 = 0;
-  v5 = sub_940004D0(a1);
+  v5 = psci_validate_affinity(a1);
   v6 = v5;
   if ( v5 == -1 )
     return 4294967294LL;
   v8 = *(__int64 (__fastcall **)(__int64, __int64, unsigned __int8 *))(MEMORY[0x9400E980] + 104LL);
-  v9 = v8 != nullptr ? v8(a1, a2, v20) : sub_94002D9C(a2);
+  v9 = v8 != nullptr ? v8(a1, a2, v20) : psci_validate_power_state(a2);
   if ( v9 != 0 )
     return 4294967294LL;
-  v10 = sub_94003150(v20);
+  v10 = psci_find_target_suspend_lvl(v20);
   v11 = v10;
   if ( v10 == 2 )
   {
-    v12 = sub_9400517C("ERROR:   Invalid target power level for PSCI statistics operation\n");
-    sub_94007BB8(v12);
+    v12 = printf_impl("ERROR:   Invalid target power level for PSCI statistics operation\n");
+    panic(v12);
   }
-  v13 = sub_94004270(v20[v10]);
+  v13 = psci_get_stat_idx(v20[v10]);
   if ( v11 <= 0 )
   {
     v17 = 16 * (2 * v6 + v13);
@@ -3535,36 +3535,36 @@ __int64 __fastcall sub_9400469C(__int64 a1, __int64 a2, _QWORD *a3)
   }
 }
 
-/* ===== sub_940047F4 @ 0x940047F4 size 36 ===== */
-__int64 __fastcall sub_940047F4(__int64 a1, __int64 a2)
+/* ===== psci_stat_residency @ 0x940047F4 size 36 ===== */
+__int64 __fastcall psci_stat_residency(__int64 a1, __int64 a2)
 {
   bool v2; // zf
   __int64 result; // x0
   __int64 v4; // [xsp+10h] [xbp+10h] BYREF
 
-  v2 = (unsigned int)sub_9400469C(a1, a2, &v4) == 0;
+  v2 = (unsigned int)psci_stat_get(a1, a2, &v4) == 0;
   result = v4;
   if ( !v2 )
     return 0;
   return result;
 }
 
-/* ===== sub_94004818 @ 0x94004818 size 36 ===== */
-__int64 __fastcall sub_94004818(__int64 a1, __int64 a2)
+/* ===== psci_stat_count @ 0x94004818 size 36 ===== */
+__int64 __fastcall psci_stat_count(__int64 a1, __int64 a2)
 {
   bool v2; // zf
   __int64 result; // x0
   _QWORD v4[2]; // [xsp+10h] [xbp+10h] BYREF
 
-  v2 = (unsigned int)sub_9400469C(a1, a2, v4) == 0;
+  v2 = (unsigned int)psci_stat_get(a1, a2, v4) == 0;
   result = v4[1];
   if ( !v2 )
     return 0;
   return result;
 }
 
-/* ===== sub_9400483C @ 0x9400483C size 180 ===== */
-__int64 __fastcall sub_9400483C(unsigned __int64 a1, unsigned __int8 a2, unsigned int a3)
+/* ===== calc_ts_addr @ 0x9400483C size 180 ===== */
+__int64 __fastcall calc_ts_addr(unsigned __int64 a1, unsigned __int8 a2, unsigned int a3)
 {
   __int64 v3; // x2
   const char *v4; // x3
@@ -3586,40 +3586,40 @@ __int64 __fastcall sub_9400483C(unsigned __int64 a1, unsigned __int8 a2, unsigne
     v3 = 224;
     v4 = "base_addr < ((PMF_TIMESTAMP_ARRAY_START + PMF_PERCPU_TIMESTAMP_SIZE) - ((tid & PMF_TID_MASK) * sizeof(unsigned long long)))";
 LABEL_5:
-    sub_940054A8("calc_ts_addr", "lib/pmf/pmf_main.c", v3, v4);
+    assert_fail("calc_ts_addr", "lib/pmf/pmf_main.c", v3, v4);
   }
   return a1 + 8LL * a2 + 0x40LL * a3;
 }
 
-/* ===== sub_940048F0 @ 0x940048F0 size 60 ===== */
-_QWORD *__fastcall sub_940048F0(unsigned __int64 a1, unsigned __int8 a2, __int64 a3)
+/* ===== pmf_set_timestamp @ 0x940048F0 size 60 ===== */
+_QWORD *__fastcall pmf_set_timestamp(unsigned __int64 a1, unsigned __int8 a2, __int64 a3)
 {
   unsigned int v5; // w0
   _QWORD *result; // x0
 
-  v5 = sub_94007E28(a1);
-  result = (_QWORD *)sub_9400483C(a1, a2, v5);
+  v5 = get_cpu_id(a1);
+  result = (_QWORD *)calc_ts_addr(a1, a2, v5);
   *result = a3;
   return result;
 }
 
-/* ===== sub_9400492C @ 0x9400492C size 96 ===== */
-__int64 __fastcall sub_9400492C(unsigned __int64 a1, unsigned __int8 a2, unsigned int a3, char a4)
+/* ===== pmf_get_timestamp_by_index @ 0x9400492C size 96 ===== */
+__int64 __fastcall pmf_get_timestamp_by_index(unsigned __int64 a1, unsigned __int8 a2, unsigned int a3, char a4)
 {
   __int64 v4; // x0
   __int64 v5; // x19
 
   if ( a3 > 3 )
-    sub_940054A8(&loc_9400A708, "lib/pmf/pmf_main.c", 272, "cpuid < PLATFORM_CORE_COUNT");
-  v4 = sub_9400483C(a1, a2, a3);
+    assert_fail(&loc_9400A708, "lib/pmf/pmf_main.c", 272, "cpuid < PLATFORM_CORE_COUNT");
+  v4 = calc_ts_addr(a1, a2, a3);
   v5 = v4;
   if ( (a4 & 1) != 0 )
-    sub_94007C60(v4, 8);
+    dcache_invalidate(v4, 8);
   return *(_QWORD *)v5;
 }
 
-/* ===== sub_9400498C @ 0x9400498C size 304 ===== */
-__int64 __usercall sub_9400498C@<X0>(
+/* ===== trusty_context_switch @ 0x9400498C size 304 ===== */
+__int64 __usercall trusty_context_switch@<X0>(
         __int64 a1@<X0>,
         __int64 a2@<X1>,
         __int64 a3@<X2>,
@@ -3635,34 +3635,34 @@ __int64 __usercall sub_9400498C@<X0>(
   __int64 v12; // x0
 
   v6 = a1;
-  v8 = 0x9400E9A0 + 1632LL * (unsigned int)sub_94007E28(a1);
+  v8 = 0x9400E9A0 + 1632LL * (unsigned int)get_cpu_id(a1);
   if ( *(_DWORD *)(v8 + 1064) == v6 )
   {
     v9 = 87;
     v10 = "ctx->saved_security_state != security_state";
     goto LABEL_5;
   }
-  v11 = sub_94001E50(v6);
-  sub_9400793C(v11 + 528);
-  sub_94002488(v6);
+  v11 = cm_get_context(v6);
+  fpregs_context_save(v11 + 528);
+  cm_el1_sysregs_context_save(v6);
   *(_DWORD *)(v8 + 1064) = v6;
-  sub_94007A9C(v8 + 1056, a2, a3, a4, a5);
+  setup_eret_context(v8 + 1056, a2, a3, a4, a5);
   if ( *(_DWORD *)(v8 + 1064) != (v6 == 0) )
   {
     v9 = 97;
     v10 = "ctx->saved_security_state == !security_state";
 LABEL_5:
-    sub_940054A8("trusty_context_switch", "services/spd/trusty/trusty.c", v9, v10);
+    assert_fail("trusty_context_switch", "services/spd/trusty/trusty.c", v9, v10);
   }
-  sub_940024C4(v6);
-  v12 = sub_94001E50(v6);
-  sub_94007990(v12 + 528);
-  sub_94002650(v6);
+  cm_el1_sysregs_context_restore(v6);
+  v12 = cm_get_context(v6);
+  fpregs_context_restore(v12 + 528);
+  cm_set_next_eret_context(v6);
   return a6;
 }
 
-/* ===== sub_94004ABC @ 0x94004ABC size 228 ===== */
-_QWORD *__fastcall sub_94004ABC(__int64 a1, char a2, _QWORD *a3)
+/* ===== trusty_fiq_handler @ 0x94004ABC size 228 ===== */
+_QWORD *__fastcall trusty_fiq_handler(__int64 a1, char a2, _QWORD *a3)
 {
   __int64 v4; // x19
   __int64 v5; // x19
@@ -3670,68 +3670,68 @@ _QWORD *__fastcall sub_94004ABC(__int64 a1, char a2, _QWORD *a3)
   unsigned int v7; // w2
   __int64 v10; // [xsp+40h] [xbp+40h] BYREF
 
-  v4 = (unsigned int)sub_94007E28(a1);
+  v4 = (unsigned int)get_cpu_id(a1);
   if ( (a2 & 1) == 0 )
-    sub_940054A8("trusty_fiq_handler", "services/spd/trusty/trusty.c", 116, "!is_caller_secure(flags)");
-  sub_9400498C(1, -1140850684, 0, 0, 0, (__int64)&v10);
+    assert_fail("trusty_fiq_handler", "services/spd/trusty/trusty.c", 116, "!is_caller_secure(flags)");
+  trusty_context_switch(1, -1140850684, 0, 0, 0, (__int64)&v10);
   if ( v10 == 0 )
   {
     v5 = 0x9400E9A0LL + 1632 * v4;
     if ( *(_DWORD *)(v5 + 1068) == 0 )
     {
       *(_DWORD *)(v5 + 1068) = 1;
-      sub_940054E0(v5 + 1120, a3, 256);
+      memcpy_simple(v5 + 1120, a3, 256);
       *(_QWORD *)(v5 + 1096) = a3[35];
       *(_QWORD *)(v5 + 1104) = a3[34];
       *(_QWORD *)(v5 + 1112) = a3[42];
       v6 = *(_QWORD *)(v5 + 1072);
       v7 = *(_DWORD *)(v5 + 1080);
       a3[42] = *(_QWORD *)(v5 + 1088);
-      sub_94002544(1u, v6, v7);
+      cm_set_elr_spsr_el3(1u, v6, v7);
     }
   }
   return a3;
 }
 
-/* ===== sub_94004BA0 @ 0x94004BA0 size 48 ===== */
-__int64 sub_94004BA0()
+/* ===== trusty_smc_handler @ 0x94004BA0 size 48 ===== */
+__int64 trusty_smc_handler()
 {
   char v1; // [xsp+10h] [xbp+10h] BYREF
 
-  return sub_9400498C(1, -1140850680, 0, 0, 0, (__int64)&v1);
+  return trusty_context_switch(1, -1140850680, 0, 0, 0, (__int64)&v1);
 }
 
-/* ===== sub_94004BD0 @ 0x94004BD0 size 4 ===== */
+/* ===== trusty_smc_thunk @ 0x94004BD0 size 4 ===== */
 // attributes: thunk
-__int64 sub_94004BD0()
+__int64 trusty_smc_thunk()
 {
-  return sub_94004BA0();
+  return trusty_smc_handler();
 }
 
-/* ===== sub_94004BD4 @ 0x94004BD4 size 48 ===== */
-__int64 sub_94004BD4()
+/* ===== trusty_fiq_exit_handler @ 0x94004BD4 size 48 ===== */
+__int64 trusty_fiq_exit_handler()
 {
   char v1; // [xsp+10h] [xbp+10h] BYREF
 
-  return sub_9400498C(1, -1140850681, 0, 0, 0, (__int64)&v1);
+  return trusty_context_switch(1, -1140850681, 0, 0, 0, (__int64)&v1);
 }
 
-/* ===== sub_94004C04 @ 0x94004C04 size 4 ===== */
+/* ===== trusty_fiq_exit_thunk @ 0x94004C04 size 4 ===== */
 // attributes: thunk
-__int64 sub_94004C04()
+__int64 trusty_fiq_exit_thunk()
 {
-  return sub_94004BD4();
+  return trusty_fiq_exit_handler();
 }
 
-/* ===== sub_94004C08 @ 0x94004C08 size 24 ===== */
-__int64 sub_94004C08()
+/* ===== trusty_smc_exit @ 0x94004C08 size 24 ===== */
+__int64 trusty_smc_exit()
 {
-  sub_94004BD4();
+  trusty_fiq_exit_handler();
   return 0;
 }
 
-/* ===== sub_94004C20 @ 0x94004C20 size 172 ===== */
-__int64 sub_94004C20()
+/* ===== trusty_setup @ 0x94004C20 size 172 ===== */
+__int64 trusty_setup()
 {
   unsigned __int64 v0; // x0
   int v1; // w2
@@ -3739,7 +3739,7 @@ __int64 sub_94004C20()
   unsigned int v3; // w19
   int v4; // w1
 
-  v0 = sub_940017A4(0);
+  v0 = bl31_get_next_image_ep(0);
   if ( v0 != 0 )
   {
     v1 = *(unsigned __int8 *)(*(_QWORD *)(v0 + 8) + 3LL);
@@ -3752,11 +3752,11 @@ __int64 sub_94004C20()
       v2 = 467;
     *(_DWORD *)(v0 + 16) = v2;
     v3 = 0;
-    sub_94001C04(sub_94004CCC);
-    sub_940034F0((__int64)&qword_9400A8B8);
-    v4 = sub_94001DB8(0, (__int64)sub_94004ABC, 2u);
+    bl31_register_runtime_callback(trusty_init);
+    psci_register_spd_pm_hook((__int64)&qword_9400A8B8);
+    v4 = interrupt_register_handler(0, (__int64)trusty_fiq_handler, 2u);
     if ( v4 != 0 )
-      sub_9400517C("ERROR:   trusty: failed to register fiq handler, ret = %d\n", v4);
+      printf_impl("ERROR:   trusty: failed to register fiq handler, ret = %d\n", v4);
   }
   else
   {
@@ -3765,8 +3765,8 @@ __int64 sub_94004C20()
   return v3;
 }
 
-/* ===== sub_94004CCC @ 0x94004CCC size 264 ===== */
-__int64 __fastcall sub_94004CCC(__int64 a1)
+/* ===== trusty_init @ 0x94004CCC size 264 ===== */
+__int64 __fastcall trusty_init(__int64 a1)
 {
   unsigned int v1; // w0
   __int64 v2; // x19
@@ -3775,39 +3775,39 @@ __int64 __fastcall sub_94004CCC(__int64 a1)
   unsigned __int64 v5; // x20
   __int64 v7; // [xsp+30h] [xbp+30h] BYREF
 
-  v1 = sub_94007E28(a1);
+  v1 = get_cpu_id(a1);
   v2 = 0x9400E9A0 + 1632LL * v1;
-  v3 = sub_94007E28(v1);
+  v3 = get_cpu_id(v1);
   v4 = (*(_QWORD *)(v2 + 272) & 0x10LL) != 0;
-  v5 = sub_940017A4(0);
+  v5 = bl31_get_next_image_ep(0);
   if ( v5 == 0 )
-    sub_940054A8("trusty_init", "services/spd/trusty/trusty.c", 250, "ep_info");
-  sub_94002488(1u);
-  sub_94001E90(v2, 0);
-  sub_9400236C(v5);
+    assert_fail("trusty_init", "services/spd/trusty/trusty.c", 250, "ep_info");
+  cm_el1_sysregs_context_save(1u);
+  cm_set_context(v2, 0);
+  cm_init_context(v5);
   if ( v3 != 0 && v4 )
-    sub_94002500(0, *(_QWORD *)(v5 + 8) + 32LL);
-  sub_940024C4(0);
-  sub_94002650(0);
+    cm_set_elr_el3(0, *(_QWORD *)(v5 + 8) + 32LL);
+  cm_el1_sysregs_context_restore(0);
+  cm_set_next_eret_context(0);
   *(_DWORD *)(v2 + 1064) = -1;
-  sub_94007AF0(&v7, v2 + 1056, v2 + 1632);
-  sub_94007A9C(v2 + 1056, 0, 0, 0, 0);
-  sub_940024C4(1u);
-  sub_94002650(1u);
+  setup_panic_context(&v7, v2 + 1056, v2 + 1632);
+  setup_eret_context(v2 + 1056, 0, 0, 0, 0);
+  cm_el1_sysregs_context_restore(1u);
+  cm_set_next_eret_context(1u);
   return 0;
 }
 
-/* ===== sub_94004DD4 @ 0x94004DD4 size 56 ===== */
-__int64 __fastcall sub_94004DD4(__int64 a1)
+/* ===== trusty_std_svc_setup @ 0x94004DD4 size 56 ===== */
+__int64 __fastcall trusty_std_svc_setup(__int64 a1)
 {
-  if ( *(_QWORD *)(0x9400E9A0 + 1632LL * (unsigned int)sub_94007E28(a1) + 1056) != 0 )
-    return sub_94004BA0();
+  if ( *(_QWORD *)(0x9400E9A0 + 1632LL * (unsigned int)get_cpu_id(a1) + 1056) != 0 )
+    return trusty_smc_handler();
   else
-    return sub_94004CCC(0);
+    return trusty_init(0);
 }
 
-/* ===== sub_94004E0C @ 0x94004E0C size 468 ===== */
-__int64 __fastcall sub_94004E0C(
+/* ===== trusty_smc_handler_main @ 0x94004E0C size 468 ===== */
+__int64 __fastcall trusty_smc_handler_main(
         unsigned int a1,
         unsigned __int64 a2,
         __int64 a3,
@@ -3834,7 +3834,7 @@ __int64 __fastcall sub_94004E0C(
   {
     if ( a1 == 1006632960 )
     {
-      sub_9400498C(a8 & 1, a2, a8 & 1, a8 & 1, a8 & 1, (__int64)v21);
+      trusty_context_switch(a8 & 1, a2, a8 & 1, a8 & 1, a8 & 1, (__int64)v21);
       a7[3] = v21[3];
       a7[2] = v21[2];
       a7[1] = v21[1];
@@ -3852,7 +3852,7 @@ LABEL_18:
     case 0xFC000005:
       if ( a2 > 3 )
       {
-        sub_9400517C("ERROR:   %s: cpu %ld >= %d\n", "trusty_set_fiq_handler", a2, 4);
+        printf_impl("ERROR:   %s: cpu %ld >= %d\n", "trusty_set_fiq_handler", a2, 4);
         return -2;
       }
       v11 = (_QWORD *)(0x9400E9A0 + 1632 * a2);
@@ -3863,7 +3863,7 @@ LABEL_18:
       *a7 = 0;
       break;
     case 0xFC000006:
-      v13 = (_QWORD *)(0x9400E9A0 + 1632LL * (unsigned int)sub_94007E28(4227858438LL));
+      v13 = (_QWORD *)(0x9400E9A0 + 1632LL * (unsigned int)get_cpu_id(4227858438LL));
       v14 = v13[139];
       a7[2] = v13[171];
       v15 = v13[138];
@@ -3872,31 +3872,31 @@ LABEL_18:
       v9 = v13[137];
       goto LABEL_18;
     case 0xBC000001:
-      v16 = sub_94007E28(3154116609LL);
+      v16 = get_cpu_id(3154116609LL);
       v17 = 0x9400E9A0 + 1632LL * v16;
       if ( *(_DWORD *)(v17 + 1068) == 0 )
       {
         v9 = -2;
         goto LABEL_18;
       }
-      sub_9400498C(1, -1140850687, 0, 0, 0, (__int64)v21);
-      sub_940054E0(a7, v17 + 1120, 256);
+      trusty_context_switch(1, -1140850687, 0, 0, 0, (__int64)v21);
+      memcpy_simple(a7, v17 + 1120, 256);
       v18 = *(_QWORD *)(v17 + 1112);
       *(_DWORD *)(v17 + 1068) = 0;
       v19 = *(_QWORD *)(v17 + 1096);
       v20 = *(_DWORD *)(v17 + 1104);
       a7[42] = v18;
-      sub_94002544(1u, v19, v20);
+      cm_set_elr_spsr_el3(1u, v19, v20);
       break;
     default:
-      sub_9400498C(1, a1, a2, a3, a4, (__int64)v21);
+      trusty_context_switch(1, a1, a2, a3, a4, (__int64)v21);
       goto LABEL_17;
   }
   return (__int64)a7;
 }
 
-/* ===== sub_94004FE0 @ 0x94004FE0 size 300 ===== */
-unsigned __int64 *__fastcall sub_94004FE0(
+/* ===== trusty_log_handler @ 0x94004FE0 size 300 ===== */
+unsigned __int64 *__fastcall trusty_log_handler(
         int a1,
         int a2,
         __int64 a3,
@@ -3952,14 +3952,14 @@ LABEL_23:
           v13 = "non-secure os: ";
         else
           v13 = "secure os: ";
-        sub_94005534(v13);
+        printf_simple(v13);
         for ( i = 0; *(_DWORD *)(v11 + 128) > (unsigned int)i; ++i )
         {
           v15 = *(unsigned __int8 *)(v11 + i);
-          sub_940055D8(v15);
+          putchar(v15);
         }
         if ( v10 != 10 )
-          sub_94005534(" <...>\n");
+          printf_simple(" <...>\n");
         *(_DWORD *)(v11 + 128) = 0;
       }
     }
@@ -3978,8 +3978,8 @@ void nullsub_3()
   ;
 }
 
-/* ===== sub_94005110 @ 0x94005110 size 108 ===== */
-unsigned __int64 __fastcall sub_94005110(unsigned __int64 result, unsigned int a2)
+/* ===== print_uint @ 0x94005110 size 108 ===== */
+unsigned __int64 __fastcall print_uint(unsigned __int64 result, unsigned int a2)
 {
   __int64 v2; // x2
   unsigned __int64 v3; // x3
@@ -4004,12 +4004,12 @@ unsigned __int64 __fastcall sub_94005110(unsigned __int64 result, unsigned int a
   }
   while ( v3 != 0 );
   while ( --v4 != -1 )
-    result = sub_940055D8((unsigned __int8)v7[v4]);
+    result = putchar((unsigned __int8)v7[v4]);
   return result;
 }
 
-/* ===== sub_9400517C @ 0x9400517C size 812 ===== */
-const char *sub_9400517C(
+/* ===== printf_impl @ 0x9400517C size 812 ===== */
+const char *printf_impl(
         const char *a1,
         double a2,
         double a3,
@@ -4090,7 +4090,7 @@ LABEL_5:
           if ( (v15 & 0x8000000000000000LL) != 0 )
           {
             v15 = -(__int64)v15;
-            sub_940055D8(45);
+            putchar(45);
           }
           v18 = v15;
           goto LABEL_62;
@@ -4107,7 +4107,7 @@ LABEL_5:
           v25 = *v24;
           if ( *v24 != 0 )
           {
-            for ( i = byte_9400AA71; *(++i - 2) != 0; sub_940055D8((unsigned __int8)*(i - 2)) )
+            for ( i = byte_9400AA71; *(++i - 2) != 0; putchar((unsigned __int8)*(i - 2)) )
               ;
           }
           v18 = v25;
@@ -4124,7 +4124,7 @@ LABEL_5:
             v22 = (unsigned __int8)*j;
             if ( *j == 0 )
               break;
-            sub_940055D8(v22);
+            putchar(v22);
           }
           goto LABEL_64;
         case 'u':
@@ -4175,7 +4175,7 @@ LABEL_62:
 LABEL_49:
           v31 = 16;
 LABEL_63:
-          sub_94005110(v18, v31);
+          print_uint(v18, v31);
 LABEL_64:
           a1 = v12 + 1;
           continue;
@@ -4189,12 +4189,12 @@ LABEL_7:
       }
     }
     ++a1;
-    sub_940055D8(result);
+    putchar(result);
   }
 }
 
-/* ===== sub_940054A8 @ 0x940054A8 size 28 ===== */
-void __fastcall __noreturn sub_940054A8(
+/* ===== assert_fail @ 0x940054A8 size 28 ===== */
+void __fastcall __noreturn assert_fail(
         __int64 a1,
         double a2,
         double a3,
@@ -4205,13 +4205,13 @@ void __fastcall __noreturn sub_940054A8(
         double a8,
         double a9)
 {
-  sub_9400517C("ASSERT: %s <%d> : %s\n", a2, a3, a4, a5, a6, a7, a8, a9, a1);
+  printf_impl("ASSERT: %s <%d> : %s\n", a2, a3, a4, a5, a6, a7, a8, a9, a1);
   while ( 1 )
     ;
 }
 
-/* ===== sub_940054C4 @ 0x940054C4 size 28 ===== */
-__int64 __fastcall sub_940054C4(__int64 result, char a2, __int64 a3)
+/* ===== memset_simple @ 0x940054C4 size 28 ===== */
+__int64 __fastcall memset_simple(__int64 result, char a2, __int64 a3)
 {
   __int64 i; // x3
 
@@ -4220,8 +4220,8 @@ __int64 __fastcall sub_940054C4(__int64 result, char a2, __int64 a3)
   return result;
 }
 
-/* ===== sub_940054E0 @ 0x940054E0 size 32 ===== */
-__int64 __fastcall sub_940054E0(__int64 result, __int64 a2, __int64 a3)
+/* ===== memcpy_simple @ 0x940054E0 size 32 ===== */
+__int64 __fastcall memcpy_simple(__int64 result, __int64 a2, __int64 a3)
 {
   __int64 i; // x3
 
@@ -4230,15 +4230,15 @@ __int64 __fastcall sub_940054E0(__int64 result, __int64 a2, __int64 a3)
   return result;
 }
 
-/* ===== sub_94005500 @ 0x94005500 size 52 ===== */
-__int64 __fastcall sub_94005500(__int64 a1, __int64 a2, unsigned __int64 a3)
+/* ===== memmove_simple @ 0x94005500 size 52 ===== */
+__int64 __fastcall memmove_simple(__int64 a1, __int64 a2, unsigned __int64 a3)
 {
   __int64 result; // x0
   unsigned __int64 v5; // x5
   char v6; // t1
 
   if ( a1 - a2 >= a3 )
-    return sub_940054E0(a1, a2, a3);
+    return memcpy_simple(a1, a2, a3);
   v5 = a2 + a3;
   for ( result = a1 + a3; result != a1; --result )
   {
@@ -4248,8 +4248,8 @@ __int64 __fastcall sub_94005500(__int64 a1, __int64 a2, unsigned __int64 a3)
   return result;
 }
 
-/* ===== sub_94005534 @ 0x94005534 size 164 ===== */
-__int64 sub_94005534(
+/* ===== printf_simple @ 0x94005534 size 164 ===== */
+__int64 printf_simple(
         __int64 a1,
         double a2,
         double a3,
@@ -4271,7 +4271,7 @@ __int64 sub_94005534(
   va_start(va, a9);
   va_start(va1, a9);
   v9 = 0;
-  sub_9400636C(v14, 127, a1, va);
+  snprintf_impl(v14, 127, a1, va);
   v14[127] = 0;
   do
   {
@@ -4279,23 +4279,23 @@ __int64 sub_94005534(
     if ( v14[v9] == 0 )
       break;
     v11 = (unsigned __int8)v14[v9++];
-    result = sub_940055D8(v11);
+    result = putchar(v11);
   }
   while ( (_DWORD)result != -1 );
   return result;
 }
 
-/* ===== sub_940055D8 @ 0x940055D8 size 44 ===== */
-__int64 __fastcall sub_940055D8(unsigned int a1)
+/* ===== putchar @ 0x940055D8 size 44 ===== */
+__int64 __fastcall putchar(unsigned int a1)
 {
-  if ( (int)sub_94007E78((unsigned __int8)a1) < 0 )
+  if ( (int)putc_hw((unsigned __int8)a1) < 0 )
     return 0xFFFFFFFFLL;
   else
     return a1;
 }
 
-/* ===== sub_94005604 @ 0x94005604 size 28 ===== */
-_BYTE *__fastcall sub_94005604(_BYTE *a1)
+/* ===== strlen_simple @ 0x94005604 size 28 ===== */
+_BYTE *__fastcall strlen_simple(_BYTE *a1)
 {
   _BYTE *i; // x1
 
@@ -4304,8 +4304,8 @@ _BYTE *__fastcall sub_94005604(_BYTE *a1)
   return (_BYTE *)(i - a1);
 }
 
-/* ===== sub_94005620 @ 0x94005620 size 44 ===== */
-__int64 __fastcall sub_94005620(__int64 result, _QWORD *a2)
+/* ===== buffer_putchar @ 0x94005620 size 44 ===== */
+__int64 __fastcall buffer_putchar(__int64 result, _QWORD *a2)
 {
   _BYTE *v2; // x2
 
@@ -4319,8 +4319,8 @@ __int64 __fastcall sub_94005620(__int64 result, _QWORD *a2)
   return result;
 }
 
-/* ===== sub_9400564C @ 0x9400564C size 3360 ===== */
-__int64 __fastcall sub_9400564C(const char *a1, void (*a2)(void), char *a3, int a4, __int64 a5)
+/* ===== vsnprintf_impl @ 0x9400564C size 3360 ===== */
+__int64 __fastcall vsnprintf_impl(const char *a1, void (*a2)(void), char *a3, int a4, __int64 a5)
 {
   unsigned __int64 v6; // x27
   __int64 v7; // x20
@@ -4963,7 +4963,7 @@ LABEL_102:
             }
             else
             {
-              v84 = (unsigned int)sub_94005604(v82);
+              v84 = (unsigned int)strlen_simple(v82);
             }
             v85 = v27 - v84;
             if ( v85 > 0 && (v26 & 1) == 0 )
@@ -5360,8 +5360,8 @@ LABEL_13:
   return v14;
 }
 
-/* ===== sub_9400636C @ 0x9400636C size 96 ===== */
-__int64 __fastcall sub_9400636C(_BYTE *a1, __int64 a2, const char *a3, __int64 a4)
+/* ===== snprintf_impl @ 0x9400636C size 96 ===== */
+__int64 __fastcall snprintf_impl(_BYTE *a1, __int64 a2, const char *a3, __int64 a4)
 {
   __int64 result; // x0
   _BYTE v6[32]; // [xsp+20h] [xbp+20h] BYREF
@@ -5370,40 +5370,40 @@ __int64 __fastcall sub_9400636C(_BYTE *a1, __int64 a2, const char *a3, __int64 a
 
   v7 = a1;
   v8 = a2;
-  sub_940054E0((__int64)v6, a4, 32);
-  result = sub_9400564C(a3, (void (*)(void))sub_94005620, (char *)&v7, 10, (__int64)v6);
+  memcpy_simple((__int64)v6, a4, 32);
+  result = vsnprintf_impl(a3, (void (*)(void))buffer_putchar, (char *)&v7, 10, (__int64)v6);
   if ( v8 != 0 )
     *v7 = 0;
   return result;
 }
 
-/* ===== sub_940063CC @ 0x940063CC size 20 ===== */
-unsigned __int64 sub_940063CC()
+/* ===== set_boot_flag @ 0x940063CC size 20 ===== */
+unsigned __int64 set_boot_flag()
 {
   MEMORY[0x94010328] |= 1uLL;
   return 0x94010000;
 }
 
-/* ===== sub_940063E0 @ 0x940063E0 size 20 ===== */
-__int64 sub_940063E0()
+/* ===== get_boot_flag @ 0x940063E0 size 20 ===== */
+__int64 get_boot_flag()
 {
   return MEMORY[0x94010328];
 }
 
-/* ===== sub_940063F4 @ 0x940063F4 size 20 ===== */
-__int64 sub_940063F4()
+/* ===== clear_boot_flag @ 0x940063F4 size 20 ===== */
+__int64 clear_boot_flag()
 {
   return MEMORY[0x94010328];
 }
 
-/* ===== sub_94006408 @ 0x94006408 size 20 ===== */
-__int64 sub_94006408()
+/* ===== read_boot_flag @ 0x94006408 size 20 ===== */
+__int64 read_boot_flag()
 {
   return MEMORY[0x94010328];
 }
 
-/* ===== sub_9400641C @ 0x9400641C size 592 ===== */
-_QWORD *__fastcall sub_9400641C(
+/* ===== init_xlation_table_inner @ 0x9400641C size 592 ===== */
+_QWORD *__fastcall init_xlation_table_inner(
         _QWORD *result,
         unsigned __int64 a2,
         __int64 *a3,
@@ -5533,10 +5533,10 @@ LABEL_37:
         {
           v14 = "init_xlation_table_inner";
 LABEL_34:
-          sub_940054A8((__int64)v14, a5, a6, a7, a8, a9, a10, a11, a12);
+          assert_fail((__int64)v14, a5, a6, a7, a8, a9, a10, a11, a12);
         }
         v17 = v36 | 3;
-        result = (_QWORD *)sub_9400641C();
+        result = (_QWORD *)init_xlation_table_inner();
       }
 LABEL_42:
       *a3 = v17;
@@ -5556,8 +5556,8 @@ void nullsub_4()
   ;
 }
 
-/* ===== sub_94006670 @ 0x94006670 size 748 ===== */
-unsigned __int64 __fastcall sub_94006670(
+/* ===== mmap_add_region @ 0x94006670 size 748 ===== */
+unsigned __int64 __fastcall mmap_add_region(
         unsigned __int64 a1,
         unsigned __int64 a2,
         unsigned __int64 a3,
@@ -5628,10 +5628,10 @@ unsigned __int64 __fastcall sub_94006670(
     ;
   while ( *(_QWORD *)(j + 8) == a2 && *(_QWORD *)(j + 16) > a3 )
     j += 32;
-  sub_94005500(j + 32, j, 0x9400E618LL - j);
+  memmove_simple(j + 32, j, 0x9400E618LL - j);
   if ( MEMORY[0x9400E628] != 0 )
 LABEL_3:
-    sub_940054A8((__int64)"mmap_add_region", a5, a6, a7, a8, a9, a10, a11, a12);
+    assert_fail((__int64)"mmap_add_region", a5, a6, a7, a8, a9, a10, a11, a12);
   *(_QWORD *)j = a1;
   *(_QWORD *)(j + 8) = a2;
   v24 = MEMORY[0x9400E640];
@@ -5645,8 +5645,8 @@ LABEL_3:
   return result;
 }
 
-/* ===== sub_9400695C @ 0x9400695C size 60 ===== */
-unsigned __int64 __fastcall sub_9400695C(
+/* ===== mmap_add_regions @ 0x9400695C size 60 ===== */
+unsigned __int64 __fastcall mmap_add_regions(
         unsigned __int64 result,
         double a2,
         double a3,
@@ -5671,13 +5671,13 @@ unsigned __int64 __fastcall sub_9400695C(
     v11 = *(_QWORD *)i;
     v12 = *(_QWORD *)(i + 8);
     v13 = *(_DWORD *)(i + 24);
-    result = sub_94006670(v11, v12, v10, v13, a2, a3, a4, a5, a6, a7, a8, a9);
+    result = mmap_add_region(v11, v12, v10, v13, a2, a3, a4, a5, a6, a7, a8, a9);
   }
   return result;
 }
 
-/* ===== sub_94006998 @ 0x94006998 size 104 ===== */
-__int64 __fastcall sub_94006998(
+/* ===== init_xlat_table @ 0x94006998 size 104 ===== */
+__int64 __fastcall init_xlat_table(
         unsigned __int64 a1,
         __int64 *a2,
         unsigned int a3,
@@ -5694,15 +5694,15 @@ __int64 __fastcall sub_94006998(
 {
   __int64 result; // x0
 
-  sub_9400641C((_QWORD *)0x9400E418LL, a1, a2, a3, a6, a7, a8, a9, a10, a11, a12, a13);
+  init_xlation_table_inner((_QWORD *)0x9400E418LL, a1, a2, a3, a6, a7, a8, a9, a10, a11, a12, a13);
   *a4 = MEMORY[0x9400E638];
   result = MEMORY[0x9400E640];
   *a5 = MEMORY[0x9400E640];
   return result;
 }
 
-/* ===== sub_94006A00 @ 0x94006A00 size 208 ===== */
-__int64 sub_94006A00()
+/* ===== init_xlat_tables @ 0x94006A00 size 208 ===== */
+__int64 init_xlat_tables()
 {
   double v0; // d0
   double v1; // d1
@@ -5727,7 +5727,7 @@ __int64 sub_94006A00()
   unsigned __int64 v20; // [xsp+18h] [xbp+18h] BYREF
 
   nullsub_4();
-  sub_94006998(0, (__int64 *)0x9400E660LL, 1u, &v20, &v19, v0, v1, v2, v3, v4, v5, v6, v7);
+  init_xlat_table(0, (__int64 *)0x9400E660LL, 1u, &v20, &v19, v0, v1, v2, v3, v4, v5, v6, v7);
   if ( (v19 & 0xFFFF000000000000LL) != 0 )
   {
     v16 = "calc_physical_addr_size_bits";
@@ -5754,13 +5754,13 @@ __int64 sub_94006A00()
   {
     v16 = "init_xlat_tables";
 LABEL_10:
-    sub_940054A8((__int64)v16, v8, v9, v10, v11, v12, v13, v14, v15);
+    assert_fail((__int64)v16, v8, v9, v10, v11, v12, v13, v14, v15);
   }
   return result;
 }
 
-/* ===== sub_94006AD0 @ 0x94006AD0 size 216 ===== */
-unsigned __int64 __fastcall sub_94006AD0(
+/* ===== enable_mmu_el3 @ 0x94006AD0 size 216 ===== */
+unsigned __int64 __fastcall enable_mmu_el3(
         char a1,
         double a2,
         double a3,
@@ -5775,7 +5775,7 @@ unsigned __int64 __fastcall sub_94006AD0(
   unsigned __int64 result; // x0
 
   if ( ((_ReadStatusReg(CurrentEL) >> 2) & 3) != 3 || (_ReadStatusReg(SCTLR_EL3) & 1) != 0 )
-    sub_940054A8((__int64)"enable_mmu_el3", a2, a3, a4, a5, a6, a7, a8, a9);
+    assert_fail((__int64)"enable_mmu_el3", a2, a3, a4, a5, a6, a7, a8, a9);
   _WriteStatusReg(MAIR_EL3, 0x4404FFu);
   __asm { TLBI            ALLE3 }
   _WriteStatusReg(TCR_EL3, (MEMORY[0x9400E650] << 16) | 0x80803520LL);
@@ -5792,20 +5792,20 @@ unsigned __int64 __fastcall sub_94006AD0(
   return result;
 }
 
-/* ===== sub_94006BA8 @ 0x94006BA8 size 8 ===== */
-__int64 sub_94006BA8()
+/* ===== get_non_secure_ep @ 0x94006BA8 size 8 ===== */
+__int64 get_non_secure_ep()
 {
   return 2667577344LL;
 }
 
-/* ===== sub_94006BB0 @ 0x94006BB0 size 8 ===== */
-__int64 sub_94006BB0()
+/* ===== get_secure_ep @ 0x94006BB0 size 8 ===== */
+__int64 get_secure_ep()
 {
   return 0;
 }
 
-/* ===== sub_94006BB8 @ 0x94006BB8 size 140 ===== */
-__int64 sub_94006BB8()
+/* ===== get_scr_el3_config @ 0x94006BB8 size 140 ===== */
+__int64 get_scr_el3_config()
 {
   unsigned __int64 v0; // x0
   double v1; // d0
@@ -5818,14 +5818,14 @@ __int64 sub_94006BB8()
   double v8; // d7
   int v10; // w0
 
-  v0 = sub_940017A4(1u);
+  v0 = bl31_get_next_image_ep(1u);
   if ( v0 != 0 )
   {
     if ( *(unsigned __int8 *)(*(_QWORD *)(v0 + 8) + 3LL) == 234 )
     {
       if ( ((_ReadStatusReg(ID_AA64PFR0_EL1) >> 8) & 0xF) != 2 )
-        sub_9400517C("ERROR:   EL2 is missed or can not support AArch32 state.\n", v1, v2, v3, v4, v5, v6, v7, v8);
-      return (32 * (sub_94006BA8() & 1)) | 0x1DA;
+        printf_impl("ERROR:   EL2 is missed or can not support AArch32 state.\n", v1, v2, v3, v4, v5, v6, v7, v8);
+      return (32 * (get_non_secure_ep() & 1)) | 0x1DA;
     }
     else
     {
@@ -5838,7 +5838,7 @@ __int64 sub_94006BB8()
   }
   else
   {
-    sub_9400517C("ERROR:   non_secure image missing.\n", v1, v2, v3, v4, v5, v6, v7, v8);
+    printf_impl("ERROR:   non_secure image missing.\n", v1, v2, v3, v4, v5, v6, v7, v8);
     return 0xFFFFFFFFLL;
   }
 }
@@ -5849,14 +5849,14 @@ void nullsub_5()
   ;
 }
 
-/* ===== sub_94006C48 @ 0x94006C48 size 12 ===== */
-__int64 *sub_94006C48()
+/* ===== get_mmap_regions @ 0x94006C48 size 12 ===== */
+__int64 *get_mmap_regions()
 {
   return qword_9400AB80;
 }
 
-/* ===== sub_94006C54 @ 0x94006C54 size 152 ===== */
-__int64 __fastcall sub_94006C54(
+/* ===== plat_setup_mmap @ 0x94006C54 size 152 ===== */
+__int64 __fastcall plat_setup_mmap(
         unsigned __int64 a1,
         unsigned __int64 a2,
         unsigned __int64 a3,
@@ -5908,24 +5908,24 @@ __int64 __fastcall sub_94006C54(
   double v49; // d6
   double v50; // d7
 
-  sub_94006670(a1, a1, a2, 10, a9, a10, a11, a12, a13, a14, a15, a16);
-  sub_94006670(a3, a3, a4 - a3, 2, v18, v19, v20, v21, v22, v23, v24, v25);
-  sub_94006670(a5, a5, a6 - a5, 34, v26, v27, v28, v29, v30, v31, v32, v33);
-  sub_94006670(a7, a7, a8 - a7, 8, v34, v35, v36, v37, v38, v39, v40, v41);
-  v42 = sub_94006C48();
-  sub_9400695C((unsigned __int64)v42, v43, v44, v45, v46, v47, v48, v49, v50);
-  return sub_94006A00();
+  mmap_add_region(a1, a1, a2, 10, a9, a10, a11, a12, a13, a14, a15, a16);
+  mmap_add_region(a3, a3, a4 - a3, 2, v18, v19, v20, v21, v22, v23, v24, v25);
+  mmap_add_region(a5, a5, a6 - a5, 34, v26, v27, v28, v29, v30, v31, v32, v33);
+  mmap_add_region(a7, a7, a8 - a7, 8, v34, v35, v36, v37, v38, v39, v40, v41);
+  v42 = get_mmap_regions();
+  mmap_add_regions((unsigned __int64)v42, v43, v44, v45, v46, v47, v48, v49, v50);
+  return init_xlat_tables();
 }
 
-/* ===== sub_94006CEC @ 0x94006CEC size 12 ===== */
-__int64 sub_94006CEC()
+/* ===== get_uart_clock @ 0x94006CEC size 12 ===== */
+__int64 get_uart_clock()
 {
   return 26000000;
 }
 
-/* ===== sub_94006CF8 @ 0x94006CF8 size 4 ===== */
+/* ===== enable_mmu_thunk @ 0x94006CF8 size 4 ===== */
 // attributes: thunk
-unsigned __int64 __fastcall sub_94006CF8(
+unsigned __int64 __fastcall enable_mmu_thunk(
         char a1,
         double a2,
         double a3,
@@ -5936,11 +5936,11 @@ unsigned __int64 __fastcall sub_94006CF8(
         double a8,
         double a9)
 {
-  return sub_94006AD0(a1, a2, a3, a4, a5, a6, a7, a8, a9);
+  return enable_mmu_el3(a1, a2, a3, a4, a5, a6, a7, a8, a9);
 }
 
-/* ===== sub_94006CFC @ 0x94006CFC size 308 ===== */
-unsigned __int64 *__fastcall sub_94006CFC(
+/* ===== sprd_arch_secure_timer_handler @ 0x94006CFC size 308 ===== */
+unsigned __int64 *__fastcall sprd_arch_secure_timer_handler(
         int a1,
         __int64 a2,
         unsigned __int64 a3,
@@ -5987,7 +5987,7 @@ unsigned __int64 *__fastcall sub_94006CFC(
 LABEL_21:
         v19 = a2 & 0xF;
 LABEL_24:
-        sub_9400517C(v22, a5, a6, a7, a8, a9, a10, a11, a12, "sprd_arch_secure_timer_handler", v19);
+        printf_impl(v22, a5, a6, a7, a8, a9, a10, a11, a12, "sprd_arch_secure_timer_handler", v19);
         goto LABEL_25;
       }
     }
@@ -6014,7 +6014,7 @@ LABEL_26:
     case 1:
       if ( (a2 & 0xFFFFFFF8) != 0 )
       {
-        sub_9400517C(
+        printf_impl(
           "ERROR:   %s: invalid value of ctlr %lx\n",
           a5,
           a6,
@@ -6040,8 +6040,8 @@ LABEL_25:
   return a15;
 }
 
-/* ===== sub_94006E30 @ 0x94006E30 size 24 ===== */
-__int64 sub_94006E30()
+/* ===== cache_op_dcache_clean @ 0x94006E30 size 24 ===== */
+__int64 cache_op_dcache_clean()
 {
   __int64 result; // x0
   unsigned __int64 StatusReg; // x9
@@ -6077,8 +6077,8 @@ __int64 sub_94006E30()
   return result;
 }
 
-/* ===== sub_94006E48 @ 0x94006E48 size 24 ===== */
-__int64 sub_94006E48()
+/* ===== cache_op_dcache_invalidate @ 0x94006E48 size 24 ===== */
+__int64 cache_op_dcache_invalidate()
 {
   __int64 result; // x0
   unsigned __int64 StatusReg; // x9
@@ -6114,145 +6114,145 @@ __int64 sub_94006E48()
   return result;
 }
 
-/* ===== sub_94006E60 @ 0x94006E60 size 8 ===== */
-void sub_94006E60()
+/* ===== cache_op_nop @ 0x94006E60 size 8 ===== */
+void cache_op_nop()
 {
   ;
 }
 
-/* ===== sub_94006E68 @ 0x94006E68 size 20 ===== */
-void sub_94006E68()
+/* ===== dcache_disable_sctlr @ 0x94006E68 size 20 ===== */
+void dcache_disable_sctlr()
 {
   _WriteStatusReg(SCTLR_EL3, _ReadStatusReg(SCTLR_EL3) & 0xFFFFFFFFFFFFFFFBLL);
   __isb(0xFu);
 }
 
-/* ===== sub_94006E7C @ 0x94006E7C size 24 ===== */
-void sub_94006E7C()
+/* ===== dcache_disable_sysreg @ 0x94006E7C size 24 ===== */
+void dcache_disable_sysreg()
 {
   _WriteStatusReg(S3_1_C15_C2_1, _ReadStatusReg(S3_1_C15_C2_1) & 0xFFFFFFFFFFFFFFBFLL);
   __isb(0xFu);
   __dsb(0xFu);
 }
 
-/* ===== sub_94006E94 @ 0x94006E94 size 20 ===== */
-void sub_94006E94()
+/* ===== dcache_enable_sysreg @ 0x94006E94 size 20 ===== */
+void dcache_enable_sysreg()
 {
   _WriteStatusReg(S3_1_C15_C2_1, _ReadStatusReg(S3_1_C15_C2_1) | 0x40);
   __isb(0xFu);
 }
 
-/* ===== sub_94006EA8 @ 0x94006EA8 size 24 ===== */
-void sub_94006EA8()
+/* ===== dcache_disable @ 0x94006EA8 size 24 ===== */
+void dcache_disable()
 {
-  sub_94006E68();
-  sub_94007D98(1);
-  sub_94006E7C();
+  dcache_disable_sctlr();
+  dcache_op_lvl1(1);
+  dcache_disable_sysreg();
 }
 
-/* ===== sub_94006EC0 @ 0x94006EC0 size 36 ===== */
-void sub_94006EC0()
+/* ===== dcache_disable_all @ 0x94006EC0 size 36 ===== */
+void dcache_disable_all()
 {
   __int64 v0; // x0
 
-  sub_94006E68();
-  v0 = sub_94007D98(1);
+  dcache_disable_sctlr();
+  v0 = dcache_op_lvl1(1);
   nullsub_9(v0);
-  sub_94007DA8(1);
-  sub_94006E7C();
+  dcache_op_lvl2(1);
+  dcache_disable_sysreg();
 }
 
-/* ===== sub_94006EE4 @ 0x94006EE4 size 12 ===== */
-void sub_94006EE4()
+/* ===== read_cache_config @ 0x94006EE4 size 12 ===== */
+void read_cache_config()
 {
   _ReadStatusReg(S3_1_C15_C2_1);
 }
 
-/* ===== sub_94006EF0 @ 0x94006EF0 size 20 ===== */
-void sub_94006EF0()
+/* ===== icache_disable_sctlr @ 0x94006EF0 size 20 ===== */
+void icache_disable_sctlr()
 {
   _WriteStatusReg(SCTLR_EL3, _ReadStatusReg(SCTLR_EL3) & 0xFFFFFFFFFFFFFFFBLL);
   __isb(0xFu);
 }
 
-/* ===== sub_94006F04 @ 0x94006F04 size 24 ===== */
-void sub_94006F04()
+/* ===== icache_disable_sysreg @ 0x94006F04 size 24 ===== */
+void icache_disable_sysreg()
 {
   _WriteStatusReg(S3_1_C15_C2_1, _ReadStatusReg(S3_1_C15_C2_1) & 0xFFFFFFFFFFFFFFBFLL);
   __isb(0xFu);
   __dsb(0xFu);
 }
 
-/* ===== sub_94006F1C @ 0x94006F1C size 28 ===== */
-unsigned __int64 __fastcall sub_94006F1C(unsigned __int64 result)
+/* ===== set_pmcr2_el1 @ 0x94006F1C size 28 ===== */
+unsigned __int64 __fastcall set_pmcr2_el1(unsigned __int64 result)
 {
   if ( result <= 3 )
     _WriteStatusReg(PMCR2_EL1, _ReadStatusReg(PMCR2_EL1) | 0x1000000);
   return result;
 }
 
-/* ===== sub_94006F38 @ 0x94006F38 size 44 ===== */
-void sub_94006F38()
+/* ===== pmu_init @ 0x94006F38 size 44 ===== */
+void pmu_init()
 {
   unsigned __int64 StatusReg; // x0
 
   StatusReg = _ReadStatusReg(MIDR_EL1);
-  sub_94006F1C(BYTE2(StatusReg) & 0xF0 | StatusReg & 0xF);
+  set_pmcr2_el1(BYTE2(StatusReg) & 0xF0 | StatusReg & 0xF);
   _WriteStatusReg(S3_1_C15_C2_1, _ReadStatusReg(S3_1_C15_C2_1) | 0x40);
   __isb(0xFu);
 }
 
-/* ===== sub_94006F64 @ 0x94006F64 size 24 ===== */
-void sub_94006F64()
+/* ===== icache_disable @ 0x94006F64 size 24 ===== */
+void icache_disable()
 {
-  sub_94006EF0();
-  sub_94007D98(1);
-  sub_94006F04();
+  icache_disable_sctlr();
+  dcache_op_lvl1(1);
+  icache_disable_sysreg();
 }
 
-/* ===== sub_94006F7C @ 0x94006F7C size 36 ===== */
-void sub_94006F7C()
+/* ===== icache_disable_all @ 0x94006F7C size 36 ===== */
+void icache_disable_all()
 {
   __int64 v0; // x0
 
-  sub_94006EF0();
-  v0 = sub_94007D98(1);
+  icache_disable_sctlr();
+  v0 = dcache_op_lvl1(1);
   nullsub_9(v0);
-  sub_94007DA8(1);
-  sub_94006F04();
+  dcache_op_lvl2(1);
+  icache_disable_sysreg();
 }
 
-/* ===== sub_94006FA0 @ 0x94006FA0 size 20 ===== */
-void sub_94006FA0()
+/* ===== read_pmu_config @ 0x94006FA0 size 20 ===== */
+void read_pmu_config()
 {
   _ReadStatusReg(S3_1_C15_C2_1);
   _ReadStatusReg(LD_LATPROF_STS_EL1);
   _ReadStatusReg(AON_CPU_MSTALL_CTL45_EL1);
 }
 
-/* ===== sub_94006FB4 @ 0x94006FB4 size 20 ===== */
-void sub_94006FB4()
+/* ===== disable_sctlr_c @ 0x94006FB4 size 20 ===== */
+void disable_sctlr_c()
 {
   _WriteStatusReg(SCTLR_EL3, _ReadStatusReg(SCTLR_EL3) & 0xFFFFFFFFFFFFFFFBLL);
   __isb(0xFu);
 }
 
-/* ===== sub_94006FC8 @ 0x94006FC8 size 36 ===== */
-void sub_94006FC8()
+/* ===== set_sysreg_cache_cfg @ 0x94006FC8 size 36 ===== */
+void set_sysreg_cache_cfg()
 {
   _WriteStatusReg(S3_1_C15_C2_1, _ReadStatusReg(S3_1_C15_C2_1) & 0xFFFFFFA4FFFFFFFFLL | 0x4000000000LL);
   __isb(0xFu);
   __dsb(0xBu);
 }
 
-/* ===== sub_94006FEC @ 0x94006FEC size 16 ===== */
-void sub_94006FEC()
+/* ===== clear_sysreg_cache_cfg @ 0x94006FEC size 16 ===== */
+void clear_sysreg_cache_cfg()
 {
   _WriteStatusReg(S3_1_C15_C2_1, _ReadStatusReg(S3_1_C15_C2_1) & 0xFFFFFFFFFFFFFFBFLL);
 }
 
-/* ===== sub_94006FFC @ 0x94006FFC size 20 ===== */
-__int64 sub_94006FFC()
+/* ===== set_osdlr @ 0x94006FFC size 20 ===== */
+__int64 set_osdlr()
 {
   _WriteStatusReg(OSDLR_EL1, 1u);
   __isb(0xFu);
@@ -6260,87 +6260,87 @@ __int64 sub_94006FFC()
   return 1;
 }
 
-/* ===== sub_94007010 @ 0x94007010 size 28 ===== */
-unsigned __int64 __fastcall sub_94007010(unsigned __int64 result)
+/* ===== set_pmcr2_el1_2 @ 0x94007010 size 28 ===== */
+unsigned __int64 __fastcall set_pmcr2_el1_2(unsigned __int64 result)
 {
   if ( result <= 0x12 )
     _WriteStatusReg(PMCR2_EL1, _ReadStatusReg(PMCR2_EL1) | 0x10000000000000LL);
   return result;
 }
 
-/* ===== sub_9400702C @ 0x9400702C size 44 ===== */
-void sub_9400702C()
+/* ===== pmu_init_2 @ 0x9400702C size 44 ===== */
+void pmu_init_2()
 {
   unsigned __int64 StatusReg; // x0
 
   StatusReg = _ReadStatusReg(MIDR_EL1);
-  sub_94007010(BYTE2(StatusReg) & 0xF0 | StatusReg & 0xF);
+  set_pmcr2_el1_2(BYTE2(StatusReg) & 0xF0 | StatusReg & 0xF);
   _WriteStatusReg(S3_1_C15_C2_1, _ReadStatusReg(S3_1_C15_C2_1) | 0x40);
   __isb(0xFu);
 }
 
-/* ===== sub_94007058 @ 0x94007058 size 32 ===== */
-__int64 sub_94007058()
+/* ===== cache_maint_disable @ 0x94007058 size 32 ===== */
+__int64 cache_maint_disable()
 {
-  sub_94006FB4();
-  sub_94006FC8();
-  sub_94007D98(1);
-  sub_94006FEC();
-  return sub_94006FFC();
+  disable_sctlr_c();
+  set_sysreg_cache_cfg();
+  dcache_op_lvl1(1);
+  clear_sysreg_cache_cfg();
+  return set_osdlr();
 }
 
-/* ===== sub_94007078 @ 0x94007078 size 44 ===== */
-__int64 sub_94007078()
+/* ===== cache_maint_disable_all @ 0x94007078 size 44 ===== */
+__int64 cache_maint_disable_all()
 {
   __int64 v0; // x0
 
-  sub_94006FB4();
-  sub_94006FC8();
-  v0 = sub_94007D98(1);
+  disable_sctlr_c();
+  set_sysreg_cache_cfg();
+  v0 = dcache_op_lvl1(1);
   nullsub_9(v0);
-  sub_94007DA8(1);
-  sub_94006FEC();
-  return sub_94006FFC();
+  dcache_op_lvl2(1);
+  clear_sysreg_cache_cfg();
+  return set_osdlr();
 }
 
-/* ===== sub_940070A4 @ 0x940070A4 size 20 ===== */
-void sub_940070A4()
+/* ===== read_cache_maint_cfg @ 0x940070A4 size 20 ===== */
+void read_cache_maint_cfg()
 {
   _ReadStatusReg(S3_1_C15_C2_1);
   _ReadStatusReg(LD_LATPROF_STS_EL1);
   _ReadStatusReg(AON_CPU_MSTALL_CTL45_EL1);
 }
 
-/* ===== sub_940070B8 @ 0x940070B8 size 20 ===== */
-void sub_940070B8()
+/* ===== disable_sctlr_c_2 @ 0x940070B8 size 20 ===== */
+void disable_sctlr_c_2()
 {
   _WriteStatusReg(SCTLR_EL3, _ReadStatusReg(SCTLR_EL3) & 0xFFFFFFFFFFFFFFFBLL);
   __isb(0xFu);
 }
 
-/* ===== sub_940070CC @ 0x940070CC size 32 ===== */
-void sub_940070CC()
+/* ===== set_sysreg_cfg_2 @ 0x940070CC size 32 ===== */
+void set_sysreg_cfg_2()
 {
   _WriteStatusReg(S3_1_C15_C2_1, _ReadStatusReg(S3_1_C15_C2_1) & 0xFFFFFFA4FFFFFFFFLL | 0x4000000000LL);
   __isb(0xFu);
 }
 
-/* ===== sub_940070EC @ 0x940070EC size 24 ===== */
-void sub_940070EC()
+/* ===== set_pmcr2_3 @ 0x940070EC size 24 ===== */
+void set_pmcr2_3()
 {
   _WriteStatusReg(PMCR2_EL1, _ReadStatusReg(PMCR2_EL1) | 0x100000000000000LL);
   __isb(0xFu);
   __dsb(0xBu);
 }
 
-/* ===== sub_94007104 @ 0x94007104 size 16 ===== */
-void sub_94007104()
+/* ===== clear_sysreg_cfg_2 @ 0x94007104 size 16 ===== */
+void clear_sysreg_cfg_2()
 {
   _WriteStatusReg(S3_1_C15_C2_1, _ReadStatusReg(S3_1_C15_C2_1) & 0xFFFFFFFFFFFFFFBFLL);
 }
 
-/* ===== sub_94007114 @ 0x94007114 size 20 ===== */
-__int64 sub_94007114()
+/* ===== set_osdlr_2 @ 0x94007114 size 20 ===== */
+__int64 set_osdlr_2()
 {
   _WriteStatusReg(OSDLR_EL1, 1u);
   __isb(0xFu);
@@ -6348,110 +6348,110 @@ __int64 sub_94007114()
   return 1;
 }
 
-/* ===== sub_94007128 @ 0x94007128 size 20 ===== */
-void sub_94007128()
+/* ===== enable_sysreg_cfg @ 0x94007128 size 20 ===== */
+void enable_sysreg_cfg()
 {
   _WriteStatusReg(S3_1_C15_C2_1, _ReadStatusReg(S3_1_C15_C2_1) | 0x40);
   __isb(0xFu);
 }
 
-/* ===== sub_9400713C @ 0x9400713C size 36 ===== */
-__int64 sub_9400713C()
+/* ===== cache_maint_disable_2 @ 0x9400713C size 36 ===== */
+__int64 cache_maint_disable_2()
 {
-  sub_940070B8();
-  sub_940070CC();
-  sub_940070EC();
-  sub_94007D98(1);
-  sub_94007104();
-  return sub_94007114();
+  disable_sctlr_c_2();
+  set_sysreg_cfg_2();
+  set_pmcr2_3();
+  dcache_op_lvl1(1);
+  clear_sysreg_cfg_2();
+  return set_osdlr_2();
 }
 
-/* ===== sub_94007160 @ 0x94007160 size 48 ===== */
-__int64 sub_94007160()
+/* ===== cache_maint_disable_all_2 @ 0x94007160 size 48 ===== */
+__int64 cache_maint_disable_all_2()
 {
   __int64 v0; // x0
 
-  sub_940070B8();
-  sub_940070CC();
-  sub_940070EC();
-  v0 = sub_94007D98(1);
+  disable_sctlr_c_2();
+  set_sysreg_cfg_2();
+  set_pmcr2_3();
+  v0 = dcache_op_lvl1(1);
   nullsub_9(v0);
-  sub_94007DA8(1);
-  sub_94007104();
-  return sub_94007114();
+  dcache_op_lvl2(1);
+  clear_sysreg_cfg_2();
+  return set_osdlr_2();
 }
 
-/* ===== sub_94007190 @ 0x94007190 size 20 ===== */
-void sub_94007190()
+/* ===== read_cache_maint_cfg_2 @ 0x94007190 size 20 ===== */
+void read_cache_maint_cfg_2()
 {
   _ReadStatusReg(S3_1_C15_C2_1);
   _ReadStatusReg(LD_LATPROF_STS_EL1);
   _ReadStatusReg(AON_CPU_MSTALL_CTL45_EL1);
 }
 
-/* ===== sub_940071A4 @ 0x940071A4 size 20 ===== */
-void sub_940071A4()
+/* ===== disable_sctlr_c_3 @ 0x940071A4 size 20 ===== */
+void disable_sctlr_c_3()
 {
   _WriteStatusReg(SCTLR_EL3, _ReadStatusReg(SCTLR_EL3) & 0xFFFFFFFFFFFFFFFBLL);
   __isb(0xFu);
 }
 
-/* ===== sub_940071B8 @ 0x940071B8 size 24 ===== */
-void sub_940071B8()
+/* ===== disable_sysreg_cfg_3 @ 0x940071B8 size 24 ===== */
+void disable_sysreg_cfg_3()
 {
   _WriteStatusReg(S3_1_C15_C2_1, _ReadStatusReg(S3_1_C15_C2_1) & 0xFFFFFFFFFFFFFFBFLL);
   __isb(0xFu);
   __dsb(0xFu);
 }
 
-/* ===== sub_940071D0 @ 0x940071D0 size 20 ===== */
-void sub_940071D0()
+/* ===== enable_sysreg_cfg_3 @ 0x940071D0 size 20 ===== */
+void enable_sysreg_cfg_3()
 {
   _WriteStatusReg(S3_1_C15_C2_1, _ReadStatusReg(S3_1_C15_C2_1) | 0x40);
   __isb(0xFu);
 }
 
-/* ===== sub_940071E4 @ 0x940071E4 size 24 ===== */
-void sub_940071E4()
+/* ===== cache_disable_3 @ 0x940071E4 size 24 ===== */
+void cache_disable_3()
 {
-  sub_940071A4();
-  sub_94007D98(1);
-  sub_940071B8();
+  disable_sctlr_c_3();
+  dcache_op_lvl1(1);
+  disable_sysreg_cfg_3();
 }
 
-/* ===== sub_940071FC @ 0x940071FC size 36 ===== */
-void sub_940071FC()
+/* ===== cache_disable_all_3 @ 0x940071FC size 36 ===== */
+void cache_disable_all_3()
 {
   __int64 v0; // x0
 
-  sub_940071A4();
-  v0 = sub_94007D98(1);
+  disable_sctlr_c_3();
+  v0 = dcache_op_lvl1(1);
   nullsub_9(v0);
-  sub_94007DA8(1);
-  sub_940071B8();
+  dcache_op_lvl2(1);
+  disable_sysreg_cfg_3();
 }
 
-/* ===== sub_94007220 @ 0x94007220 size 16 ===== */
-void sub_94007220()
+/* ===== read_cache_cfg_3 @ 0x94007220 size 16 ===== */
+void read_cache_cfg_3()
 {
   _ReadStatusReg(S3_1_C15_C2_1);
   _ReadStatusReg(AON_CPU_MSTALL_CTL45_EL1);
 }
 
-/* ===== sub_94007230 @ 0x94007230 size 24 ===== */
-__int64 __fastcall sub_94007230(__int64 a1)
+/* ===== get_cpu_data_ptr @ 0x94007230 size 24 ===== */
+__int64 __fastcall get_cpu_data_ptr(__int64 a1)
 {
-  return (sub_94007E28(a1) << 10) + 2483078336LL;
+  return (get_cpu_id(a1) << 10) + 2483078336LL;
 }
 
-/* ===== sub_94007250 @ 0x94007250 size 16 ===== */
-__int64 __fastcall sub_94007250(__int64 a1)
+/* ===== set_tpidr_el3 @ 0x94007250 size 16 ===== */
+__int64 __fastcall set_tpidr_el3(__int64 a1)
 {
-  return sub_94007230(a1);
+  return get_cpu_data_ptr(a1);
 }
 
-/* ===== sub_94007260 @ 0x94007260 size 184 ===== */
-void __fastcall sub_94007260(unsigned __int64 a1)
+/* ===== el3_exception_handler @ 0x94007260 size 184 ===== */
+void __fastcall el3_exception_handler(unsigned __int64 a1)
 {
   int v1; // w15
   void (*v7)(void); // x15
@@ -6473,21 +6473,21 @@ void __fastcall sub_94007260(unsigned __int64 a1)
         JUMPOUT(0x94007A78LL);
       }
       __asm { MSR             SPSel, #1 }
-      sub_94007384();
+      el3_panic_stack();
     }
     JUMPOUT(0x94007A38LL);
   }
   __asm { ERET }
 }
 
-/* ===== sub_94007318 @ 0x94007318 size 8 ===== */
-__int64 sub_94007318()
+/* ===== delay_10 @ 0x94007318 size 8 ===== */
+__int64 delay_10()
 {
-  return sub_94007E58(10);
+  return putc(10);
 }
 
-/* ===== sub_94007320 @ 0x94007320 size 76 ===== */
-__int64 __fastcall sub_94007320(__int64 result, __int64 a2, __int64 a3, __int64 a4, __int64 a5, __int64 a6, _BYTE *a7)
+/* ===== dump_registers @ 0x94007320 size 76 ===== */
+__int64 __fastcall dump_registers(__int64 result, __int64 a2, __int64 a3, __int64 a4, __int64 a5, __int64 a6, _BYTE *a7)
 {
   unsigned __int64 StatusReg; // x7
   __int64 v8; // x0
@@ -6496,16 +6496,16 @@ __int64 __fastcall sub_94007320(__int64 result, __int64 a2, __int64 a3, __int64 
   StatusReg = _ReadStatusReg(TPIDR_EL3);
   while ( StatusReg != _ReadStatusReg(TPIDR_EL3) + 64 && *a7 != 0 )
   {
-    v8 = sub_94007B70(result);
-    v9 = sub_94007B70(v8);
-    sub_94007B88(v9);
-    result = sub_94007318();
+    v8 = puts(result);
+    v9 = puts(v8);
+    puthex(v9);
+    result = delay_10();
   }
   return result;
 }
 
-/* ===== sub_9400736C @ 0x9400736C size 24 ===== */
-__int64 __usercall sub_9400736C@<X0>(
+/* ===== save_and_dump_regs @ 0x9400736C size 24 ===== */
+__int64 __usercall save_and_dump_regs@<X0>(
         __int64 a1@<X1>,
         __int64 a2@<X2>,
         __int64 a3@<X3>,
@@ -6532,11 +6532,11 @@ __int64 __usercall sub_9400736C@<X0>(
   StatusReg[5] = v11;
   StatusReg[6] = v12;
   StatusReg[7] = v13;
-  return sub_94007320((__int64)StatusReg, a1, a2, a3, a4, a5, a6);
+  return dump_registers((__int64)StatusReg, a1, a2, a3, a4, a5, a6);
 }
 
-/* ===== sub_94007384 @ 0x94007384 size 40 ===== */
-void __fastcall __noreturn sub_94007384(
+/* ===== el3_panic_stack @ 0x94007384 size 40 ===== */
+void __fastcall __noreturn el3_panic_stack(
         __int64 a1,
         __int64 a2,
         __int64 a3,
@@ -6556,8 +6556,8 @@ void __fastcall __noreturn sub_94007384(
   JUMPOUT(0x94007400LL);
 }
 
-/* ===== sub_940073AC @ 0x940073AC size 40 ===== */
-void __fastcall __noreturn sub_940073AC(
+/* ===== el3_panic_stack2 @ 0x940073AC size 40 ===== */
+void __fastcall __noreturn el3_panic_stack2(
         __int64 a1,
         __int64 a2,
         __int64 a3,
@@ -6577,26 +6577,26 @@ void __fastcall __noreturn sub_940073AC(
   JUMPOUT(0x94007400LL);
 }
 
-/* ===== sub_940075F4 @ 0x940075F4 size 20 ===== */
-unsigned __int64 __fastcall sub_940075F4(__int64 a1)
+/* ===== set_tpidr_el3_cpu @ 0x940075F4 size 20 ===== */
+unsigned __int64 __fastcall set_tpidr_el3_cpu(__int64 a1)
 {
   __int64 v1; // x0
   unsigned __int64 result; // x0
 
-  v1 = sub_94007E28(a1);
-  result = sub_94007608(v1);
+  v1 = get_cpu_id(a1);
+  result = get_cpu_context_ptr(v1);
   _WriteStatusReg(TPIDR_EL3, result);
   return result;
 }
 
-/* ===== sub_94007608 @ 0x94007608 size 12 ===== */
-__int64 __fastcall sub_94007608(__int64 a1)
+/* ===== get_cpu_context_ptr @ 0x94007608 size 12 ===== */
+__int64 __fastcall get_cpu_context_ptr(__int64 a1)
 {
   return (a1 << 7) + 2483087168LL;
 }
 
-/* ===== sub_94007614 @ 0x94007614 size 52 ===== */
-__int64 sub_94007614()
+/* ===== cpu_init_early @ 0x94007614 size 52 ===== */
+__int64 cpu_init_early()
 {
   __int64 v0; // x0
   __int64 result; // x0
@@ -6611,20 +6611,20 @@ __int64 sub_94007614()
   unsigned __int64 v10; // x6
 
   v0 = nullsub_6();
-  result = sub_940076E4(v0);
+  result = get_cpu_ops(v0);
   if ( result == 0 )
   {
-    v3 = sub_94007E40();
+    v3 = get_pc();
     if ( v3 != 0 )
     {
-      v4 = sub_94007B70(v3);
-      v5 = sub_94007B70(v4);
-      sub_94007B70(v5);
+      v4 = puts(v3);
+      v5 = puts(v4);
+      puts(v5);
       if ( (v6 & 0xFFFFFFFFFFFF0000LL) == 0 )
       {
         v7 = v6;
         for ( i = 10000; i != 0; i = v9 / v10 )
-          sub_94007E58(v7 / i + 48);
+          putc(v7 / i + 48);
       }
     }
     while ( 1 )
@@ -6636,8 +6636,8 @@ __int64 sub_94007614()
   return result;
 }
 
-/* ===== sub_94007648 @ 0x94007648 size 36 ===== */
-__int64 __fastcall sub_94007648(__int64 a1, __int64 a2, __int64 a3, __int64 a4, __int64 a5)
+/* ===== cpu_reset_handler @ 0x94007648 size 36 ===== */
+__int64 __fastcall cpu_reset_handler(__int64 a1, __int64 a2, __int64 a3, __int64 a4, __int64 a5)
 {
   __int64 v5; // x0
   __int64 v7; // x0
@@ -6652,17 +6652,17 @@ __int64 __fastcall sub_94007648(__int64 a1, __int64 a2, __int64 a3, __int64 a4, 
   v5 = *(_QWORD *)(_ReadStatusReg(TPIDR_EL3) + 16);
   if ( v5 == 0 )
   {
-    v7 = sub_94007E40("lib/cpus/aarch64/cpu_helpers.S", 87, a3, a4, a5, "lib/cpus/aarch64/cpu_helpers.S", 87);
+    v7 = get_pc("lib/cpus/aarch64/cpu_helpers.S", 87, a3, a4, a5, "lib/cpus/aarch64/cpu_helpers.S", 87);
     if ( v7 != 0 )
     {
-      v8 = sub_94007B70(v7);
-      v9 = sub_94007B70(v8);
-      sub_94007B70(v9);
+      v8 = puts(v7);
+      v9 = puts(v8);
+      puts(v9);
       if ( (v10 & 0xFFFFFFFFFFFF0000LL) == 0 )
       {
         v11 = v10;
         for ( i = 10000; i != 0; i = v13 / v14 )
-          sub_94007E58(v11 / i + 48);
+          putc(v11 / i + 48);
       }
     }
     while ( 1 )
@@ -6671,8 +6671,8 @@ __int64 __fastcall sub_94007648(__int64 a1, __int64 a2, __int64 a3, __int64 a4, 
   return (*(__int64 (**)(void))(v5 + 16))();
 }
 
-/* ===== sub_9400766C @ 0x9400766C size 36 ===== */
-__int64 __fastcall sub_9400766C(__int64 a1, __int64 a2, __int64 a3, __int64 a4, __int64 a5)
+/* ===== cpu_pwr_down_handler @ 0x9400766C size 36 ===== */
+__int64 __fastcall cpu_pwr_down_handler(__int64 a1, __int64 a2, __int64 a3, __int64 a4, __int64 a5)
 {
   __int64 v5; // x0
   __int64 v7; // x0
@@ -6687,17 +6687,17 @@ __int64 __fastcall sub_9400766C(__int64 a1, __int64 a2, __int64 a3, __int64 a4, 
   v5 = *(_QWORD *)(_ReadStatusReg(TPIDR_EL3) + 16);
   if ( v5 == 0 )
   {
-    v7 = sub_94007E40("lib/cpus/aarch64/cpu_helpers.S", 106, a3, a4, a5, "lib/cpus/aarch64/cpu_helpers.S", 106);
+    v7 = get_pc("lib/cpus/aarch64/cpu_helpers.S", 106, a3, a4, a5, "lib/cpus/aarch64/cpu_helpers.S", 106);
     if ( v7 != 0 )
     {
-      v8 = sub_94007B70(v7);
-      v9 = sub_94007B70(v8);
-      sub_94007B70(v9);
+      v8 = puts(v7);
+      v9 = puts(v8);
+      puts(v9);
       if ( (v10 & 0xFFFFFFFFFFFF0000LL) == 0 )
       {
         v11 = v10;
         for ( i = 10000; i != 0; i = v13 / v14 )
-          sub_94007E58(v11 / i + 48);
+          putc(v11 / i + 48);
       }
     }
     while ( 1 )
@@ -6706,13 +6706,13 @@ __int64 __fastcall sub_9400766C(__int64 a1, __int64 a2, __int64 a3, __int64 a4, 
   return (*(__int64 (**)(void))(v5 + 24))();
 }
 
-/* ===== sub_940076C4 @ 0x940076C4 size 32 ===== */
-__int64 __fastcall sub_940076C4(__int64 a1)
+/* ===== cpu_pwr_domain_suspend_handler @ 0x940076C4 size 32 ===== */
+__int64 __fastcall cpu_pwr_domain_suspend_handler(__int64 a1)
 {
   __int64 result; // x0
   __int64 (*v2)(void); // x2
 
-  result = sub_940076E4(a1);
+  result = get_cpu_ops(a1);
   if ( result != 0 )
   {
     v2 = *(__int64 (**)(void))(result + 32);
@@ -6722,8 +6722,8 @@ __int64 __fastcall sub_940076C4(__int64 a1)
   return result;
 }
 
-/* ===== sub_940076E4 @ 0x940076E4 size 60 ===== */
-__int64 *sub_940076E4()
+/* ===== get_cpu_ops @ 0x940076E4 size 60 ===== */
+__int64 *get_cpu_ops()
 {
   __int64 *v0; // x4
   __int64 *result; // x0
@@ -6743,8 +6743,8 @@ __int64 *sub_940076E4()
   return result;
 }
 
-/* ===== sub_94007720 @ 0x94007720 size 32 ===== */
-unsigned int *__fastcall sub_94007720(unsigned int *result)
+/* ===== spin_lock @ 0x94007720 size 32 ===== */
+unsigned int *__fastcall spin_lock(unsigned int *result)
 {
   unsigned int v1; // w1
 
@@ -6761,52 +6761,52 @@ LABEL_2:
   return result;
 }
 
-/* ===== sub_94007740 @ 0x94007740 size 8 ===== */
-unsigned int *__fastcall sub_94007740(unsigned int *result)
+/* ===== spin_unlock @ 0x94007740 size 8 ===== */
+unsigned int *__fastcall spin_unlock(unsigned int *result)
 {
   atomic_store(0, result);
   return result;
 }
 
-/* ===== sub_94007748 @ 0x94007748 size 76 ===== */
-__int64 __fastcall sub_94007748(__int64 a1, __int64 a2, __int64 a3, __int64 a4, __int64 a5)
+/* ===== cpu_context_save @ 0x94007748 size 76 ===== */
+__int64 __fastcall cpu_context_save(__int64 a1, __int64 a2, __int64 a3, __int64 a4, __int64 a5)
 {
   __int64 v5; // x0
   __int64 v6; // x19
   _QWORD v8[2]; // [xsp+0h] [xbp-20h] BYREF
 
   if ( (_DWORD)a1 != 0 )
-    v5 = sub_9400766C(a1, a2, a3, a4, a5);
+    v5 = cpu_pwr_down_handler(a1, a2, a3, a4, a5);
   else
-    v5 = sub_94007648(a1, a2, a3, a4, a5);
-  v6 = sub_94007230(v5);
-  sub_94007BF8(v8, v6 - (_QWORD)v8);
-  return sub_94007C60(v6 - 1024, (char *)&v8[128] - v6);
+    v5 = cpu_reset_handler(a1, a2, a3, a4, a5);
+  v6 = get_cpu_data_ptr(v5);
+  dcache_clean_invalidate(v8, v6 - (_QWORD)v8);
+  return dcache_invalidate(v6 - 1024, (char *)&v8[128] - v6);
 }
 
-/* ===== sub_94007794 @ 0x94007794 size 52 ===== */
-void __fastcall sub_94007794(__int64 a1)
+/* ===== cpu_context_restore @ 0x94007794 size 52 ===== */
+void __fastcall cpu_context_restore(__int64 a1)
 {
   __int64 v1; // x0
   _QWORD v2[2]; // [xsp+0h] [xbp-10h] BYREF
 
   __dmb(0xEu);
-  v1 = sub_94007230(a1);
-  sub_94007C60(v2, v1 - (_QWORD)v2);
+  v1 = get_cpu_data_ptr(a1);
+  dcache_invalidate(v2, v1 - (_QWORD)v2);
   _WriteStatusReg(SCTLR_EL3, _ReadStatusReg(SCTLR_EL3) | 4);
   __isb(0xFu);
 }
 
-/* ===== sub_940077C8 @ 0x940077C8 size 12 ===== */
-void __noreturn sub_940077C8()
+/* ===== cpu_power_down @ 0x940077C8 size 12 ===== */
+void __noreturn cpu_power_down()
 {
   __dsb(0xFu);
   __wfi();
-  sub_94007E00();
+  halt();
 }
 
-/* ===== sub_94007888 @ 0x94007888 size 180 ===== */
-void __fastcall sub_94007888(unsigned __int64 *a1)
+/* ===== el1_sysregs_restore @ 0x94007888 size 180 ===== */
+void __fastcall el1_sysregs_restore(unsigned __int64 *a1)
 {
   unsigned __int64 v1; // x10
   unsigned __int64 v2; // x16
@@ -6868,8 +6868,8 @@ void __fastcall sub_94007888(unsigned __int64 *a1)
   _WriteStatusReg(FPEXC32_EL2, a1[28]);
 }
 
-/* ===== sub_9400793C @ 0x9400793C size 84 ===== */
-__int64 __fastcall sub_9400793C(
+/* ===== fpregs_context_save @ 0x9400793C size 84 ===== */
+__int64 __fastcall fpregs_context_save(
         __int64 result,
         long double a2,
         long double a3,
@@ -6942,8 +6942,8 @@ __int64 __fastcall sub_9400793C(
   return result;
 }
 
-/* ===== sub_94007990 @ 0x94007990 size 84 ===== */
-long double __fastcall sub_94007990(__int64 a1)
+/* ===== fpregs_context_restore @ 0x94007990 size 84 ===== */
+long double __fastcall fpregs_context_restore(__int64 a1)
 {
   long double result; // q0
 
@@ -6953,14 +6953,14 @@ long double __fastcall sub_94007990(__int64 a1)
   return result;
 }
 
-/* ===== sub_940079E4 @ 0x940079E4 size 72 ===== */
-void __spoils<> sub_940079E4()
+/* ===== read_sp_el0 @ 0x940079E4 size 72 ===== */
+void __spoils<> read_sp_el0()
 {
   _ReadStatusReg(SP_EL0);
 }
 
-/* ===== sub_94007A9C @ 0x94007A9C size 84 ===== */
-_QWORD *__usercall sub_94007A9C@<X0>(
+/* ===== setup_eret_context @ 0x94007A9C size 84 ===== */
+_QWORD *__usercall setup_eret_context@<X0>(
         _QWORD *result@<X0>,
         __int64 a2@<X1>,
         __int64 a3@<X2>,
@@ -6982,8 +6982,8 @@ _QWORD *__usercall sub_94007A9C@<X0>(
   return result;
 }
 
-/* ===== sub_94007AF0 @ 0x94007AF0 size 40 ===== */
-_QWORD *__usercall sub_94007AF0@<X0>(_QWORD *result@<X0>, __int64 a2@<X1>, __int64 a3@<X8>)
+/* ===== setup_panic_context @ 0x94007AF0 size 40 ===== */
+_QWORD *__usercall setup_panic_context@<X0>(_QWORD *result@<X0>, __int64 a2@<X1>, __int64 a3@<X8>)
 {
   __int64 v3; // x1
 
@@ -7011,8 +7011,8 @@ _QWORD *__usercall sub_94007AF0@<X0>(_QWORD *result@<X0>, __int64 a2@<X1>, __int
   return result;
 }
 
-/* ===== sub_94007B70 @ 0x94007B70 size 24 ===== */
-__int64 __fastcall sub_94007B70(__int64 a1, __int64 a2, __int64 a3, __int64 a4, _BYTE *a5)
+/* ===== puts @ 0x94007B70 size 24 ===== */
+__int64 __fastcall puts(__int64 a1, __int64 a2, __int64 a3, __int64 a4, _BYTE *a5)
 {
   __int64 result; // x0
 
@@ -7021,13 +7021,13 @@ __int64 __fastcall sub_94007B70(__int64 a1, __int64 a2, __int64 a3, __int64 a4, 
     result = (unsigned __int8)*a5;
     if ( *a5 == 0 )
       break;
-    sub_94007E58(result);
+    putc(result);
   }
   return result;
 }
 
-/* ===== sub_94007B88 @ 0x94007B88 size 48 ===== */
-__int64 __fastcall sub_94007B88(__int64 a1, __int64 a2, __int64 a3, __int64 a4, unsigned __int64 a5)
+/* ===== puthex @ 0x94007B88 size 48 ===== */
+__int64 __fastcall puthex(__int64 a1, __int64 a2, __int64 a3, __int64 a4, unsigned __int64 a5)
 {
   __int64 v5; // x5
   unsigned __int64 v6; // x0
@@ -7039,14 +7039,14 @@ __int64 __fastcall sub_94007B88(__int64 a1, __int64 a2, __int64 a3, __int64 a4, 
     v6 = (a5 >> ((unsigned __int8)v5 - 4)) & 0xF;
     if ( v6 >= 0xA )
       v6 += 39LL;
-    result = sub_94007E58(v6 + 48);
+    result = putc(v6 + 48);
   }
   while ( v5 != 0 );
   return result;
 }
 
-/* ===== sub_94007BB8 @ 0x94007BB8 size 64 ===== */
-void __fastcall __noreturn sub_94007BB8(
+/* ===== panic @ 0x94007BB8 size 64 ===== */
+void __fastcall __noreturn panic(
         __int64 a1,
         __int64 a2,
         __int64 a3,
@@ -7206,13 +7206,13 @@ void __fastcall __noreturn sub_94007BB8(
 
   if ( ((_ReadStatusReg(CurrentEL) >> 2) & 3) != 3 )
   {
-    v151 = sub_94007E40(a1, a2, a3, a4, a5, a6, v150);
+    v151 = get_pc(a1, a2, a3, a4, a5, a6, v150);
     if ( v151 != 0 )
     {
-      v155 = sub_94007B70(v151, v152, v153, v154, "PANIC at PC : 0x");
-      v151 = sub_94007B88(v155, v157, v158, v159, v156 - 4);
+      v155 = puts(v151, v152, v153, v154, "PANIC at PC : 0x");
+      v151 = puthex(v155, v157, v158, v159, v156 - 4);
     }
-    sub_94007E00(v151);
+    halt(v151);
   }
   __asm { MSR             SPSel, #1 }
   v14 = (_QWORD *)(_ReadStatusReg(TPIDR_EL3) + 24);
@@ -7226,17 +7226,17 @@ void __fastcall __noreturn sub_94007BB8(
   StatusReg[5] = a6;
   StatusReg[6] = a7;
   StatusReg[7] = v150;
-  v16 = sub_94007E40(StatusReg, &a9, a3, a4, a5, a6, a7);
+  v16 = get_pc(StatusReg, &a9, a3, a4, a5, a6, a7);
   if ( v16 != 0 )
   {
-    sub_94007B70(v16, v17, v18, v19, &a9);
+    puts(v16, v17, v18, v19, &a9);
     v20 = _ReadStatusReg(TPIDR_EL3);
-    sub_94007B88(v20, v21, v22, v23, *(_QWORD *)(v20 + 56));
-    sub_94007318();
+    puthex(v20, v21, v22, v23, *(_QWORD *)(v20 + 56));
+    delay_10();
     v24 = _ReadStatusReg(TPIDR_EL3);
     *(_QWORD *)(v24 + 56) = v25;
-    sub_94007320(v24, v26, v27, v28, v29, v30, "x0");
-    sub_9400736C(v31, v32, v33, v34, v35, v36, v37);
+    dump_registers(v24, v26, v27, v28, v29, v30, "x0");
+    save_and_dump_regs(v31, v32, v33, v34, v35, v36, v37);
     v38 = (_QWORD *)_ReadStatusReg(TPIDR_EL3);
     *v38 = v39;
     v38[1] = v40;
@@ -7246,7 +7246,7 @@ void __fastcall __noreturn sub_94007BB8(
     v38[5] = v141;
     v38[6] = v142;
     v38[7] = v143;
-    sub_94007320((__int64)v38, v41, v42, v43, v44, v45, v46);
+    dump_registers((__int64)v38, v41, v42, v43, v44, v45, v46);
     v47 = (_QWORD *)_ReadStatusReg(TPIDR_EL3);
     *v47 = v144;
     v47[1] = v145;
@@ -7254,7 +7254,7 @@ void __fastcall __noreturn sub_94007BB8(
     v47[3] = v147;
     v47[4] = v148;
     v47[5] = v149;
-    sub_94007320((__int64)v47, v48, v49, v50, v51, v52, v53);
+    dump_registers((__int64)v47, v48, v49, v50, v51, v52, v53);
     v54 = _ReadStatusReg(SCR_EL3);
     _ReadStatusReg(SCTLR_EL3);
     _ReadStatusReg(CPTR_EL3);
@@ -7263,11 +7263,11 @@ void __fastcall __noreturn sub_94007BB8(
     _ReadStatusReg(MAIR_EL3);
     _ReadStatusReg(SPSR_EL3);
     _ReadStatusReg(ELR_EL3);
-    sub_9400736C(v55, v56, v57, v58, v59, "scr_el3", v54);
+    save_and_dump_regs(v55, v56, v57, v58, v59, "scr_el3", v54);
     v60 = _ReadStatusReg(TTBR0_EL3);
     _ReadStatusReg(ESR_EL3);
     _ReadStatusReg(FAR_EL3);
-    sub_9400736C(v61, v62, v63, v64, v65, v66, v60);
+    save_and_dump_regs(v61, v62, v63, v64, v65, v66, v60);
     v67 = _ReadStatusReg(SPSR_EL1);
     _ReadStatusReg(ELR_EL1);
     _ReadStatusReg(SPSR_abt);
@@ -7276,7 +7276,7 @@ void __fastcall __noreturn sub_94007BB8(
     _ReadStatusReg(SPSR_fiq);
     _ReadStatusReg(SCTLR_EL1);
     _ReadStatusReg(ACTLR_EL1);
-    sub_9400736C(v68, v69, v70, v71, v72, "spsr_el1", v67);
+    save_and_dump_regs(v68, v69, v70, v71, v72, "spsr_el1", v67);
     v73 = _ReadStatusReg(CPACR_EL1);
     _ReadStatusReg(CSSELR_EL1);
     _ReadStatusReg(SP_EL1);
@@ -7285,7 +7285,7 @@ void __fastcall __noreturn sub_94007BB8(
     _ReadStatusReg(TTBR1_EL1);
     _ReadStatusReg(MAIR_EL1);
     _ReadStatusReg(AMAIR_EL1);
-    sub_9400736C(v74, v75, v76, v77, v78, v79, v73);
+    save_and_dump_regs(v74, v75, v76, v77, v78, v79, v73);
     v80 = _ReadStatusReg(TCR_EL1);
     _ReadStatusReg(TPIDR_EL1);
     _ReadStatusReg(TPIDR_EL0);
@@ -7294,7 +7294,7 @@ void __fastcall __noreturn sub_94007BB8(
     _ReadStatusReg(IFSR32_EL2);
     _ReadStatusReg(PAR_EL1);
     _ReadStatusReg(MPIDR_EL1);
-    sub_9400736C(v81, v82, v83, v84, v85, v86, v80);
+    save_and_dump_regs(v81, v82, v83, v84, v85, v86, v80);
     v87 = _ReadStatusReg(AFSR0_EL1);
     _ReadStatusReg(AFSR1_EL1);
     _ReadStatusReg(CONTEXTIDR_EL1);
@@ -7303,40 +7303,40 @@ void __fastcall __noreturn sub_94007BB8(
     _ReadStatusReg(CNTP_CVAL_EL0);
     _ReadStatusReg(CNTV_CTL_EL0);
     _ReadStatusReg(CNTV_CVAL_EL0);
-    sub_9400736C(v88, v89, v90, v91, v92, v93, v87);
+    save_and_dump_regs(v88, v89, v90, v91, v92, v93, v87);
     v94 = _ReadStatusReg(CNTKCTL_EL1);
     _ReadStatusReg(FPEXC32_EL2);
     _ReadStatusReg(SP_EL0);
     _ReadStatusReg(ISR_EL1);
-    v101 = sub_9400736C(v95, v96, v97, v98, v99, v100, v94);
-    sub_940076C4(v101);
-    sub_9400736C(v102, v103, v104, v105, v106, v107, v108);
+    v101 = save_and_dump_regs(v95, v96, v97, v98, v99, v100, v94);
+    cpu_pwr_domain_suspend_handler(v101);
+    save_and_dump_regs(v102, v103, v104, v105, v106, v107, v108);
     if ( ((_ReadStatusReg(ID_AA64PFR0_EL1) >> 24) & 0xF) == 1 && (_ReadStatusReg(ICC_SRE_EL3) & 1) != 0 )
     {
       v114 = _ReadStatusReg(ICC_HPPIR0_EL1);
       _ReadStatusReg(ICC_HPPIR1_EL1);
       _ReadStatusReg(ICC_CTLR_EL3);
-      v115 = sub_9400736C(v109, v110, v111, v112, v113, "icc_hppir0_el1", v114);
+      v115 = save_and_dump_regs(v109, v110, v111, v112, v113, "icc_hppir0_el1", v114);
     }
     else
     {
-      v115 = sub_9400736C(v109, v110, v111, v112, v113, "gicc_hppir", MEMORY[0x12002018]);
+      v115 = save_and_dump_regs(v109, v110, v111, v112, v113, "gicc_hppir", MEMORY[0x12002018]);
     }
-    v119 = sub_94007B70(v115, v116, v117, v118, "gicd_ispendr regs (Offsets 0x200 - 0x278)\n");
+    v119 = puts(v115, v116, v117, v118, "gicd_ispendr regs (Offsets 0x200 - 0x278)\n");
     while ( v123 - v124 != 640 )
     {
-      v125 = sub_94007B88(v119, v120, v121, v122, v123 - v124);
-      v129 = sub_94007B70(v125, v126, v127, v128, ":\t\t0x");
-      v134 = sub_94007B88(v129, v131, v132, v133, *v130);
-      v119 = sub_94007B70(v134, v135, v136, v137, "\n");
+      v125 = puthex(v119, v120, v121, v122, v123 - v124);
+      v129 = puts(v125, v126, v127, v128, ":\t\t0x");
+      v134 = puthex(v129, v131, v132, v133, *v130);
+      v119 = puts(v134, v135, v136, v137, "\n");
     }
-    sub_94007E00(v119);
+    halt(v119);
   }
-  ((void (__noreturn *)(void))sub_94007E00)();
+  ((void (__noreturn *)(void))halt)();
 }
 
-/* ===== sub_94007BF8 @ 0x94007BF8 size 52 ===== */
-unsigned __int64 __fastcall sub_94007BF8(__int64 a1, __int64 a2)
+/* ===== dcache_clean_invalidate @ 0x94007BF8 size 52 ===== */
+unsigned __int64 __fastcall dcache_clean_invalidate(__int64 a1, __int64 a2)
 {
   __int64 v2; // x2
   unsigned __int64 v3; // x1
@@ -7355,8 +7355,8 @@ unsigned __int64 __fastcall sub_94007BF8(__int64 a1, __int64 a2)
   return result;
 }
 
-/* ===== sub_94007C2C @ 0x94007C2C size 52 ===== */
-unsigned __int64 __fastcall sub_94007C2C(__int64 a1, __int64 a2)
+/* ===== dcache_clean @ 0x94007C2C size 52 ===== */
+unsigned __int64 __fastcall dcache_clean(__int64 a1, __int64 a2)
 {
   __int64 v2; // x2
   unsigned __int64 v3; // x1
@@ -7375,8 +7375,8 @@ unsigned __int64 __fastcall sub_94007C2C(__int64 a1, __int64 a2)
   return result;
 }
 
-/* ===== sub_94007C60 @ 0x94007C60 size 52 ===== */
-unsigned __int64 __fastcall sub_94007C60(__int64 a1, __int64 a2)
+/* ===== dcache_invalidate @ 0x94007C60 size 52 ===== */
+unsigned __int64 __fastcall dcache_invalidate(__int64 a1, __int64 a2)
 {
   __int64 v2; // x2
   unsigned __int64 v3; // x1
@@ -7395,8 +7395,8 @@ unsigned __int64 __fastcall sub_94007C60(__int64 a1, __int64 a2)
   return result;
 }
 
-/* ===== sub_94007D50 @ 0x94007D50 size 32 ===== */
-void __fastcall sub_94007D50(__int64 a1, __int64 a2, char a3, __int64 a4, __int64 a5, __int64 a6, int a7)
+/* ===== dcache_op_by_range @ 0x94007D50 size 32 ===== */
+void __fastcall dcache_op_by_range(__int64 a1, __int64 a2, char a3, __int64 a4, __int64 a5, __int64 a6, int a7)
 {
   __int64 v7; // x9
   __int64 v8; // x16
@@ -7421,8 +7421,8 @@ void __fastcall sub_94007D50(__int64 a1, __int64 a2, char a3, __int64 a4, __int6
   }
 }
 
-/* ===== sub_94007D98 @ 0x94007D98 size 16 ===== */
-__int64 __fastcall sub_94007D98(__int64 a1)
+/* ===== dcache_op_lvl1 @ 0x94007D98 size 16 ===== */
+__int64 __fastcall dcache_op_lvl1(__int64 a1)
 {
   __int64 (__fastcall *v1)(unsigned __int64); // x14
   __int64 result; // x0
@@ -7452,8 +7452,8 @@ __int64 __fastcall sub_94007D98(__int64 a1)
   return result;
 }
 
-/* ===== sub_94007DA8 @ 0x94007DA8 size 16 ===== */
-__int64 __fastcall sub_94007DA8(__int64 a1)
+/* ===== dcache_op_lvl2 @ 0x94007DA8 size 16 ===== */
+__int64 __fastcall dcache_op_lvl2(__int64 a1)
 {
   __int64 (__fastcall *v1)(unsigned __int64); // x14
   __int64 result; // x0
@@ -7483,8 +7483,8 @@ __int64 __fastcall sub_94007DA8(__int64 a1)
   return result;
 }
 
-/* ===== sub_94007DB8 @ 0x94007DB8 size 64 ===== */
-char *__fastcall sub_94007DB8(char *result, __int64 a2, __int64 a3, __int64 a4, __int64 a5)
+/* ===== zeromem @ 0x94007DB8 size 64 ===== */
+char *__fastcall zeromem(char *result, __int64 a2, __int64 a3, __int64 a4, __int64 a5)
 {
   __int64 v5; // x0
   __int64 v6; // x1
@@ -7508,17 +7508,17 @@ char *__fastcall sub_94007DB8(char *result, __int64 a2, __int64 a3, __int64 a4, 
 
   if ( ((unsigned __int8)result & 0xF) != 0 )
   {
-    v5 = sub_94007E40("lib/aarch64/misc_helpers.S", 88, a3, a4, a5, "lib/aarch64/misc_helpers.S", 88);
+    v5 = get_pc("lib/aarch64/misc_helpers.S", 88, a3, a4, a5, "lib/aarch64/misc_helpers.S", 88);
     if ( v5 != 0 )
     {
-      v9 = sub_94007B70(v5, v6, v7, v8, "ASSERT: File ");
-      v14 = sub_94007B70(v9, v10, v11, v12, v13);
-      sub_94007B70(v14, v15, v16, v17, " Line ");
+      v9 = puts(v5, v6, v7, v8, "ASSERT: File ");
+      v14 = puts(v9, v10, v11, v12, v13);
+      puts(v14, v15, v16, v17, " Line ");
       if ( (v18 & 0xFFFFFFFFFFFF0000LL) == 0 )
       {
         v19 = v18;
         for ( i = 10000; i != 0; i = v21 / v22 )
-          sub_94007E58(v19 / i + 48);
+          putc(v19 / i + 48);
       }
     }
     while ( 1 )
@@ -7548,32 +7548,32 @@ void nullsub_9()
   ;
 }
 
-/* ===== sub_94007E00 @ 0x94007E00 size 8 ===== */
-void __noreturn sub_94007E00()
+/* ===== halt @ 0x94007E00 size 8 ===== */
+void __noreturn halt()
 {
   while ( 1 )
     __wfi();
 }
 
-/* ===== sub_94007E08 @ 0x94007E08 size 8 ===== */
-__int64 sub_94007E08()
+/* ===== get_zero @ 0x94007E08 size 8 ===== */
+__int64 get_zero()
 {
   return 0;
 }
 
-/* ===== sub_94007E10 @ 0x94007E10 size 24 ===== */
-__int64 sub_94007E10()
+/* ===== get_boot_arg @ 0x94007E10 size 24 ===== */
+__int64 get_boot_arg()
 {
   __int64 result; // x0
 
   result = MEMORY[0x9401F000];
   if ( MEMORY[0x9401F000] == 0 )
-    sub_94007E00();
+    halt();
   return result;
 }
 
-/* ===== sub_94007E28 @ 0x94007E28 size 24 ===== */
-unsigned __int64 sub_94007E28()
+/* ===== get_cpu_id @ 0x94007E28 size 24 ===== */
+unsigned __int64 get_cpu_id()
 {
   unsigned __int16 StatusReg; // w0
 
@@ -7581,14 +7581,14 @@ unsigned __int64 sub_94007E28()
   return (unsigned __int8)StatusReg + ((unsigned __int64)(StatusReg & 0xFF00) >> 6);
 }
 
-/* ===== sub_94007E40 @ 0x94007E40 size 24 ===== */
-void sub_94007E40()
+/* ===== get_pc @ 0x94007E40 size 24 ===== */
+void get_pc()
 {
   JUMPOUT(0x94007E88LL);
 }
 
-/* ===== sub_94007E58 @ 0x94007E58 size 8 ===== */
-void sub_94007E58()
+/* ===== putc @ 0x94007E58 size 8 ===== */
+void putc()
 {
   JUMPOUT(0x94007EB0LL);
 }
@@ -7599,9 +7599,9 @@ void nullsub_7()
   ;
 }
 
-/* ===== sub_94007E64 @ 0x94007E64 size 20 ===== */
+/* ===== uart_init @ 0x94007E64 size 20 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_94007E64(__int64 result)
+__int64 __fastcall uart_init(__int64 result)
 {
   if ( result != 0 )
   {
@@ -7611,8 +7611,8 @@ __int64 __fastcall sub_94007E64(__int64 result)
   return result;
 }
 
-/* ===== sub_94007E78 @ 0x94007E78 size 124 ===== */
-__int64 sub_94007E78()
+/* ===== putc_hw @ 0x94007E78 size 124 ===== */
+__int64 putc_hw()
 {
   return 0xFFFFFFFFLL;
 }

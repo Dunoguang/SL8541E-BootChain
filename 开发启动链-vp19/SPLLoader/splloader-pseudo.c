@@ -6,8 +6,8 @@ __int64 start()
   return start_0();
 }
 
-/* ===== sub_5208 @ 0x5208 size 40 ===== */
-unsigned __int64 sub_5208()
+/* ===== bss_clear @ 0x5208 size 40 ===== */
+unsigned __int64 bss_clear()
 {
   unsigned __int64 result; // x0
 
@@ -44,22 +44,22 @@ __int64 __fastcall start_0(unsigned __int64 a1)
   _WriteStatusReg(CPTR_EL3, 0);
   _WriteStatusReg(CNTFRQ_EL0, 0x1800000u);
 LABEL_7:
-  v2 = sub_A154();
-  v3 = sub_A1E4(v2);
-  sub_A1F0(v3);
-  v4 = sub_5208();
-  sub_5888(v4);
-  return sub_A45C();
+  v2 = cache_clean_all();
+  v3 = icache_invalidate_all(v2);
+  tlb_invalidate_all(v3);
+  v4 = bss_clear();
+  spl_hw_init(v4);
+  return spl_load_and_jump();
 }
 
-/* ===== sub_52D8 @ 0x52D8 size 16 ===== */
-__int64 sub_52D8()
+/* ===== get_chip_id @ 0x52D8 size 16 ===== */
+__int64 get_chip_id()
 {
   return MEMORY[0x3009];
 }
 
-/* ===== sub_52E8 @ 0x52E8 size 44 ===== */
-__int64 sub_52E8()
+/* ===== delay_loop @ 0x52E8 size 44 ===== */
+__int64 delay_loop()
 {
   __int64 result; // x0
   unsigned int i; // [xsp+Ch] [xbp-4h]
@@ -73,19 +73,19 @@ __int64 sub_52E8()
   return result;
 }
 
-/* ===== sub_5314 @ 0x5314 size 584 ===== */
-__int64 sub_5314()
+/* ===== pmic_volt_and_clk_init @ 0x5314 size 584 ===== */
+__int64 pmic_volt_and_clk_init()
 {
   unsigned int v0; // w3
   __int64 *v1; // x1
   unsigned __int64 v2; // x2
   __int64 *v3; // x5
 
-  sub_9F14("vddcpu", 1100);
-  sub_9F14("vddcore", 900);
-  sub_52E8();
+  pmic_set_voltage("vddcpu", 1100);
+  pmic_set_voltage("vddcore", 900);
+  delay_loop();
   MEMORY[0x402D02D0] = MEMORY[0x402D02D0] & 0xFFFFFFFC | 3;
-  sub_52E8();
+  delay_loop();
   MEMORY[0x20E00038] = MEMORY[0x20E00038] & 0xFFF8F8F8 | 0x10101;
   MEMORY[0x402D0274] |= 3u;
   v0 = MEMORY[0x403F0000] & 0xFFFFFF3A | 5;
@@ -105,24 +105,24 @@ __int64 sub_5314()
   }
   MEMORY[0x403F0000] = v0;
   MEMORY[0x403F0004] = MEMORY[0x403F0004] & 0xC0000000 | 0x19000000;
-  sub_9FCC(200);
+  pmic_delay_us(200);
   MEMORY[0x20E00054] = 3;
-  sub_52E8();
+  delay_loop();
   MEMORY[0x21500020] = MEMORY[0x21500020] & 0xFFFFFFFC | 3;
   MEMORY[0x402D0220] = MEMORY[0x402D0220] & 0xFFFFFFFC | 3;
   MEMORY[0x402D02C4] |= 1u;
   return 0;
 }
 
-/* ===== sub_555C @ 0x555C size 72 ===== */
-__int64 __fastcall sub_555C(__int64 result)
+/* ===== smc_set_mode @ 0x555C size 72 ===== */
+__int64 __fastcall smc_set_mode(__int64 result)
 {
   MEMORY[0x82000004] = result;
   MEMORY[0x82000000] = 1128615510;
   MEMORY[0x82000008] = 0;
   if ( (_DWORD)result == 258 )
   {
-    result = sub_52D8();
+    result = get_chip_id();
     MEMORY[0x8200001C] = result;
   }
   else
@@ -132,8 +132,8 @@ __int64 __fastcall sub_555C(__int64 result)
   return result;
 }
 
-/* ===== sub_55A4 @ 0x55A4 size 144 ===== */
-__int64 sub_55A4()
+/* ===== emmc_clk_cfg @ 0x55A4 size 144 ===== */
+__int64 emmc_clk_cfg()
 {
   __int64 result; // x0
 
@@ -146,8 +146,8 @@ __int64 sub_55A4()
   return result;
 }
 
-/* ===== sub_5634 @ 0x5634 size 288 ===== */
-__int64 sub_5634()
+/* ===== emmc_phy_cfg @ 0x5634 size 288 ===== */
+__int64 emmc_phy_cfg()
 {
   MEMORY[0x402B0080] |= 0x3Fu;
   MEMORY[0x402B0084] &= 0xFFFFFFC0;
@@ -159,11 +159,11 @@ __int64 sub_5634()
   MEMORY[0x402B009C] &= 0xFFFFFFC2;
   MEMORY[0x402B00A0] |= 0x3Fu;
   MEMORY[0x402B00AC] |= 0x3Fu;
-  return sub_52E8();
+  return delay_loop();
 }
 
-/* ===== sub_5754 @ 0x5754 size 288 ===== */
-__int64 sub_5754()
+/* ===== ddr_phy_cfg @ 0x5754 size 288 ===== */
+__int64 ddr_phy_cfg()
 {
   __int64 result; // x0
 
@@ -181,43 +181,43 @@ __int64 sub_5754()
   return result;
 }
 
-/* ===== sub_5874 @ 0x5874 size 20 ===== */
-__int64 sub_5874()
+/* ===== ddr_phy_delay @ 0x5874 size 20 ===== */
+__int64 ddr_phy_delay()
 {
   MEMORY[0x402E2004] = 48;
   return 1076764676;
 }
 
-/* ===== sub_5888 @ 0x5888 size 308 ===== */
-__int64 sub_5888()
+/* ===== spl_hw_init @ 0x5888 size 308 ===== */
+__int64 spl_hw_init()
 {
   __int64 v0; // x0
   __int64 v1; // x0
 
   MEMORY[0x402B0300] |= 0x40000u;
-  sub_A0A8();
+  emmc_phy_init();
   MEMORY[0x30040020] = 16434824;
   MEMORY[0x402E00B0] |= 0x2800u;
   MEMORY[0x21500020] &= 0xFFFFFFFC;
   MEMORY[0x402D02D0] &= 0xFFFFFFFC;
   MEMORY[0x40411000] = 8;
-  v0 = sub_55A4();
-  v1 = sub_9C50(v0);
-  sub_9E38(v1);
-  sub_5634();
-  sub_5314();
+  v0 = emmc_clk_cfg();
+  v1 = pmic_init(v0);
+  pmic_set_defaults(v1);
+  emmc_phy_cfg();
+  pmic_volt_and_clk_init();
   MEMORY[0x403C003C] |= 0xAu;
   MEMORY[0x403C0040] = MEMORY[0x403C0040] & 0xC0000000 | 0x11E27627;
-  sub_9FCC(200);
-  sub_5754();
-  sub_5874();
+  pmic_delay_us(200);
+  ddr_phy_cfg();
+  ddr_phy_delay();
   MEMORY[0x2150009C] |= 3u;
-  return sub_82D8();
+  return ddr_full_init();
 }
 
-/* ===== sub_59BC @ 0x59BC size 292 ===== */
+/* ===== ddr_bist_check @ 0x59BC size 292 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 sub_59BC()
+__int64 ddr_bist_check()
 {
   int v0; // w20
   __int64 v1; // x0
@@ -228,11 +228,11 @@ __int64 sub_59BC()
   dword_DC60 = 0;
   MEMORY[0x30000184] = 0x10000;
   v0 = 0x80000;
-  v1 = sub_6B24(MEMORY[0x30000180], 13, 1, 1);
-  v2 = sub_6B24(v1, 0, 1, 1);
+  v1 = bitfield_set(MEMORY[0x30000180], 13, 1, 1);
+  v2 = bitfield_set(v1, 0, 1, 1);
   MEMORY[0x30000180] = v2;
-  v3 = sub_6B24(v2, 12, 2, 0);
-  MEMORY[0x30000180] = sub_6B24(v3, 0, 2, 3);
+  v3 = bitfield_set(v2, 12, 2, 0);
+  MEMORY[0x30000180] = bitfield_set(v3, 0, 2, 3);
   do
   {
     if ( (MEMORY[0x30000180] & 4) != 0 )
@@ -240,15 +240,15 @@ __int64 sub_59BC()
     --v0;
   }
   while ( v0 != 0 );
-  MEMORY[0x30000180] = sub_6B24(MEMORY[0x30000180], 0, 1, 0);
+  MEMORY[0x30000180] = bitfield_set(MEMORY[0x30000180], 0, 1, 0);
   result = 4294967294LL;
   if ( v0 != 0 )
     return (MEMORY[0x30000180] ^ 8LL) << 60 >> 63;
   return result;
 }
 
-/* ===== sub_5AE0 @ 0x5AE0 size 192 ===== */
-__int64 sub_5AE0()
+/* ===== ddrc_bist_simple_test @ 0x5AE0 size 192 ===== */
+__int64 ddrc_bist_simple_test()
 {
   unsigned __int64 v1; // [xsp+28h] [xbp+28h] BYREF
   _DWORD v2[8]; // [xsp+30h] [xbp+30h] BYREF
@@ -266,43 +266,43 @@ __int64 sub_5AE0()
   v2[4] = 858987633;
   v2[5] = 85;
   v4 = 0x40000;
-  sub_7694(&v1);
+  ddr_get_size(&v1);
   if ( v4 > v1 )
     v4 = v1;
   v3[1] = v1 - v4;
-  sub_70A4(&v5, v2, 32);
-  if ( (unsigned int)sub_87CC(1, v3) != 0 )
+  memcpy_impl(&v5, v2, 32);
+  if ( (unsigned int)ddr_bist_run(1, v3) != 0 )
     return 0xFFFFFFFFLL;
   else
     return 0;
 }
 
-/* ===== sub_5BA0 @ 0x5BA0 size 28 ===== */
-bool sub_5BA0()
+/* ===== ddr_get_density @ 0x5BA0 size 28 ===== */
+bool ddr_get_density()
 {
   return (*(_DWORD *)(((((unsigned __int64)MEMORY[0x3000012C] >> 4) & 3) << 6) + 0x30000230) & 0x8000LL) != 0;
 }
 
-/* ===== sub_5BBC @ 0x5BBC size 28 ===== */
-bool sub_5BBC()
+/* ===== ddr_get_width @ 0x5BBC size 28 ===== */
+bool ddr_get_width()
 {
   return (*(_DWORD *)(((((unsigned __int64)MEMORY[0x3000012C] >> 4) & 3) << 6) + 0x3000022C) & 0x100LL) != 0;
 }
 
-/* ===== sub_5BD8 @ 0x5BD8 size 64 ===== */
-__int64 __fastcall sub_5BD8(unsigned int a1)
+/* ===== ddr_set_ca_training @ 0x5BD8 size 64 ===== */
+__int64 __fastcall ddr_set_ca_training(unsigned int a1)
 {
   unsigned __int64 v1; // x19
   __int64 result; // x0
 
   v1 = ((((unsigned __int64)MEMORY[0x3000012C] >> 4) & 3) << 6) + 805306368;
-  result = sub_6B24(*(unsigned int *)(((((unsigned __int64)MEMORY[0x3000012C] >> 4) & 3) << 6) + 0x3000022C), 8, 1, a1);
+  result = bitfield_set(*(unsigned int *)(((((unsigned __int64)MEMORY[0x3000012C] >> 4) & 3) << 6) + 0x3000022C), 8, 1, a1);
   *(_DWORD *)(v1 + 556) = result;
   return result;
 }
 
-/* ===== sub_5C18 @ 0x5C18 size 244 ===== */
-__int64 sub_5C18()
+/* ===== ddr_ca_training @ 0x5C18 size 244 ===== */
+__int64 ddr_ca_training()
 {
   unsigned int v0; // w24
   unsigned int v1; // w19
@@ -316,11 +316,11 @@ __int64 sub_5C18()
   unsigned int v10; // [xsp+48h] [xbp+48h]
   unsigned int v11; // [xsp+4Ch] [xbp+4Ch]
 
-  v0 = sub_5BBC();
-  sub_5BD8(0);
-  sub_6B48(100);
-  sub_7BA8(8);
-  sub_6B48(100);
+  v0 = ddr_get_width();
+  ddr_set_ca_training(0);
+  udelay_loop(100);
+  ddr_controller_start(8);
+  udelay_loop(100);
   v1 = MEMORY[0x30000304] & 0x7F;
   v2 = MEMORY[0x30000404] & 0x7F;
   v8 = v2;
@@ -330,7 +330,7 @@ __int64 sub_5C18()
   v10 = v4;
   v5 = MEMORY[0x30000704] & 0x7F;
   v11 = v5;
-  if ( sub_5BA0() )
+  if ( ddr_get_density() )
   {
     v1 >>= 1;
     v8 = v2 >> 1;
@@ -341,11 +341,11 @@ __int64 sub_5C18()
   for ( i = 0; i != 16; i += 4 )
     *(_DWORD *)(i + 0xEFF0) = 4 * *(unsigned int *)((char *)&v8 + i);
   MEMORY[0xEFE0] = 4 * v1;
-  return sub_5BD8(v0);
+  return ddr_set_ca_training(v0);
 }
 
-/* ===== sub_5D0C @ 0x5D0C size 328 ===== */
-__int64 __fastcall sub_5D0C(int *a1, unsigned int a2)
+/* ===== ddr_write_leveling @ 0x5D0C size 328 ===== */
+__int64 __fastcall ddr_write_leveling(int *a1, unsigned int a2)
 {
   int v2; // w2
   int v3; // w19
@@ -373,11 +373,11 @@ __int64 __fastcall sub_5D0C(int *a1, unsigned int a2)
   {
     v8 = 2 * (v4 + v3) - 32;
     v9 = 4 * (MEMORY[0x30000304] & 0x7F);
-    if ( !sub_5BA0() && !sub_5BBC() )
+    if ( !ddr_get_density() && !ddr_get_width() )
       v9 >>= 1;
-    if ( sub_5BA0() && !sub_5BBC() )
+    if ( ddr_get_density() && !ddr_get_width() )
       v9 >>= 2;
-    if ( sub_5BA0() && sub_5BBC() )
+    if ( ddr_get_density() && ddr_get_width() )
       v9 >>= 1;
     if ( v8 >= v9 )
     {
@@ -391,19 +391,19 @@ __int64 __fastcall sub_5D0C(int *a1, unsigned int a2)
       v11 = a2;
       v12 = 3;
     }
-    v13 = sub_6B24(v11, 30, 2, v12);
-    v14 = sub_6B24(v13, 16, 7, v10 >> 2);
-    MEMORY[0x30000308] = sub_6B24(v14, 28, 2, v10);
+    v13 = bitfield_set(v11, 30, 2, v12);
+    v14 = bitfield_set(v13, 16, 7, v10 >> 2);
+    MEMORY[0x30000308] = bitfield_set(v14, 28, 2, v10);
     MEMORY[0x30000300] |= 0x800u;
-    sub_6B48(1);
+    udelay_loop(1);
     MEMORY[0x30000300] &= ~0x800u;
     return 0;
   }
   return result;
 }
 
-/* ===== sub_5E54 @ 0x5E54 size 548 ===== */
-__int64 __fastcall sub_5E54(__int64 a1, __int64 a2, __int64 a3, int a4)
+/* ===== ddr_read_eye_training @ 0x5E54 size 548 ===== */
+__int64 __fastcall ddr_read_eye_training(__int64 a1, __int64 a2, __int64 a3, int a4)
 {
   unsigned int v6; // w26
   unsigned int v7; // w25
@@ -435,21 +435,21 @@ __int64 __fastcall sub_5E54(__int64 a1, __int64 a2, __int64 a3, int a4)
   v24 = v11;
   v25[2] = 805307904;
   v25[3] = 805308160;
-  if ( !sub_5BA0() && !sub_5BBC() )
+  if ( !ddr_get_density() && !ddr_get_width() )
   {
     v21 = v6 >> 1;
     v22 = v7 >> 1;
     v23 = v10 >> 1;
     v24 = v11 >> 1;
   }
-  if ( sub_5BA0() && !sub_5BBC() )
+  if ( ddr_get_density() && !ddr_get_width() )
   {
     v21 >>= 2;
     v22 >>= 2;
     v23 >>= 2;
     v24 >>= 2;
   }
-  if ( sub_5BA0() && sub_5BBC() )
+  if ( ddr_get_density() && ddr_get_width() )
   {
     v21 >>= 1;
     v22 >>= 1;
@@ -470,20 +470,20 @@ __int64 __fastcall sub_5E54(__int64 a1, __int64 a2, __int64 a3, int a4)
       v15 = v14 - v13;
       v16 = 3;
     }
-    v17 = sub_6B24(*(unsigned int *)(a2 + 4 * i), 30, 2, v16);
-    v18 = sub_6B24(v17, 16, 7, v15 >> 2);
-    **(_DWORD **)(a1 + 8 * i) = sub_6B24(v18, 28, 2, v15);
+    v17 = bitfield_set(*(unsigned int *)(a2 + 4 * i), 30, 2, v16);
+    v18 = bitfield_set(v17, 16, 7, v15 >> 2);
+    **(_DWORD **)(a1 + 8 * i) = bitfield_set(v18, 28, 2, v15);
     v19 = (_DWORD *)v25[i];
     *v19 |= 0x800u;
-    sub_6B48(10);
+    udelay_loop(10);
     *v19 &= ~0x800u;
-    sub_7668();
+    ddr_trigger_cmd();
   }
   return 0;
 }
 
-/* ===== sub_6078 @ 0x6078 size 64 ===== */
-__int64 __fastcall sub_6078(unsigned int a1)
+/* ===== ddr_set_rl_delay @ 0x6078 size 64 ===== */
+__int64 __fastcall ddr_set_rl_delay(unsigned int a1)
 {
   __int64 v1; // x3
   __int64 result; // x0
@@ -492,13 +492,13 @@ __int64 __fastcall sub_6078(unsigned int a1)
     v1 = 31;
   else
     v1 = a1;
-  result = sub_6B24(MEMORY[0x30000318], 24, 5, v1);
+  result = bitfield_set(MEMORY[0x30000318], 24, 5, v1);
   MEMORY[0x30000318] = result;
   return result;
 }
 
-/* ===== sub_60B8 @ 0x60B8 size 736 ===== */
-__int64 __fastcall sub_60B8(int a1, unsigned int *a2)
+/* ===== ddr_scan_dll @ 0x60B8 size 736 ===== */
+__int64 __fastcall ddr_scan_dll(int a1, unsigned int *a2)
 {
   unsigned int v4; // w20
   unsigned int v5; // w20
@@ -514,7 +514,7 @@ __int64 __fastcall sub_60B8(int a1, unsigned int *a2)
   __int64 result; // x0
 
   v4 = MEMORY[0xEFE0] + 32;
-  sub_6078(0x1Fu);
+  ddr_set_rl_delay(0x1Fu);
   v5 = v4 >> 2;
   v6 = -1;
   if ( a1 != 0 )
@@ -525,12 +525,12 @@ __int64 __fastcall sub_60B8(int a1, unsigned int *a2)
   v9 = 0;
   do
   {
-    sub_6B48(2);
+    udelay_loop(2);
     MEMORY[0x30000108] = 0;
     MEMORY[0x30000104] = 553649151;
     while ( ((MEMORY[0x30000104] >> 20) & 0x7F) != 0 )
       ;
-    sub_6B48(2);
+    udelay_loop(2);
     v10 = MEMORY[0x3000001C] & 0xF80
         | (MEMORY[0x3000001C] >> 4) & 3
         | (8 * (MEMORY[0x3000001C] & 1))
@@ -567,7 +567,7 @@ __int64 __fastcall sub_60B8(int a1, unsigned int *a2)
     v12 = MEMORY[0x30000308];
     if ( v9 >= v5 - 8 )
     {
-      sub_6078(0);
+      ddr_set_rl_delay(0);
       v13 = v12;
       v14 = v9 - 8;
     }
@@ -576,7 +576,7 @@ __int64 __fastcall sub_60B8(int a1, unsigned int *a2)
       v13 = MEMORY[0x30000308];
       v14 = v9;
     }
-    MEMORY[0x30000308] = sub_6B24(v13, 0, 7, v14);
+    MEMORY[0x30000308] = bitfield_set(v13, 0, 7, v14);
   }
   while ( v9 < v5 );
   result = 0xFFFFFFFFLL;
@@ -587,8 +587,8 @@ LABEL_22:
   return 0;
 }
 
-/* ===== sub_6398 @ 0x6398 size 512 ===== */
-__int64 sub_6398()
+/* ===== ddr_wl_training @ 0x6398 size 512 ===== */
+__int64 ddr_wl_training()
 {
   int v0; // w21
   unsigned int v1; // w22
@@ -628,18 +628,18 @@ __int64 sub_6398()
     MEMORY[0x30000104] = v3 | 0x1000000;
     while ( ((MEMORY[0x30000104] >> 20) & 0x7F) != 0 )
       ;
-    MEMORY[0x30000100] = sub_6B24(MEMORY[0x30000100], 14, 1, 0);
-    v4 = sub_6B24(MEMORY[0x30000308], 31, 1, 0);
-    v5 = sub_6B24(v4, 0, 7, 0);
-    MEMORY[0x30000308] = sub_6B24(v5, 24, 2, 0);
-    if ( (sub_60B8(v0, (unsigned int *)&v8) & 0x80000000) != 0 )
+    MEMORY[0x30000100] = bitfield_set(MEMORY[0x30000100], 14, 1, 0);
+    v4 = bitfield_set(MEMORY[0x30000308], 31, 1, 0);
+    v5 = bitfield_set(v4, 0, 7, 0);
+    MEMORY[0x30000308] = bitfield_set(v5, 24, 2, 0);
+    if ( (ddr_scan_dll(v0, (unsigned int *)&v8) & 0x80000000) != 0 )
     {
       MEMORY[0x30000308] = v1;
       return 0xFFFFFFFFLL;
     }
     v9[v0] = v8;
-    MEMORY[0x30000100] = sub_6B24(MEMORY[0x30000100], 14, 1, 1);
-    MEMORY[0x30000308] = sub_6B24(MEMORY[0x30000308], 31, 1, 1);
+    MEMORY[0x30000100] = bitfield_set(MEMORY[0x30000100], 14, 1, 1);
+    MEMORY[0x30000308] = bitfield_set(MEMORY[0x30000308], 31, 1, 1);
     MEMORY[0x30000108] = 168;
     MEMORY[0x30000104] = 16777258;
     while ( ((MEMORY[0x30000104] >> 20) & 0x7F) != 0 )
@@ -665,15 +665,15 @@ __int64 sub_6398()
   MEMORY[0x30000784] = 0;
   MEMORY[0x30000788] = 0;
   MEMORY[0x3000078C] = 0;
-  if ( (unsigned int)sub_5D0C((int *)v9, v1) != 0 )
+  if ( (unsigned int)ddr_write_leveling((int *)v9, v1) != 0 )
     MEMORY[0x30000308] = v1;
-  v7 = sub_6078(0);
-  sub_7668(v7);
+  v7 = ddr_set_rl_delay(0);
+  ddr_trigger_cmd(v7);
   return 0;
 }
 
-/* ===== sub_6598 @ 0x6598 size 568 ===== */
-__int64 __fastcall sub_6598(int a1)
+/* ===== ddr_rde_training @ 0x6598 size 568 ===== */
+__int64 __fastcall ddr_rde_training(int a1)
 {
   _DWORD *v1; // x0
   int v2; // w23
@@ -725,8 +725,8 @@ __int64 __fastcall sub_6598(int a1)
     {
       v11 = (int *)v17[v6];
       *v11 = v10;
-      sub_7668(v11);
-      if ( (unsigned int)sub_59BC() != 0 )
+      ddr_trigger_cmd(v11);
+      if ( (unsigned int)ddr_bist_check() != 0 )
       {
         v7 = v10 - 1;
         if ( v10 != 0 && v8 != -1 )
@@ -766,7 +766,7 @@ LABEL_16:
     }
     v12 = (_DWORD *)v17[v6];
     *v12 = v15[v6];
-    sub_7668(v12);
+    ddr_trigger_cmd(v12);
     v16[v6++] = 2 * (v8 + v7);
   }
   while ( v6 != 4 );
@@ -783,13 +783,13 @@ LABEL_23:
   MEMORY[0x30000624] = 0;
   MEMORY[0x30000724] = 0;
   if ( v8 == 0 )
-    v13 = sub_5E54((__int64)v17, (__int64)v15, (__int64)v16, 28);
-  sub_7668(v13);
+    v13 = ddr_read_eye_training((__int64)v17, (__int64)v15, (__int64)v16, 28);
+  ddr_trigger_cmd(v13);
   return 0;
 }
 
-/* ===== sub_67D0 @ 0x67D0 size 136 ===== */
-__int64 __fastcall sub_67D0(unsigned int a1)
+/* ===== ddr_set_wl_delay @ 0x67D0 size 136 ===== */
+__int64 __fastcall ddr_set_wl_delay(unsigned int a1)
 {
   unsigned int v1; // w20
   __int64 result; // x0
@@ -798,16 +798,16 @@ __int64 __fastcall sub_67D0(unsigned int a1)
     v1 = 31;
   else
     v1 = a1;
-  MEMORY[0x30000428] = sub_6B24(MEMORY[0x30000428], 0, 5, v1);
-  MEMORY[0x30000528] = sub_6B24(MEMORY[0x30000528], 0, 5, v1);
-  MEMORY[0x30000628] = sub_6B24(MEMORY[0x30000628], 0, 5, v1);
-  result = sub_6B24(MEMORY[0x30000728], 0, 5, v1);
+  MEMORY[0x30000428] = bitfield_set(MEMORY[0x30000428], 0, 5, v1);
+  MEMORY[0x30000528] = bitfield_set(MEMORY[0x30000528], 0, 5, v1);
+  MEMORY[0x30000628] = bitfield_set(MEMORY[0x30000628], 0, 5, v1);
+  result = bitfield_set(MEMORY[0x30000728], 0, 5, v1);
   MEMORY[0x30000728] = result;
   return result;
 }
 
-/* ===== sub_6858 @ 0x6858 size 536 ===== */
-__int64 sub_6858()
+/* ===== ddr_wde_training @ 0x6858 size 536 ===== */
+__int64 ddr_wde_training()
 {
   __int64 v0; // x21
   unsigned int v1; // w25
@@ -837,7 +837,7 @@ __int64 sub_6858()
   {
     v1 = 0;
     MEMORY[0x30000194] = *((_DWORD *)qword_D590 + v0);
-    sub_67D0(0x1Fu);
+    ddr_set_wl_delay(0x1Fu);
     v2 = -1;
     v3 = -1;
     v4 = -1;
@@ -846,7 +846,7 @@ __int64 sub_6858()
     {
       if ( v1 >= v5 )
       {
-        sub_67D0(0);
+        ddr_set_wl_delay(0);
         v6 = (unsigned int *)v13[v0];
         *v6 = v1 - 8;
       }
@@ -855,8 +855,8 @@ __int64 sub_6858()
         v6 = (unsigned int *)v13[v0];
         *v6 = v1;
       }
-      sub_7668(v6);
-      if ( (unsigned int)sub_59BC() != 0 )
+      ddr_trigger_cmd(v6);
+      if ( (unsigned int)ddr_bist_check() != 0 )
       {
         v2 = v1 - 1;
         if ( v1 != 0 && v3 != -1 )
@@ -889,7 +889,7 @@ LABEL_20:
       v2 = v5 + 7;
     v7 = (_DWORD *)v13[v0];
     *v7 = v11[v0];
-    sub_7668(v7);
+    ddr_trigger_cmd(v7);
     v12[v0++] = 2 * (v3 + v2) - 32;
   }
   while ( v0 != 4 );
@@ -897,45 +897,45 @@ LABEL_20:
 LABEL_25:
   MEMORY[0x30000194] = v10;
   if ( v3 == 0 )
-    sub_5E54((__int64)v13, (__int64)v11, (__int64)v12, 0);
-  v8 = sub_67D0(0);
-  sub_7668(v8);
+    ddr_read_eye_training((__int64)v13, (__int64)v11, (__int64)v12, 0);
+  v8 = ddr_set_wl_delay(0);
+  ddr_trigger_cmd(v8);
   return 0;
 }
 
-/* ===== sub_6A70 @ 0x6A70 size 8 ===== */
-__int64 sub_6A70()
+/* ===== ddr_training_nop @ 0x6A70 size 8 ===== */
+__int64 ddr_training_nop()
 {
   return 0;
 }
 
-/* ===== sub_6A78 @ 0x6A78 size 172 ===== */
-__int64 __fastcall sub_6A78(int a1)
+/* ===== ddr_full_training @ 0x6A78 size 172 ===== */
+__int64 __fastcall ddr_full_training(int a1)
 {
   const char *v2; // x0
 
-  if ( (unsigned int)sub_5AE0() != 0 )
-    sub_7074("sipi_bist_simple_test  first faile do not care\r\n");
+  if ( (unsigned int)ddrc_bist_simple_test() != 0 )
+    uart_puts("sipi_bist_simple_test  first faile do not care\r\n");
   if ( a1 == 667 )
   {
-    if ( (unsigned int)sub_6858() != 0 )
+    if ( (unsigned int)ddr_wde_training() != 0 )
     {
       v2 = "dmc_lpddr3_wde_training  Failed\r\n";
 LABEL_8:
-      sub_7074(v2);
+      uart_puts(v2);
       return 0xFFFFFFFFLL;
     }
-    if ( (unsigned int)sub_6598(0) != 0 )
+    if ( (unsigned int)ddr_rde_training(0) != 0 )
     {
       v2 = "dmc_lpddr3_rde_training_pos failed\r\n";
       goto LABEL_8;
     }
-    if ( (unsigned int)sub_6598(1) != 0 )
+    if ( (unsigned int)ddr_rde_training(1) != 0 )
     {
       v2 = "dmc_lpddr3_rde_training_neg failed\r\n";
       goto LABEL_8;
     }
-    if ( (unsigned int)sub_5AE0() != 0 )
+    if ( (unsigned int)ddrc_bist_simple_test() != 0 )
     {
       v2 = "sipi_bist_simple_test  lasted Failed\r\n";
       goto LABEL_8;
@@ -944,14 +944,14 @@ LABEL_8:
   return 0;
 }
 
-/* ===== sub_6B24 @ 0x6B24 size 36 ===== */
-__int64 __fastcall sub_6B24(int a1, char a2, char a3, unsigned int a4)
+/* ===== bitfield_set @ 0x6B24 size 36 ===== */
+__int64 __fastcall bitfield_set(int a1, char a2, char a3, unsigned int a4)
 {
   return a1 & ~(((1 << a3) - 1) << a2) | ((((1 << a3) - 1) & a4) << a2);
 }
 
-/* ===== sub_6B48 @ 0x6B48 size 68 ===== */
-__int64 __fastcall sub_6B48(int a1)
+/* ===== udelay_loop @ 0x6B48 size 68 ===== */
+__int64 __fastcall udelay_loop(int a1)
 {
   int v1; // w0
   int i; // [xsp+8h] [xbp-8h]
@@ -963,8 +963,8 @@ __int64 __fastcall sub_6B48(int a1)
   return v4;
 }
 
-/* ===== sub_6B8C @ 0x6B8C size 216 ===== */
-__int64 __fastcall sub_6B8C(unsigned int a1, unsigned int a2, _BYTE *a3, int a4)
+/* ===== ddr_mr_read @ 0x6B8C size 216 ===== */
+__int64 __fastcall ddr_mr_read(unsigned int a1, unsigned int a2, _BYTE *a3, int a4)
 {
   unsigned int v4; // w20
   int v8; // w0
@@ -977,10 +977,10 @@ __int64 __fastcall sub_6B8C(unsigned int a1, unsigned int a2, _BYTE *a3, int a4)
   v4 = -1;
   if ( a1 <= 1 )
   {
-    v8 = sub_6B24(MEMORY[0x30000104], 0, 16, a2);
-    v9 = sub_6B24(v8, 31, 1, 0);
-    v10 = sub_6B24(v9, 28, 1, a1 != 0);
-    MEMORY[0x30000104] = sub_6B24(v10, 25, 1, 1u);
+    v8 = bitfield_set(MEMORY[0x30000104], 0, 16, a2);
+    v9 = bitfield_set(v8, 31, 1, 0);
+    v10 = bitfield_set(v9, 28, 1, a1 != 0);
+    MEMORY[0x30000104] = bitfield_set(v10, 25, 1, 1u);
     do
       v11 = ((unsigned __int64)MEMORY[0x30000104] >> 20) & 0x7F;
     while ( (_DWORD)v11 != 0 );
@@ -992,18 +992,18 @@ __int64 __fastcall sub_6B8C(unsigned int a1, unsigned int a2, _BYTE *a3, int a4)
         v13 = MEMORY[0x30000108] >> 8;
         *a3 = MEMORY[0x30000109];
         v4 = 0;
-        sub_7668(v13);
+        ddr_trigger_cmd(v13);
         return v4;
       }
     }
     v4 = -1;
-    sub_7668(v11);
+    ddr_trigger_cmd(v11);
   }
   return v4;
 }
 
-/* ===== sub_6C64 @ 0x6C64 size 332 ===== */
-__int64 __fastcall sub_6C64(unsigned int a1, unsigned int a2, _BYTE *a3, int a4, unsigned int a5)
+/* ===== ddr_mr_read_ex @ 0x6C64 size 332 ===== */
+__int64 __fastcall ddr_mr_read_ex(unsigned int a1, unsigned int a2, _BYTE *a3, int a4, unsigned int a5)
 {
   unsigned int v6; // w1
   int v10; // w0
@@ -1016,11 +1016,11 @@ __int64 __fastcall sub_6C64(unsigned int a1, unsigned int a2, _BYTE *a3, int a4,
   v6 = -1;
   if ( a1 <= 1 )
   {
-    MEMORY[0x30000110] = sub_6B24(MEMORY[0x30000110], 0, 24, a5);
-    v10 = sub_6B24(MEMORY[0x30000104], 0, 16, a2);
-    v11 = sub_6B24(v10, 31, 1, 0);
-    v12 = sub_6B24(v11, 28, 1, a1 != 0);
-    MEMORY[0x30000104] = sub_6B24(v12, 25, 1, 1u);
+    MEMORY[0x30000110] = bitfield_set(MEMORY[0x30000110], 0, 24, a5);
+    v10 = bitfield_set(MEMORY[0x30000104], 0, 16, a2);
+    v11 = bitfield_set(v10, 31, 1, 0);
+    v12 = bitfield_set(v11, 28, 1, a1 != 0);
+    MEMORY[0x30000104] = bitfield_set(v12, 25, 1, 1u);
     do
       v13 = ((unsigned __int64)MEMORY[0x30000104] >> 20) & 0x7F;
     while ( (_DWORD)v13 != 0 );
@@ -1031,18 +1031,18 @@ __int64 __fastcall sub_6C64(unsigned int a1, unsigned int a2, _BYTE *a3, int a4,
       {
         v15 = MEMORY[0x30000108] >> 8;
         *a3 = MEMORY[0x30000109];
-        sub_7668(v15);
+        ddr_trigger_cmd(v15);
         return 0;
       }
     }
-    sub_7668(v13);
+    ddr_trigger_cmd(v13);
     return (unsigned int)-1;
   }
   return v6;
 }
 
-/* ===== sub_6DB0 @ 0x6DB0 size 200 ===== */
-unsigned __int64 __fastcall sub_6DB0(int a1, unsigned int a2, unsigned __int8 a3)
+/* ===== ddr_mr_write @ 0x6DB0 size 200 ===== */
+unsigned __int64 __fastcall ddr_mr_write(int a1, unsigned int a2, unsigned __int8 a3)
 {
   int v5; // w0
   char v6; // w1
@@ -1050,34 +1050,34 @@ unsigned __int64 __fastcall sub_6DB0(int a1, unsigned int a2, unsigned __int8 a3
   int v8; // w0
   unsigned __int64 result; // x0
 
-  MEMORY[0x30000108] = sub_6B24(MEMORY[0x30000108], 0, 8, a3);
-  v5 = sub_6B24(MEMORY[0x30000104], 0, 16, a2);
+  MEMORY[0x30000108] = bitfield_set(MEMORY[0x30000108], 0, 8, a3);
+  v5 = bitfield_set(MEMORY[0x30000104], 0, 16, a2);
   v6 = 31;
   if ( a1 != 0 )
   {
     if ( a1 == 1 )
     {
-      v5 = sub_6B24(v5, 31, 1, 0);
+      v5 = bitfield_set(v5, 31, 1, 0);
       v6 = 28;
     }
     v7 = 1;
   }
   else
   {
-    v5 = sub_6B24(v5, 31, 1, 0);
+    v5 = bitfield_set(v5, 31, 1, 0);
     v6 = 28;
     v7 = 0;
   }
-  v8 = sub_6B24(v5, v6, 1, v7);
-  MEMORY[0x30000104] = sub_6B24(v8, 24, 1, 1u);
+  v8 = bitfield_set(v5, v6, 1, v7);
+  MEMORY[0x30000104] = bitfield_set(v8, 24, 1, 1u);
   do
     result = ((unsigned __int64)MEMORY[0x30000104] >> 20) & 0x7F;
   while ( (_DWORD)result != 0 );
   return result;
 }
 
-/* ===== sub_6E78 @ 0x6E78 size 408 ===== */
-__int64 __fastcall sub_6E78(int a1, int a2)
+/* ===== ddr_set_mr_by_timing @ 0x6E78 size 408 ===== */
+__int64 __fastcall ddr_set_mr_by_timing(int a1, int a2)
 {
   unsigned __int8 v2; // w2
   BOOL v3; // w1
@@ -1086,7 +1086,7 @@ __int64 __fastcall sub_6E78(int a1, int a2)
   {
     v2 = 1;
 LABEL_34:
-    sub_6DB0(2, 2u, v2);
+    ddr_mr_write(2, 2u, v2);
     return 0;
   }
   if ( a1 == 4 && a2 == 2 )
@@ -1148,8 +1148,8 @@ LABEL_34:
   return 0xFFFFFFFFLL;
 }
 
-/* ===== sub_7010 @ 0x7010 size 100 ===== */
-__int64 __fastcall sub_7010(int a1)
+/* ===== ddr_set_odt @ 0x7010 size 100 ===== */
+__int64 __fastcall ddr_set_odt(int a1)
 {
   unsigned __int8 v1; // w2
   bool v2; // zf
@@ -1177,12 +1177,12 @@ __int64 __fastcall sub_7010(int a1)
       v1 = 2;
   }
 LABEL_9:
-  sub_6DB0(2, 3u, v1);
+  ddr_mr_write(2, 3u, v1);
   return 0;
 }
 
-/* ===== sub_7074 @ 0x7074 size 48 ===== */
-_BYTE *__fastcall sub_7074(_BYTE *result)
+/* ===== uart_puts @ 0x7074 size 48 ===== */
+_BYTE *__fastcall uart_puts(_BYTE *result)
 {
   while ( *result != 0 )
   {
@@ -1193,8 +1193,8 @@ _BYTE *__fastcall sub_7074(_BYTE *result)
   return result;
 }
 
-/* ===== sub_70A4 @ 0x70A4 size 88 ===== */
-__int64 __fastcall sub_70A4(__int64 result, __int64 a2, __int64 a3)
+/* ===== memcpy_impl @ 0x70A4 size 88 ===== */
+__int64 __fastcall memcpy_impl(__int64 result, __int64 a2, __int64 a3)
 {
   __int64 v3; // x4
   __int64 v4; // x3
@@ -1218,8 +1218,8 @@ __int64 __fastcall sub_70A4(__int64 result, __int64 a2, __int64 a3)
   return result;
 }
 
-/* ===== sub_70FC @ 0x70FC size 200 ===== */
-__int64 __fastcall sub_70FC(int a1, int a2)
+/* ===== ddr_phy_reg_write @ 0x70FC size 200 ===== */
+__int64 __fastcall ddr_phy_reg_write(int a1, int a2)
 {
   MEMORY[0x300E32A8] |= 0x3FFFu;
   MEMORY[0x300E32AC] = a1;
@@ -1239,8 +1239,8 @@ __int64 __fastcall sub_70FC(int a1, int a2)
   return 806236896;
 }
 
-/* ===== sub_71C4 @ 0x71C4 size 472 ===== */
-__int64 __fastcall sub_71C4(__int64 result)
+/* ===== ddr_set_freq @ 0x71C4 size 472 ===== */
+__int64 __fastcall ddr_set_freq(__int64 result)
 {
   int v1; // w7
   unsigned int v2; // w5
@@ -1288,30 +1288,30 @@ __int64 __fastcall sub_71C4(__int64 result)
       v8 = (unsigned int)result > 0x3A8;
     else
       v8 = 2;
-    v9 = sub_6B24(MEMORY[0x403D0000], 15, 2, v8);
+    v9 = bitfield_set(MEMORY[0x403D0000], 15, 2, v8);
     v10 = v7 / 0x1A;
     v11 = v7 % 0x1A;
     if ( v11 != 0 )
     {
-      v13 = sub_6B24(v9, 9, 1, 1u);
-      v15 = sub_6B24(v13, 11, 1, 1u);
-      v14 = sub_6B24(v16, 23, 7, v10);
-      v16 = sub_6B24(v14, 0, 23, (v11 << 23) / 0x1A);
+      v13 = bitfield_set(v9, 9, 1, 1u);
+      v15 = bitfield_set(v13, 11, 1, 1u);
+      v14 = bitfield_set(v16, 23, 7, v10);
+      v16 = bitfield_set(v14, 0, 23, (v11 << 23) / 0x1A);
     }
     else
     {
-      v12 = sub_6B24(v9, 17, 11, v10);
-      v15 = sub_6B24(v12, 9, 1, 0);
+      v12 = bitfield_set(v9, 17, 11, v10);
+      v15 = bitfield_set(v12, 9, 1, 0);
     }
     MEMORY[0x403D0000] = v15;
     MEMORY[0x403D0004] = v16;
-    return sub_6B48(200);
+    return udelay_loop(200);
   }
   return result;
 }
 
-/* ===== sub_739C @ 0x739C size 716 ===== */
-__int64 sub_739C()
+/* ===== ddr_phy_auto_detect @ 0x739C size 716 ===== */
+__int64 ddr_phy_auto_detect()
 {
   int v0; // w20
   int v1; // w0
@@ -1336,87 +1336,87 @@ __int64 sub_739C()
   __int64 result; // x0
 
   v0 = 0;
-  v1 = sub_6B24(MEMORY[0x30000008], 16, 1, 0);
-  MEMORY[0x30000008] = sub_6B24(v1, 10, 5, 0x1Eu);
-  sub_6B48(2);
-  v2 = sub_6B24(MEMORY[0x30000008], 15, 1, 0);
-  v3 = sub_6B24(v2, 0, 5, 0);
+  v1 = bitfield_set(MEMORY[0x30000008], 16, 1, 0);
+  MEMORY[0x30000008] = bitfield_set(v1, 10, 5, 0x1Eu);
+  udelay_loop(2);
+  v2 = bitfield_set(MEMORY[0x30000008], 15, 1, 0);
+  v3 = bitfield_set(v2, 0, 5, 0);
   MEMORY[0x30000008] = v3;
   while ( (MEMORY[0x30000008] & 0x20000) != 0 )
   {
-    v3 = sub_6B24(v3, 0, 5, ++v0);
+    v3 = bitfield_set(v3, 0, 5, ++v0);
     MEMORY[0x30000008] = v3;
-    sub_6B48(1);
+    udelay_loop(1);
   }
   v4 = 31;
-  v5 = sub_6B24(MEMORY[0x30000008], 15, 1, 0);
-  v6 = sub_6B24(v5, 0, 5, 0x1Fu);
+  v5 = bitfield_set(MEMORY[0x30000008], 15, 1, 0);
+  v6 = bitfield_set(v5, 0, 5, 0x1Fu);
   MEMORY[0x30000008] = v6;
   while ( (MEMORY[0x30000008] & 0x20000) == 0 )
   {
-    v6 = sub_6B24(v6, 0, 5, --v4);
+    v6 = bitfield_set(v6, 0, 5, --v4);
     MEMORY[0x30000008] = v6;
-    sub_6B48(1);
+    udelay_loop(1);
   }
   v7 = (unsigned int)(v4 + v0) >> 1;
   v8 = 0;
-  MEMORY[0x30000008] = sub_6B24(MEMORY[0x30000008], 0, 5, v7);
-  v9 = sub_6B24(MEMORY[0x30000008], 15, 1, 1u);
-  v10 = sub_6B24(v9, 5, 5, 0);
+  MEMORY[0x30000008] = bitfield_set(MEMORY[0x30000008], 0, 5, v7);
+  v9 = bitfield_set(MEMORY[0x30000008], 15, 1, 1u);
+  v10 = bitfield_set(v9, 5, 5, 0);
   MEMORY[0x30000008] = v10;
   while ( (MEMORY[0x30000008] & 0x20000) == 0 )
   {
-    v10 = sub_6B24(v10, 5, 5, ++v8);
+    v10 = bitfield_set(v10, 5, 5, ++v8);
     MEMORY[0x30000008] = v10;
-    sub_6B48(1);
+    udelay_loop(1);
   }
   v11 = 31;
-  v12 = sub_6B24(MEMORY[0x30000008], 15, 1, 1u);
-  v13 = sub_6B24(v12, 5, 5, 0x1Fu);
+  v12 = bitfield_set(MEMORY[0x30000008], 15, 1, 1u);
+  v13 = bitfield_set(v12, 5, 5, 0x1Fu);
   MEMORY[0x30000008] = v13;
   while ( (MEMORY[0x30000008] & 0x20000) != 0 )
   {
-    v13 = sub_6B24(v13, 5, 5, --v11);
+    v13 = bitfield_set(v13, 5, 5, --v11);
     MEMORY[0x30000008] = v13;
-    sub_6B48(1);
+    udelay_loop(1);
   }
-  MEMORY[0x30000008] = sub_6B24(MEMORY[0x30000008], 5, 5, (unsigned int)(v11 + v8) >> 1);
-  MEMORY[0x30000008] = sub_6B24(MEMORY[0x30000008], 16, 1, 1u);
+  MEMORY[0x30000008] = bitfield_set(MEMORY[0x30000008], 5, 5, (unsigned int)(v11 + v8) >> 1);
+  MEMORY[0x30000008] = bitfield_set(MEMORY[0x30000008], 16, 1, 1u);
   v14 = MEMORY[0x30000008] & 0x1F;
   v15 = ((unsigned __int64)MEMORY[0x30000008] >> 5) & 0x1F;
-  v16 = sub_6B24(MEMORY[0x30000390], 21, 1, 1u);
-  v17 = sub_6B24(v16, 0, 5, v15);
-  MEMORY[0x30000390] = sub_6B24(v17, 8, 5, v14);
-  v18 = sub_6B24(MEMORY[0x30000490], 21, 1, 1u);
-  v19 = sub_6B24(v18, 0, 5, v15);
-  result = sub_6B24(v19, 8, 5, v14);
+  v16 = bitfield_set(MEMORY[0x30000390], 21, 1, 1u);
+  v17 = bitfield_set(v16, 0, 5, v15);
+  MEMORY[0x30000390] = bitfield_set(v17, 8, 5, v14);
+  v18 = bitfield_set(MEMORY[0x30000490], 21, 1, 1u);
+  v19 = bitfield_set(v18, 0, 5, v15);
+  result = bitfield_set(v19, 8, 5, v14);
   MEMORY[0x30000490] = result;
   return result;
 }
 
-/* ===== sub_7668 @ 0x7668 size 32 ===== */
-__int64 sub_7668()
+/* ===== ddr_trigger_cmd @ 0x7668 size 32 ===== */
+__int64 ddr_trigger_cmd()
 {
   MEMORY[0x30000100] |= 0x10000u;
   MEMORY[0x30000100] &= ~0x10000u;
   return 805306368;
 }
 
-/* ===== sub_7688 @ 0x7688 size 12 ===== */
-__int64 sub_7688()
+/* ===== ddr_get_burst_len @ 0x7688 size 12 ===== */
+__int64 ddr_get_burst_len()
 {
   return 32;
 }
 
-/* ===== sub_7694 @ 0x7694 size 80 ===== */
-__int64 __fastcall sub_7694(_QWORD *a1)
+/* ===== ddr_get_size @ 0x7694 size 80 ===== */
+__int64 __fastcall ddr_get_size(_QWORD *a1)
 {
   *a1 = 0x40000000;
   return 0;
 }
 
-/* ===== sub_76E4 @ 0x76E4 size 52 ===== */
-__int64 __fastcall sub_76E4(int a1, _DWORD *a2)
+/* ===== ddr_get_size_by_cs @ 0x76E4 size 52 ===== */
+__int64 __fastcall ddr_get_size_by_cs(int a1, _DWORD *a2)
 {
   __int64 result; // x0
 
@@ -1428,32 +1428,32 @@ __int64 __fastcall sub_76E4(int a1, _DWORD *a2)
   return result;
 }
 
-/* ===== sub_7718 @ 0x7718 size 36 ===== */
-__int64 sub_7718()
+/* ===== ddr_get_page_size @ 0x7718 size 36 ===== */
+__int64 ddr_get_page_size()
 {
   return 4096;
 }
 
-/* ===== sub_773C @ 0x773C size 44 ===== */
-__int64 sub_773C()
+/* ===== ddr_get_row_size @ 0x773C size 44 ===== */
+__int64 ddr_get_row_size()
 {
   return 0x8000;
 }
 
-/* ===== sub_7768 @ 0x7768 size 44 ===== */
-__int64 sub_7768()
+/* ===== ddr_get_row_size2 @ 0x7768 size 44 ===== */
+__int64 ddr_get_row_size2()
 {
   return 0x8000;
 }
 
-/* ===== sub_7794 @ 0x7794 size 28 ===== */
-__int64 sub_7794()
+/* ===== ddr_get_col_size @ 0x7794 size 28 ===== */
+__int64 ddr_get_col_size()
 {
   return 4;
 }
 
-/* ===== sub_77B0 @ 0x77B0 size 252 ===== */
-__int64 __fastcall sub_77B0(unsigned int a1, unsigned int *a2)
+/* ===== ddr_addr_decode @ 0x77B0 size 252 ===== */
+__int64 __fastcall ddr_addr_decode(unsigned int a1, unsigned int *a2)
 {
   unsigned int v4; // w23
   unsigned int v5; // w24
@@ -1466,16 +1466,16 @@ __int64 __fastcall sub_77B0(unsigned int a1, unsigned int *a2)
   unsigned int v13; // [xsp+44h] [xbp+44h] BYREF
   unsigned __int64 v14; // [xsp+48h] [xbp+48h] BYREF
 
-  v4 = sub_7718();
-  v5 = sub_773C();
-  v6 = sub_7794();
+  v4 = ddr_get_page_size();
+  v5 = ddr_get_row_size();
+  v6 = ddr_get_col_size();
   if ( a1 > 0x40000000 )
-    v5 = sub_7768();
-  v7 = sub_7694(&v14);
+    v5 = ddr_get_row_size2();
+  v7 = ddr_get_size(&v14);
   v8 = -1;
   if ( v7 == 0 )
   {
-    v8 = sub_76E4(0, &v13);
+    v8 = ddr_get_size_by_cs(0, &v13);
     if ( v8 != 0 )
     {
       return (unsigned int)-2;
@@ -1502,8 +1502,8 @@ __int64 __fastcall sub_77B0(unsigned int a1, unsigned int *a2)
   return v8;
 }
 
-/* ===== sub_78AC @ 0x78AC size 260 ===== */
-__int64 __fastcall sub_78AC(unsigned int a1)
+/* ===== ddr_set_timing_by_freq @ 0x78AC size 260 ===== */
+__int64 __fastcall ddr_set_timing_by_freq(unsigned int a1)
 {
   int v1; // w19
   int v2; // w0
@@ -1532,7 +1532,7 @@ __int64 __fastcall sub_78AC(unsigned int a1)
       v4 = 932;
     }
 LABEL_15:
-    sub_71C4(v4);
+    ddr_set_freq(v4);
     v5 = v1;
     v6 = 4;
     goto LABEL_16;
@@ -1542,7 +1542,7 @@ LABEL_15:
     v5 = MEMORY[0x402E00AC];
     v6 = 1;
 LABEL_16:
-    v2 = sub_6B24(v5, 6, 3, v6);
+    v2 = bitfield_set(v5, 6, 3, v6);
     v3 = 0;
     goto LABEL_17;
   }
@@ -1558,33 +1558,33 @@ LABEL_14:
     v4 = 1334;
     goto LABEL_15;
   }
-  sub_71C4(1334);
-  v2 = sub_6B24(v1, 6, 3, 4u);
+  ddr_set_freq(1334);
+  v2 = bitfield_set(v1, 6, 3, 4u);
   v3 = 3;
 LABEL_17:
-  result = sub_6B24(v2, 2, 4, v3);
+  result = bitfield_set(v2, 2, 4, v3);
   MEMORY[0x402E00AC] = result;
   return result;
 }
 
-/* ===== sub_79B0 @ 0x79B0 size 184 ===== */
-__int64 __fastcall sub_79B0(unsigned int a1, unsigned int a2)
+/* ===== ddr_init_cs0 @ 0x79B0 size 184 ===== */
+__int64 __fastcall ddr_init_cs0(unsigned int a1, unsigned int a2)
 {
   int v4; // w0
 
   MEMORY[0x30000398] = 1749045779;
   MEMORY[0x3000039C] = 151;
   nullsub_1();
-  sub_8AA0(258, a1, a2);
-  MEMORY[0x3000000C] = sub_6B24(MEMORY[0x3000000C], 0, 15, 0);
-  MEMORY[0x30000100] = sub_6B24(MEMORY[0x30000100], 17, 1, 1u);
-  v4 = sub_6B24(MEMORY[0x3000012C], 0, 4, 0);
-  MEMORY[0x3000012C] = sub_6B24(v4, 4, 2, a2);
+  ddr_load_timing_param(258, a1, a2);
+  MEMORY[0x3000000C] = bitfield_set(MEMORY[0x3000000C], 0, 15, 0);
+  MEMORY[0x30000100] = bitfield_set(MEMORY[0x30000100], 17, 1, 1u);
+  v4 = bitfield_set(MEMORY[0x3000012C], 0, 4, 0);
+  MEMORY[0x3000012C] = bitfield_set(v4, 4, 2, a2);
   return 0;
 }
 
-/* ===== sub_7A68 @ 0x7A68 size 320 ===== */
-__int64 __fastcall sub_7A68(int a1)
+/* ===== ddr_init_cs1 @ 0x7A68 size 320 ===== */
+__int64 __fastcall ddr_init_cs1(int a1)
 {
   int v2; // w0
   int v3; // w0
@@ -1594,13 +1594,13 @@ __int64 __fastcall sub_7A68(int a1)
   MEMORY[0x30000398] = 1749045779;
   MEMORY[0x3000039C] = 151;
   nullsub_1();
-  v2 = sub_6B24(MEMORY[0x30000004], 0, 3, 1u);
-  v3 = sub_6B24(v2, 16, 3, 1u);
-  MEMORY[0x30000004] = sub_6B24(v3, 20, 6, 0);
-  sub_8B80(258, &dword_DD80);
-  MEMORY[0x3000000C] = sub_6B24(MEMORY[0x3000000C], 0, 15, 0);
-  MEMORY[0x30000100] = sub_6B24(MEMORY[0x30000100], 17, 1, 1u);
-  v4 = sub_6B24(MEMORY[0x3000012C], 0, 4, 0);
+  v2 = bitfield_set(MEMORY[0x30000004], 0, 3, 1u);
+  v3 = bitfield_set(v2, 16, 3, 1u);
+  MEMORY[0x30000004] = bitfield_set(v3, 20, 6, 0);
+  ddr_load_timing_table(258, &dword_DD80);
+  MEMORY[0x3000000C] = bitfield_set(MEMORY[0x3000000C], 0, 15, 0);
+  MEMORY[0x30000100] = bitfield_set(MEMORY[0x30000100], 17, 1, 1u);
+  v4 = bitfield_set(MEMORY[0x3000012C], 0, 4, 0);
   switch ( a1 )
   {
     case 667:
@@ -1616,19 +1616,19 @@ __int64 __fastcall sub_7A68(int a1)
       v5 = 3;
       break;
   }
-  MEMORY[0x3000012C] = sub_6B24(v4, 4, 2, v5);
+  MEMORY[0x3000012C] = bitfield_set(v4, 4, 2, v5);
   return 0;
 }
 
-/* ===== sub_7BA8 @ 0x7BA8 size 204 ===== */
-__int64 __fastcall sub_7BA8(unsigned int a1)
+/* ===== ddr_controller_start @ 0x7BA8 size 204 ===== */
+__int64 __fastcall ddr_controller_start(unsigned int a1)
 {
   int v2; // w0
   int v3; // w0
   int v4; // w0
   int v5; // w0
 
-  sub_8C88(258);
+  ddr_controller_reset(258);
   while ( (MEMORY[0x30000304]
          & MEMORY[0x30000404]
          & 0x10000000
@@ -1636,11 +1636,11 @@ __int64 __fastcall sub_7BA8(unsigned int a1)
          & MEMORY[0x30000604]
          & MEMORY[0x30000704]) == 0 )
     ;
-  v2 = sub_6B24(MEMORY[0x30000300], 9, 2, 3u);
-  v3 = sub_6B24(v2, 12, 1, 1u);
-  v4 = sub_6B24(v3, 14, 1, 1u);
-  v5 = sub_6B24(v4, 27, 1, 1u);
-  MEMORY[0x30000300] = sub_6B24(v5, 0, 7, a1);
+  v2 = bitfield_set(MEMORY[0x30000300], 9, 2, 3u);
+  v3 = bitfield_set(v2, 12, 1, 1u);
+  v4 = bitfield_set(v3, 14, 1, 1u);
+  v5 = bitfield_set(v4, 27, 1, 1u);
+  MEMORY[0x30000300] = bitfield_set(v5, 0, 7, a1);
   MEMORY[0x30000400] = MEMORY[0x30000300];
   MEMORY[0x30000500] = MEMORY[0x30000300];
   MEMORY[0x30000600] = MEMORY[0x30000300];
@@ -1648,36 +1648,36 @@ __int64 __fastcall sub_7BA8(unsigned int a1)
   return 0;
 }
 
-/* ===== sub_7C74 @ 0x7C74 size 104 ===== */
-__int64 __fastcall sub_7C74(int *a1, unsigned int a2, unsigned int a3, unsigned int a4)
+/* ===== ddr_phy_cfg_reg1 @ 0x7C74 size 104 ===== */
+__int64 __fastcall ddr_phy_cfg_reg1(int *a1, unsigned int a2, unsigned int a3, unsigned int a4)
 {
   int v7; // w0
   int v8; // w0
   __int64 result; // x0
 
-  v7 = sub_6B24(*a1, 0, 4, a2);
-  v8 = sub_6B24(v7, 16, 8, a3);
-  result = sub_6B24(v8, 24, 8, a4);
+  v7 = bitfield_set(*a1, 0, 4, a2);
+  v8 = bitfield_set(v7, 16, 8, a3);
+  result = bitfield_set(v8, 24, 8, a4);
   *a1 = result;
   return result;
 }
 
-/* ===== sub_7CDC @ 0x7CDC size 104 ===== */
-__int64 __fastcall sub_7CDC(int *a1, unsigned int a2, unsigned int a3, unsigned int a4)
+/* ===== ddr_phy_cfg_reg2 @ 0x7CDC size 104 ===== */
+__int64 __fastcall ddr_phy_cfg_reg2(int *a1, unsigned int a2, unsigned int a3, unsigned int a4)
 {
   int v7; // w0
   int v8; // w0
   __int64 result; // x0
 
-  v7 = sub_6B24(*a1, 0, 4, a2);
-  v8 = sub_6B24(v7, 16, 10, a3);
-  result = sub_6B24(v8, 31, 1, a4);
+  v7 = bitfield_set(*a1, 0, 4, a2);
+  v8 = bitfield_set(v7, 16, 10, a3);
+  result = bitfield_set(v8, 31, 1, a4);
   *a1 = result;
   return result;
 }
 
-/* ===== sub_7D44 @ 0x7D44 size 1192 ===== */
-_BYTE *__fastcall sub_7D44(int a1, __int64 a2, __int64 a3, __int64 a4, unsigned int a5)
+/* ===== ddr_auto_config @ 0x7D44 size 1192 ===== */
+_BYTE *__fastcall ddr_auto_config(int a1, __int64 a2, __int64 a3, __int64 a4, unsigned int a5)
 {
   int v6; // w20
   int v7; // w0
@@ -1701,18 +1701,18 @@ _BYTE *__fastcall sub_7D44(int a1, __int64 a2, __int64 a3, __int64 a4, unsigned 
   unsigned __int64 v26; // [xsp+38h] [xbp+38h] BYREF
 
   do
-    sub_6C64(0, 0, &v25, 10000, a5);
+    ddr_mr_read_ex(0, 0, &v25, 10000, a5);
   while ( (v25 & 1) != 0 );
-  if ( (unsigned int)sub_92E4() != 0 )
-    return sub_7074("lpddr auto detect failed\r\n");
+  if ( (unsigned int)ddr_detect_and_cfg() != 0 )
+    return uart_puts("lpddr auto detect failed\r\n");
   if ( a1 == 667 )
   {
-    sub_6398();
-    sub_6A70();
+    ddr_wl_training();
+    ddr_training_nop();
   }
   v6 = MEMORY[0x30000000];
-  sub_7694(&v26);
-  v7 = sub_6B24(v6, 4, 3, 3u);
+  ddr_get_size(&v26);
+  v7 = bitfield_set(v6, 4, 3, 3u);
   v8 = 0;
   v9 = &qword_D768[1];
   do
@@ -1728,32 +1728,32 @@ _BYTE *__fastcall sub_7D44(int a1, __int64 a2, __int64 a3, __int64 a4, unsigned 
   while ( v8 != 9 );
   v10 = 7;
 LABEL_9:
-  v11 = sub_6B24(v7, 0, 3, v10);
-  v12 = sub_6B24(v11, 0, 3, 7u);
-  v13 = sub_6B24(v12, 14, 2, 1u);
-  v14 = sub_6B24(v13, 9, 2, 3u);
-  MEMORY[0x30000000] = sub_6B24(v14, 28, 1, 1u);
-  v16 = sub_6B24(MEMORY[0x30000100], 4, 3, 2u);
-  v17 = sub_6B24(v16, 8, 1, 1u);
-  MEMORY[0x30000100] = sub_6B24(v17, 7, 1, 1u);
-  v18 = sub_6B24(MEMORY[0x30000124], 0, 3, 5u);
-  v19 = sub_6B24(v18, 4, 8, 0xFFu);
-  MEMORY[0x30000124] = sub_6B24(v19, 16, 4, 0xFu);
-  v20 = sub_6B24(MEMORY[0x30000114], 0, 24, 0x600000u);
-  MEMORY[0x30000114] = sub_6B24(v20, 24, 2, 1u);
-  v21 = sub_6B24(MEMORY[0x3000010C], 12, 1, 1u);
-  v22 = sub_6B24(v21, 13, 1, 0);
-  MEMORY[0x3000010C] = sub_6B24(v22, 15, 1, 1u);
-  v23 = sub_6B24(MEMORY[0x3000012C], 0, 4, 7u);
-  v24 = sub_6B24(v23, 17, 1, 1u);
-  MEMORY[0x3000012C] = sub_6B24(v24, 20, 12, 0);
-  MEMORY[0x3000000C] = sub_6B24(MEMORY[0x3000000C], 0, 15, 0x7FFFu);
-  return (_BYTE *)sub_7668();
+  v11 = bitfield_set(v7, 0, 3, v10);
+  v12 = bitfield_set(v11, 0, 3, 7u);
+  v13 = bitfield_set(v12, 14, 2, 1u);
+  v14 = bitfield_set(v13, 9, 2, 3u);
+  MEMORY[0x30000000] = bitfield_set(v14, 28, 1, 1u);
+  v16 = bitfield_set(MEMORY[0x30000100], 4, 3, 2u);
+  v17 = bitfield_set(v16, 8, 1, 1u);
+  MEMORY[0x30000100] = bitfield_set(v17, 7, 1, 1u);
+  v18 = bitfield_set(MEMORY[0x30000124], 0, 3, 5u);
+  v19 = bitfield_set(v18, 4, 8, 0xFFu);
+  MEMORY[0x30000124] = bitfield_set(v19, 16, 4, 0xFu);
+  v20 = bitfield_set(MEMORY[0x30000114], 0, 24, 0x600000u);
+  MEMORY[0x30000114] = bitfield_set(v20, 24, 2, 1u);
+  v21 = bitfield_set(MEMORY[0x3000010C], 12, 1, 1u);
+  v22 = bitfield_set(v21, 13, 1, 0);
+  MEMORY[0x3000010C] = bitfield_set(v22, 15, 1, 1u);
+  v23 = bitfield_set(MEMORY[0x3000012C], 0, 4, 7u);
+  v24 = bitfield_set(v23, 17, 1, 1u);
+  MEMORY[0x3000012C] = bitfield_set(v24, 20, 12, 0);
+  MEMORY[0x3000000C] = bitfield_set(MEMORY[0x3000000C], 0, 15, 0x7FFFu);
+  return (_BYTE *)ddr_trigger_cmd();
 }
 
-/* ===== sub_81EC @ 0x81EC size 236 ===== */
+/* ===== ddr_security_cfg @ 0x81EC size 236 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 sub_81EC()
+__int64 ddr_security_cfg()
 {
   MEMORY[0x82000020] = 1;
   dword_DDC8 = 0;
@@ -1764,8 +1764,8 @@ __int64 sub_81EC()
   return 0;
 }
 
-/* ===== sub_82D8 @ 0x82D8 size 1268 ===== */
-__int64 sub_82D8()
+/* ===== ddr_full_init @ 0x82D8 size 1268 ===== */
+__int64 ddr_full_init()
 {
   __int64 v0; // x1
   __int64 v1; // x2
@@ -1784,62 +1784,62 @@ __int64 sub_82D8()
   int v14; // w0
   __int64 v16; // [xsp+48h] [xbp+48h] BYREF
 
-  sub_7074("DDR init start\r\n");
+  uart_puts("DDR init start\r\n");
   MEMORY[0x402B0130] = 0;
-  sub_78AC(0xA6u);
+  ddr_set_timing_by_freq(0xA6u);
   MEMORY[0x402E000C] |= 0x10u;
   MEMORY[0x402E000C] &= ~0x10u;
   MEMORY[0x402B00D0] |= 0x70u;
-  sub_6B48(1);
+  udelay_loop(1);
   MEMORY[0x402B00D0] &= 0xFFFFFFF0;
-  sub_739C();
-  if ( (unsigned int)sub_79B0(0xA6u, 3u) != 0 )
+  ddr_phy_auto_detect();
+  if ( (unsigned int)ddr_init_cs0(0xA6u, 3u) != 0 )
   {
-    sub_7074("error:-3\r\n");
+    uart_puts("error:-3\r\n");
     while ( 1 )
       ;
   }
-  if ( (unsigned int)sub_7BA8(8u) != 0 )
+  if ( (unsigned int)ddr_controller_start(8u) != 0 )
   {
-    sub_7074("error:-4\r\n");
+    uart_puts("error:-4\r\n");
     while ( 1 )
       ;
   }
-  if ( (unsigned int)sub_950C() != 0 )
+  if ( (unsigned int)ddr_init_mr8_cs0() != 0 )
   {
-    sub_7074("error:-3\r\n");
+    uart_puts("error:-3\r\n");
     while ( 1 )
       ;
   }
-  sub_78AC(0x29Bu);
+  ddr_set_timing_by_freq(0x29Bu);
   MEMORY[0x402E000C] |= 0x10u;
   MEMORY[0x402E000C] &= ~0x10u;
   MEMORY[0x402B00D0] |= 0x70u;
-  sub_6B48(1);
+  udelay_loop(1);
   MEMORY[0x402B00D0] &= 0xFFFFFFF0;
-  sub_739C();
-  if ( (unsigned int)sub_7A68(667) != 0 )
+  ddr_phy_auto_detect();
+  if ( (unsigned int)ddr_init_cs1(667) != 0 )
   {
-    sub_7074("error:-3\r\n");
+    uart_puts("error:-3\r\n");
     while ( 1 )
       ;
   }
-  sub_5C18();
-  if ( (unsigned int)sub_7BA8(8u) != 0 )
+  ddr_ca_training();
+  if ( (unsigned int)ddr_controller_start(8u) != 0 )
   {
-    sub_7074("error:-4\r\n");
+    uart_puts("error:-4\r\n");
     while ( 1 )
       ;
   }
-  if ( (unsigned int)sub_95DC(667) != 0 )
+  if ( (unsigned int)ddr_init_timing_cs1(667) != 0 )
   {
-    sub_7074("error:-5\r\n");
+    uart_puts("error:-5\r\n");
     while ( 1 )
       ;
   }
-  sub_7D44(667, v0, v1, v2, v3);
-  if ( (unsigned int)sub_7694(&v16) != -1 && v16 == 805306368 )
-    sub_70FC(34603536, 34603536);
+  ddr_auto_config(667, v0, v1, v2, v3);
+  if ( (unsigned int)ddr_get_size(&v16) != -1 && v16 == 805306368 )
+    ddr_phy_reg_write(34603536, 34603536);
   v4 = qword_D7F8;
   v5 = 805306400;
   do
@@ -1850,7 +1850,7 @@ __int64 sub_82D8()
     v5 += 8;
     v9 = *((unsigned __int8 *)v4 + 2);
     v4 = (__int64 *)((char *)v4 + 6);
-    sub_7C74(v7, v6, v8, v9);
+    ddr_phy_cfg_reg1(v7, v6, v8, v9);
   }
   while ( v5 != 805306464 );
   v10 = (unsigned __int8 *)qword_D7F8 + 3;
@@ -1859,32 +1859,32 @@ __int64 sub_82D8()
     v12 = *v10;
     v10 += 6;
     v13 = (int *)i;
-    sub_7CDC(v13, v12, 0, 0);
+    ddr_phy_cfg_reg2(v13, v12, 0, 0);
   }
-  v14 = sub_6B24(MEMORY[0x30000000], 16, 11, 0x190u);
-  MEMORY[0x30000000] = sub_6B24(v14, 27, 1, 0);
+  v14 = bitfield_set(MEMORY[0x30000000], 16, 11, 0x190u);
+  MEMORY[0x30000000] = bitfield_set(v14, 27, 1, 0);
   MEMORY[0x30000128] = -1073729536;
   MEMORY[0x300E32EC] = -859846315;
   MEMORY[0x20E000B0] = 1431655782;
   MEMORY[0x20E000B8] = 1431655765;
   MEMORY[0x20E000BC] = -11180321;
-  if ( (unsigned int)sub_6A78(667) != 0 )
+  if ( (unsigned int)ddr_full_training(667) != 0 )
   {
-    sub_7074("error:-6\r\n");
+    uart_puts("error:-6\r\n");
     while ( 1 )
       ;
   }
   MEMORY[0x402B0250] |= 1u;
-  sub_81EC();
+  ddr_security_cfg();
   MEMORY[0x402B0230] |= 0x400u;
-  MEMORY[0x402B00CC] = sub_6B24(MEMORY[0x402B00CC], 29, 2, 0);
-  MEMORY[0x300E3348] = sub_6B24(MEMORY[0x300E3348], 0, 30, 0x536u);
-  sub_7074("DDR init OK\r\n");
+  MEMORY[0x402B00CC] = bitfield_set(MEMORY[0x402B00CC], 29, 2, 0);
+  MEMORY[0x300E3348] = bitfield_set(MEMORY[0x300E3348], 0, 30, 0x536u);
+  uart_puts("DDR init OK\r\n");
   return 0;
 }
 
-/* ===== sub_87CC @ 0x87CC size 564 ===== */
-__int64 __fastcall sub_87CC(unsigned int a1, unsigned int *a2)
+/* ===== ddr_bist_run @ 0x87CC size 564 ===== */
+__int64 __fastcall ddr_bist_run(unsigned int a1, unsigned int *a2)
 {
   unsigned int v2; // w25
   unsigned int v3; // w26
@@ -1924,37 +1924,37 @@ __int64 __fastcall sub_87CC(unsigned int a1, unsigned int *a2)
   v8 = 1 << v7;
   if ( v4 > 2 )
     goto LABEL_9;
-  if ( v3 % (((unsigned int)sub_7688() * v8) >> 3) != 0 )
+  if ( v3 % (((unsigned int)ddr_get_burst_len() * v8) >> 3) != 0 )
   {
-    sub_7074("Data len must aligned with burstlen*datawidth/8\n");
+    uart_puts("Data len must aligned with burstlen*datawidth/8\n");
 LABEL_9:
     LODWORD(v5) = -3;
     return (unsigned int)v5;
   }
-  if ( (unsigned int)sub_77B0(v3, &v17) != 0 )
+  if ( (unsigned int)ddr_addr_decode(v3, &v17) != 0 )
     goto LABEL_9;
   MEMORY[0x30000198] = v6;
   MEMORY[0x30000184] = v2 >> 2;
   MEMORY[0x30000188] = v20 & 0xFFF | (v19 << 16) | ((v17 & 1) << 15) | ((v18 & 7) << 12);
-  v10 = sub_6B24(MEMORY[0x30000180], 13, 1, 1u);
-  v11 = sub_6B24(v10, 0, 1, 1u);
-  MEMORY[0x30000180] = sub_6B24(v11, 16, 10, v8);
-  v12 = sub_6B24(MEMORY[0x30000180], 13, 1, 0);
-  MEMORY[0x30000180] = sub_6B24(v12, 8, 2, a1);
-  v13 = sub_6B24(MEMORY[0x30000180], 12, 2, 0);
-  v14 = sub_6B24(v13, 4, 2, v4);
-  MEMORY[0x30000180] = sub_6B24(v14, 0, 2, 3u);
+  v10 = bitfield_set(MEMORY[0x30000180], 13, 1, 1u);
+  v11 = bitfield_set(v10, 0, 1, 1u);
+  MEMORY[0x30000180] = bitfield_set(v11, 16, 10, v8);
+  v12 = bitfield_set(MEMORY[0x30000180], 13, 1, 0);
+  MEMORY[0x30000180] = bitfield_set(v12, 8, 2, a1);
+  v13 = bitfield_set(MEMORY[0x30000180], 12, 2, 0);
+  v14 = bitfield_set(v13, 4, 2, v4);
+  MEMORY[0x30000180] = bitfield_set(v14, 0, 2, 3u);
   for ( i = 2 * MEMORY[0x30000184] - 2; i > 0 && (MEMORY[0x30000180] & 4) == 0; --i )
     ;
-  MEMORY[0x30000180] = sub_6B24(MEMORY[0x30000180], 0, 1, 0);
+  MEMORY[0x30000180] = bitfield_set(MEMORY[0x30000180], 0, 1, 0);
   LODWORD(v5) = -2;
   if ( i > 0 )
     return (unsigned int)((MEMORY[0x30000180] ^ 8LL) << 60 >> 63);
   return (unsigned int)v5;
 }
 
-/* ===== sub_8A00 @ 0x8A00 size 100 ===== */
-__int64 __fastcall sub_8A00(unsigned int a1)
+/* ===== hex_to_ascii @ 0x8A00 size 100 ===== */
+__int64 __fastcall hex_to_ascii(unsigned int a1)
 {
   int v1; // w4
   __int64 v2; // x3
@@ -1986,8 +1986,8 @@ void nullsub_1()
   ;
 }
 
-/* ===== sub_8A68 @ 0x8A68 size 56 ===== */
-__int64 __fastcall sub_8A68(__int64 a1, int a2, int a3)
+/* ===== lut_lookup @ 0x8A68 size 56 ===== */
+__int64 __fastcall lut_lookup(__int64 a1, int a2, int a3)
 {
   __int64 v3; // x3
   unsigned int v4; // w4
@@ -2005,8 +2005,8 @@ __int64 __fastcall sub_8A68(__int64 a1, int a2, int a3)
   return 0xFFFFFFFFLL;
 }
 
-/* ===== sub_8AA0 @ 0x8AA0 size 224 ===== */
-__int64 __fastcall sub_8AA0(int a1, int a2, int a3)
+/* ===== ddr_load_timing_param @ 0x8AA0 size 224 ===== */
+__int64 __fastcall ddr_load_timing_param(int a1, int a2, int a3)
 {
   __int64 *v4; // x20
   int v5; // w0
@@ -2017,7 +2017,7 @@ __int64 __fastcall sub_8AA0(int a1, int a2, int a3)
     v4 = qword_DDF8;
   else
     v4 = qword_E038;
-  v5 = sub_8A68((__int64)v4, 7, a2);
+  v5 = lut_lookup((__int64)v4, 7, a2);
   v6 = (_DWORD *)(((__int64)a3 << 6) + 805306368);
   v7 = (_DWORD *)v4 + 15 * v5;
   *(_DWORD *)(((a3 + 8LL) << 6) + 0x30000000) = v7[1];
@@ -2037,8 +2037,8 @@ __int64 __fastcall sub_8AA0(int a1, int a2, int a3)
   return 0;
 }
 
-/* ===== sub_8B80 @ 0x8B80 size 264 ===== */
-__int64 __fastcall sub_8B80(int a1, __int64 a2)
+/* ===== ddr_load_timing_table @ 0x8B80 size 264 ===== */
+__int64 __fastcall ddr_load_timing_table(int a1, __int64 a2)
 {
   __int64 *v3; // x19
   __int64 v4; // x20
@@ -2055,7 +2055,7 @@ __int64 __fastcall sub_8B80(int a1, __int64 a2)
   v4 = 0;
   while ( 1 )
   {
-    v5 = sub_8A68((__int64)v3, 7, *(_DWORD *)(a2 + 4 * v4));
+    v5 = lut_lookup((__int64)v3, 7, *(_DWORD *)(a2 + 4 * v4));
     if ( v5 < 0 )
       break;
     v6 = (int)v4++;
@@ -2082,8 +2082,8 @@ __int64 __fastcall sub_8B80(int a1, __int64 a2)
   return 0xFFFFFFFFLL;
 }
 
-/* ===== sub_8C88 @ 0x8C88 size 344 ===== */
-__int64 sub_8C88()
+/* ===== ddr_controller_reset @ 0x8C88 size 344 ===== */
+__int64 ddr_controller_reset()
 {
   MEMORY[0x30000308] = -2147483640;
   MEMORY[0x30000300] = -98384895;
@@ -2106,22 +2106,22 @@ __int64 sub_8C88()
   return 0;
 }
 
-/* ===== sub_8DE0 @ 0x8DE0 size 120 ===== */
-__int64 sub_8DE0()
+/* ===== ddr_clear_mr @ 0x8DE0 size 120 ===== */
+__int64 ddr_clear_mr()
 {
   int v0; // w0
 
-  v0 = sub_6B24(MEMORY[0x3000010C], 12, 1, 0);
-  MEMORY[0x3000010C] = sub_6B24(v0, 15, 1, 0);
-  sub_6DB0(0, 0xAu, 0xFFu);
-  sub_6B48(2);
-  sub_6DB0(1, 0xAu, 0xFFu);
-  sub_6B48(2);
+  v0 = bitfield_set(MEMORY[0x3000010C], 12, 1, 0);
+  MEMORY[0x3000010C] = bitfield_set(v0, 15, 1, 0);
+  ddr_mr_write(0, 0xAu, 0xFFu);
+  udelay_loop(2);
+  ddr_mr_write(1, 0xAu, 0xFFu);
+  udelay_loop(2);
   return 0;
 }
 
-/* ===== sub_8E58 @ 0x8E58 size 104 ===== */
-__int64 __fastcall sub_8E58(_DWORD *a1, _DWORD *a2, int a3)
+/* ===== ddr_find_cfg_entry @ 0x8E58 size 104 ===== */
+__int64 __fastcall ddr_find_cfg_entry(_DWORD *a1, _DWORD *a2, int a3)
 {
   int i; // w3
   int v4; // w2
@@ -2142,8 +2142,8 @@ __int64 __fastcall sub_8E58(_DWORD *a1, _DWORD *a2, int a3)
   return 0xFFFFFFFFLL;
 }
 
-/* ===== sub_8EC0 @ 0x8EC0 size 292 ===== */
-__int64 __fastcall sub_8EC0(unsigned __int8 a1, _DWORD *a2, _DWORD *a3, int a4)
+/* ===== ddr_parse_mode_reg @ 0x8EC0 size 292 ===== */
+__int64 __fastcall ddr_parse_mode_reg(unsigned __int8 a1, _DWORD *a2, _DWORD *a3, int a4)
 {
   int v5; // w1
   int v6; // w1
@@ -2203,7 +2203,7 @@ LABEL_18:
           v10 = 4;
 LABEL_27:
           a2[1] = v10;
-          if ( (unsigned int)sub_8E58(a2, a3, a4) != 0 )
+          if ( (unsigned int)ddr_find_cfg_entry(a2, a3, a4) != 0 )
             result = 4294967291LL;
           else
             result = 0;
@@ -2244,8 +2244,8 @@ LABEL_26:
   return result;
 }
 
-/* ===== sub_8FE4 @ 0x8FE4 size 180 ===== */
-__int64 __fastcall sub_8FE4(unsigned __int8 a1, _DWORD *a2, _DWORD *a3, int a4)
+/* ===== ddr_parse_mode_reg2 @ 0x8FE4 size 180 ===== */
+__int64 __fastcall ddr_parse_mode_reg2(unsigned __int8 a1, _DWORD *a2, _DWORD *a3, int a4)
 {
   unsigned __int64 v4; // x5
   int v6; // w1
@@ -2283,7 +2283,7 @@ __int64 __fastcall sub_8FE4(unsigned __int8 a1, _DWORD *a2, _DWORD *a3, int a4)
 LABEL_10:
       a2[6] = v9;
       a2[1] = 8;
-      if ( (unsigned int)sub_8E58(a2, a3, a4) != 0 )
+      if ( (unsigned int)ddr_find_cfg_entry(a2, a3, a4) != 0 )
         result = 4294967293LL;
       else
         result = 0;
@@ -2295,9 +2295,9 @@ LABEL_10:
   return result;
 }
 
-/* ===== sub_9098 @ 0x9098 size 368 ===== */
+/* ===== ddr_read_cs_mr8 @ 0x9098 size 368 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_9098(
+__int64 __fastcall ddr_read_cs_mr8(
         __int64 a1,
         __int64 a2,
         __int64 a3,
@@ -2326,8 +2326,8 @@ __int64 __fastcall sub_9098(
     v12 = 0;
     while ( 1 )
     {
-      sub_6C64(v9, 5u, &v17[v9], 10000, a5);
-      sub_6C64(v9, 8u, &v18[v9], 10000, v13);
+      ddr_mr_read_ex(v9, 5u, &v17[v9], 10000, a5);
+      ddr_mr_read_ex(v9, 8u, &v18[v9], 10000, v13);
       v14 = &a9 + v9;
       if ( (v11 | v12) == 0 )
       {
@@ -2371,8 +2371,8 @@ LABEL_10:
   return 0;
 }
 
-/* ===== sub_9208 @ 0x9208 size 132 ===== */
-__int64 __fastcall sub_9208(unsigned __int8 a1, int a2, _DWORD *a3, int a4)
+/* ===== ddr_apply_mode_reg @ 0x9208 size 132 ===== */
+__int64 __fastcall ddr_apply_mode_reg(unsigned __int8 a1, int a2, _DWORD *a3, int a4)
 {
   char *v4; // x1
   unsigned int v5; // w4
@@ -2389,15 +2389,15 @@ __int64 __fastcall sub_9208(unsigned __int8 a1, int a2, _DWORD *a3, int a4)
   {
     v4 = byte_DD90;
   }
-  v6 = sub_8FE4(a1, v4, a3, a4);
+  v6 = ddr_parse_mode_reg2(a1, v4, a3, a4);
   if ( v6 != 0 )
     return (unsigned int)-3;
   else
     return 0;
 }
 
-/* ===== sub_928C @ 0x928C size 88 ===== */
-__int64 __fastcall sub_928C(int a1)
+/* ===== ddr_double_freq @ 0x928C size 88 ===== */
+__int64 __fastcall ddr_double_freq(int a1)
 {
   char *v2; // x1
   __int64 result; // x0
@@ -2422,9 +2422,9 @@ __int64 __fastcall sub_928C(int a1)
   return result;
 }
 
-/* ===== sub_92E4 @ 0x92E4 size 464 ===== */
+/* ===== ddr_detect_and_cfg @ 0x92E4 size 464 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_92E4(__int64 a1, __int64 a2, __int64 a3, __int64 a4, unsigned int a5)
+__int64 __fastcall ddr_detect_and_cfg(__int64 a1, __int64 a2, __int64 a3, __int64 a4, unsigned int a5)
 {
   unsigned int v5; // w20
   _BYTE *v6; // x0
@@ -2439,31 +2439,31 @@ __int64 __fastcall sub_92E4(__int64 a1, __int64 a2, __int64 a3, __int64 a4, unsi
   char v16; // [xsp+0h] [xbp+0h]
   unsigned __int8 v17; // [xsp+5Fh] [xbp+5Fh] BYREF
 
-  if ( (unsigned int)sub_6C64(0, 8u, &v17, 10000, a5) != 0 )
+  if ( (unsigned int)ddr_mr_read_ex(0, 8u, &v17, 10000, a5) != 0 )
     return (unsigned int)-1;
-  sub_7074("Swap later\r\n");
-  sub_7074("CS0_MR8:");
-  v6 = (_BYTE *)sub_8A00(v17);
-  sub_7074(v6);
-  v7 = sub_7074("\r\n");
-  if ( (unsigned int)sub_9098((__int64)v7, v8, v9, v10, v11, v12, v13, v14, v16) != 0 )
+  uart_puts("Swap later\r\n");
+  uart_puts("CS0_MR8:");
+  v6 = (_BYTE *)hex_to_ascii(v17);
+  uart_puts(v6);
+  v7 = uart_puts("\r\n");
+  if ( (unsigned int)ddr_read_cs_mr8((__int64)v7, v8, v9, v10, v11, v12, v13, v14, v16) != 0 )
     return (unsigned int)-1;
-  v5 = sub_9208(v17, 0, qword_DC68, 14);
+  v5 = ddr_apply_mode_reg(v17, 0, qword_DC68, 14);
   if ( v5 != 0 )
   {
     return (unsigned int)-1;
   }
   else
   {
-    sub_928C(0);
+    ddr_double_freq(0);
     dword_DDF0 = 0;
   }
   return v5;
 }
 
-/* ===== sub_94B4 @ 0x94B4 size 88 ===== */
+/* ===== ddr_set_bus_width @ 0x94B4 size 88 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_94B4(char a1)
+__int64 __fastcall ddr_set_bus_width(char a1)
 {
   int v1; // w1
   int v2; // w1
@@ -2491,8 +2491,8 @@ __int64 __fastcall sub_94B4(char a1)
   return 0;
 }
 
-/* ===== sub_950C @ 0x950C size 208 ===== */
-__int64 sub_950C()
+/* ===== ddr_init_mr8_cs0 @ 0x950C size 208 ===== */
+__int64 ddr_init_mr8_cs0()
 {
   int v0; // w0
   unsigned int v1; // w1
@@ -2500,22 +2500,22 @@ __int64 sub_950C()
   unsigned __int8 v4; // [xsp+2Fh] [xbp+2Fh] BYREF
 
   MEMORY[0x30000100] |= 0x4000u;
-  sub_6B48(300);
-  sub_6DB0(2, 0x3Fu, 0);
-  sub_6B48(10);
-  sub_8DE0();
-  MEMORY[0x30000490] = sub_6B24(MEMORY[0x30000490], 24, 2, 1u);
-  sub_6E78(3, 1);
-  v0 = sub_6B8C(0, 8u, &v4, 10000);
+  udelay_loop(300);
+  ddr_mr_write(2, 0x3Fu, 0);
+  udelay_loop(10);
+  ddr_clear_mr();
+  MEMORY[0x30000490] = bitfield_set(MEMORY[0x30000490], 24, 2, 1u);
+  ddr_set_mr_by_timing(3, 1);
+  v0 = ddr_mr_read(0, 8u, &v4, 10000);
   v1 = -1;
   if ( v0 == 0 )
   {
-    sub_7074("Before swap\r\n");
-    sub_7074("CS0_MR8:");
-    v2 = (_BYTE *)sub_8A00(v4);
-    sub_7074(v2);
-    sub_7074("\r\n");
-    if ( (unsigned int)sub_94B4(v4) != 0 )
+    uart_puts("Before swap\r\n");
+    uart_puts("CS0_MR8:");
+    v2 = (_BYTE *)hex_to_ascii(v4);
+    uart_puts(v2);
+    uart_puts("\r\n");
+    if ( (unsigned int)ddr_set_bus_width(v4) != 0 )
       return (unsigned int)-1;
     else
       return 0;
@@ -2523,9 +2523,9 @@ __int64 sub_950C()
   return v1;
 }
 
-/* ===== sub_95DC @ 0x95DC size 840 ===== */
+/* ===== ddr_init_timing_cs1 @ 0x95DC size 840 ===== */
 // write access to const memory has been detected, the output may be wrong!
-__int64 __fastcall sub_95DC(unsigned int a1)
+__int64 __fastcall ddr_init_timing_cs1(unsigned int a1)
 {
   int v2; // w1
   int v3; // w1
@@ -2533,11 +2533,11 @@ __int64 __fastcall sub_95DC(unsigned int a1)
   unsigned int v5; // w19
 
   MEMORY[0x30000100] |= 0x4000u;
-  sub_6B48(300);
-  sub_6DB0(2, 0x3Fu, 0);
-  sub_6B48(10);
-  sub_8DE0();
-  MEMORY[0x30000490] = sub_6B24(MEMORY[0x30000490], 24, 2, 1u);
+  udelay_loop(300);
+  ddr_mr_write(2, 0x3Fu, 0);
+  udelay_loop(10);
+  ddr_clear_mr();
+  MEMORY[0x30000490] = bitfield_set(MEMORY[0x30000490], 24, 2, 1u);
   if ( a1 - 934 <= 0x84 )
   {
     v2 = 16;
@@ -2592,20 +2592,20 @@ LABEL_10:
   }
 LABEL_18:
   dword_E02C = v3;
-  if ( (unsigned int)sub_6E78(6, 3) != 0 )
+  if ( (unsigned int)ddr_set_mr_by_timing(6, 3) != 0 )
     return (unsigned int)-1;
-  sub_6DB0(2, 1u, 0x23u);
-  sub_6B48(10);
-  v5 = sub_7010(40);
+  ddr_mr_write(2, 1u, 0x23u);
+  udelay_loop(10);
+  v5 = ddr_set_odt(40);
   if ( v5 != 0 )
     return (unsigned int)-1;
   else
-    sub_6B48(10);
+    udelay_loop(10);
   return v5;
 }
 
-/* ===== sub_9924 @ 0x9924 size 88 ===== */
-__int64 __fastcall sub_9924(__int64 result, __int64 a2, __int64 a3)
+/* ===== memcpy_simple @ 0x9924 size 88 ===== */
+__int64 __fastcall memcpy_simple(__int64 result, __int64 a2, __int64 a3)
 {
   __int64 v3; // x4
   __int64 v4; // x3
@@ -2629,8 +2629,8 @@ __int64 __fastcall sub_9924(__int64 result, __int64 a2, __int64 a3)
   return result;
 }
 
-/* ===== sub_997C @ 0x997C size 40 ===== */
-__int64 __fastcall sub_997C(__int64 a1, __int64 a2)
+/* ===== strcmp_simple @ 0x997C size 40 ===== */
+__int64 __fastcall strcmp_simple(__int64 a1, __int64 a2)
 {
   __int64 v3; // x2
   int v4; // w3
@@ -2649,8 +2649,8 @@ __int64 __fastcall sub_997C(__int64 a1, __int64 a2)
   return result;
 }
 
-/* ===== sub_99A4 @ 0x99A4 size 96 ===== */
-__int64 __fastcall sub_99A4(unsigned int a1)
+/* ===== pmic_reg_read @ 0x99A4 size 96 ===== */
+__int64 __fastcall pmic_reg_read(unsigned int a1)
 {
   int v1; // w2
 
@@ -2667,8 +2667,8 @@ __int64 __fastcall sub_99A4(unsigned int a1)
     return 0xFFFFFFFFLL;
 }
 
-/* ===== sub_9A04 @ 0x9A04 size 104 ===== */
-unsigned __int64 __fastcall sub_9A04(unsigned __int64 *a1, int a2)
+/* ===== pmic_fifo_next @ 0x9A04 size 104 ===== */
+unsigned __int64 __fastcall pmic_fifo_next(unsigned __int64 *a1, int a2)
 {
   unsigned __int64 v2; // x2
   unsigned __int64 result; // x0
@@ -2685,17 +2685,17 @@ unsigned __int64 __fastcall sub_9A04(unsigned __int64 *a1, int a2)
   return result;
 }
 
-/* ===== sub_9BA8 @ 0x9BA8 size 28 ===== */
-__int64 __fastcall sub_9BA8(unsigned int a1)
+/* ===== pmic_read_reg @ 0x9BA8 size 28 ===== */
+__int64 __fastcall pmic_read_reg(unsigned int a1)
 {
   if ( a1 - 1077411840 > 0x9000 )
     return 0xFFFFFFFFLL;
   else
-    return sub_99A4(a1);
+    return pmic_reg_read(a1);
 }
 
-/* ===== sub_9BC4 @ 0x9BC4 size 32 ===== */
-__int64 __fastcall sub_9BC4(int a1, __int16 a2, int a3)
+/* ===== pmic_write_reg @ 0x9BC4 size 32 ===== */
+__int64 __fastcall pmic_write_reg(int a1, __int16 a2, int a3)
 {
   int v4; // w19
   int v5; // w19
@@ -2704,7 +2704,7 @@ __int64 __fastcall sub_9BC4(int a1, __int16 a2, int a3)
     return 0xFFFFFFFFLL;
   MEMORY[0xF040] = a1;
   MEMORY[0xF044] = a2;
-  sub_9A04((unsigned __int64 *)&off_E1E8, 0);
+  pmic_fifo_next((unsigned __int64 *)&off_E1E8, 0);
   while ( (MEMORY[0x40380030] & 0x800) == 0 )
   {
     if ( MEMORY[0xF034] == 0 )
@@ -2714,7 +2714,7 @@ __int64 __fastcall sub_9BC4(int a1, __int16 a2, int a3)
       goto LABEL_11;
     }
     *(_DWORD *)MEMORY[0xF040] = MEMORY[0xF044];
-    sub_9A04((unsigned __int64 *)&off_E1E0, 1);
+    pmic_fifo_next((unsigned __int64 *)&off_E1E0, 1);
   }
   if ( a3 == 0 && MEMORY[0xF034] != 16 )
     return 0;
@@ -2724,27 +2724,27 @@ LABEL_11:
   {
     if ( --v4 == 0 )
       break;
-    sub_9FCC(2);
+    pmic_delay_us(2);
   }
   while ( MEMORY[0xF034] != 0 )
   {
     while ( (MEMORY[0x40380030] & 0x800) != 0 )
       ;
     *(_DWORD *)MEMORY[0xF040] = MEMORY[0xF044];
-    sub_9A04((unsigned __int64 *)&off_E1E0, 1);
+    pmic_fifo_next((unsigned __int64 *)&off_E1E0, 1);
   }
   v5 = 1000;
   while ( (MEMORY[0x40380030] & 0x400) == 0 )
   {
     if ( --v5 == 0 )
       break;
-    sub_9FCC(2);
+    pmic_delay_us(2);
   }
   return 0;
 }
 
-/* ===== sub_9BE4 @ 0x9BE4 size 108 ===== */
-__int64 __fastcall sub_9BE4(unsigned int a1, __int16 a2, __int16 a3)
+/* ===== pmic_update_reg @ 0x9BE4 size 108 ===== */
+__int64 __fastcall pmic_update_reg(unsigned int a1, __int16 a2, __int16 a3)
 {
   int v3; // w19
   int v4; // w19
@@ -2752,51 +2752,51 @@ __int64 __fastcall sub_9BE4(unsigned int a1, __int16 a2, __int16 a3)
 
   if ( a1 - 1077411840 > 0x9000 )
     return 0xFFFFFFFFLL;
-  result = sub_99A4(a1);
+  result = pmic_reg_read(a1);
   if ( (result & 0x80000000) == 0 )
   {
     MEMORY[0xF040] = a1;
     MEMORY[0xF044] = result & ~a3 | a2;
-    sub_9A04((unsigned __int64 *)&off_E1E8, 0);
+    pmic_fifo_next((unsigned __int64 *)&off_E1E8, 0);
     while ( (MEMORY[0x40380030] & 0x800) == 0 && MEMORY[0xF034] != 0 )
     {
       *(_DWORD *)MEMORY[0xF040] = MEMORY[0xF044];
-      sub_9A04((unsigned __int64 *)&off_E1E0, 1);
+      pmic_fifo_next((unsigned __int64 *)&off_E1E0, 1);
     }
     v3 = 1000;
     while ( (MEMORY[0x40380030] & 0x400) == 0 )
     {
       if ( --v3 == 0 )
         break;
-      sub_9FCC(2);
+      pmic_delay_us(2);
     }
     while ( MEMORY[0xF034] != 0 )
     {
       while ( (MEMORY[0x40380030] & 0x800) != 0 )
         ;
       *(_DWORD *)MEMORY[0xF040] = MEMORY[0xF044];
-      sub_9A04((unsigned __int64 *)&off_E1E0, 1);
+      pmic_fifo_next((unsigned __int64 *)&off_E1E0, 1);
     }
     v4 = 1000;
     while ( (MEMORY[0x40380030] & 0x400) == 0 )
     {
       if ( --v4 == 0 )
         break;
-      sub_9FCC(2);
+      pmic_delay_us(2);
     }
     return 0;
   }
   return result;
 }
 
-/* ===== sub_9C50 @ 0x9C50 size 172 ===== */
-__int64 sub_9C50()
+/* ===== pmic_init @ 0x9C50 size 172 ===== */
+__int64 pmic_init()
 {
   __int64 result; // x0
 
   MEMORY[0x402E0000] |= 0x10000u;
   MEMORY[0x402E0008] |= 0x20000u;
-  sub_9FCC(2);
+  pmic_delay_us(2);
   MEMORY[0x402E0008] &= ~0x20000u;
   MEMORY[0x40380008] = 0;
   MEMORY[0x4038000C] = 0;
@@ -2807,13 +2807,13 @@ __int64 sub_9C50()
   return result;
 }
 
-/* ===== sub_9CFC @ 0x9CFC size 124 ===== */
-char **__fastcall sub_9CFC(__int64 a1)
+/* ===== pmic_find_reg @ 0x9CFC size 124 ===== */
+char **__fastcall pmic_find_reg(__int64 a1)
 {
   __int64 v1; // x20
 
   v1 = 0;
-  while ( (unsigned int)sub_997C((__int64)(&off_E1F0)[5 * v1], a1) != 0 )
+  while ( (unsigned int)strcmp_simple((__int64)(&off_E1F0)[5 * v1], a1) != 0 )
   {
     if ( ++v1 == 8 )
       return nullptr;
@@ -2823,8 +2823,8 @@ char **__fastcall sub_9CFC(__int64 a1)
   return nullptr;
 }
 
-/* ===== sub_9D78 @ 0x9D78 size 192 ===== */
-__int64 __fastcall sub_9D78(__int64 a1, int a2)
+/* ===== pmic_set_voltage_step @ 0x9D78 size 192 ===== */
+__int64 __fastcall pmic_set_voltage_step(__int64 a1, int a2)
 {
   int v2; // w21
   char **v3; // x0
@@ -2837,7 +2837,7 @@ __int64 __fastcall sub_9D78(__int64 a1, int a2)
   __int16 v10; // w0
 
   v2 = 0;
-  v3 = sub_9CFC(a1);
+  v3 = pmic_find_reg(a1);
   v4 = *((_DWORD *)v3 + 8);
   v5 = v3;
   v6 = v4;
@@ -2857,23 +2857,23 @@ __int64 __fastcall sub_9D78(__int64 a1, int a2)
   v9 = v4 >> v2;
   if ( v8 > v9 )
     LOWORD(v8) = v9;
-  v10 = sub_9BA8(v7);
-  sub_9BC4(*((_DWORD *)v5 + 7), (_WORD)v5[4] & ((_WORD)v8 << v2) | v10 & ~*((_WORD *)v5 + 16), 1);
+  v10 = pmic_read_reg(v7);
+  pmic_write_reg(*((_DWORD *)v5 + 7), (_WORD)v5[4] & ((_WORD)v8 << v2) | v10 & ~*((_WORD *)v5 + 16), 1);
   return 0;
 }
 
-/* ===== sub_9E38 @ 0x9E38 size 100 ===== */
-__int64 sub_9E38()
+/* ===== pmic_set_defaults @ 0x9E38 size 100 ===== */
+__int64 pmic_set_defaults()
 {
-  sub_9BC4(1077448316, 463, 1);
-  sub_9BE4(0x40388CF4u, 1, 0);
-  sub_9BE4(0x40388D00u, 1, 0);
-  sub_9BC4(1077448444, 28287, 1);
+  pmic_write_reg(1077448316, 463, 1);
+  pmic_update_reg(0x40388CF4u, 1, 0);
+  pmic_update_reg(0x40388D00u, 1, 0);
+  pmic_write_reg(1077448444, 28287, 1);
   return 0;
 }
 
-/* ===== sub_9E9C @ 0x9E9C size 120 ===== */
-__int64 __fastcall sub_9E9C(__int64 a1)
+/* ===== pmic_read_voltage @ 0x9E9C size 120 ===== */
+__int64 __fastcall pmic_read_voltage(__int64 a1)
 {
   char **v1; // x0
   unsigned int v2; // w1
@@ -2884,13 +2884,13 @@ __int64 __fastcall sub_9E9C(__int64 a1)
   int v7; // w2
   unsigned int v8; // w0
 
-  v1 = sub_9CFC(a1);
+  v1 = pmic_find_reg(a1);
   v2 = *((_DWORD *)v1 + 7);
   v3 = v1;
   result = 0xFFFFFFFFLL;
   if ( v2 != 0 )
   {
-    v5 = sub_9BA8(v2);
+    v5 = pmic_read_reg(v2);
     v6 = *((_DWORD *)v3 + 8);
     v7 = 0;
     v8 = v5 & v6;
@@ -2907,16 +2907,16 @@ __int64 __fastcall sub_9E9C(__int64 a1)
   return result;
 }
 
-/* ===== sub_9F14 @ 0x9F14 size 184 ===== */
-__int64 __fastcall sub_9F14(__int64 a1, int a2)
+/* ===== pmic_set_voltage @ 0x9F14 size 184 ===== */
+__int64 __fastcall pmic_set_voltage(__int64 a1, int a2)
 {
   int v4; // w0
   int v5; // w19
 
-  v4 = (_WORD)sub_9CFC(a1)[1] & 0xF;
+  v4 = (_WORD)pmic_find_reg(a1)[1] & 0xF;
   if ( v4 == 2 )
   {
-    v5 = sub_9E9C(a1);
+    v5 = pmic_read_voltage(a1);
     if ( v5 >= a2 )
     {
       do
@@ -2924,7 +2924,7 @@ __int64 __fastcall sub_9F14(__int64 a1, int a2)
         v5 -= 25;
         if ( a2 >= v5 )
           v5 = a2;
-        sub_9D78(a1, v5);
+        pmic_set_voltage_step(a1, v5);
       }
       while ( v5 > a2 );
     }
@@ -2935,20 +2935,20 @@ __int64 __fastcall sub_9F14(__int64 a1, int a2)
         v5 += 25;
         if ( a2 <= v5 )
           v5 = a2;
-        sub_9D78(a1, v5);
+        pmic_set_voltage_step(a1, v5);
       }
       while ( v5 < a2 );
     }
   }
   else if ( v4 == 0 )
   {
-    return sub_9D78(a1, a2);
+    return pmic_set_voltage_step(a1, a2);
   }
   return 0;
 }
 
-/* ===== sub_9FCC @ 0x9FCC size 84 ===== */
-__int64 __fastcall sub_9FCC(int a1)
+/* ===== pmic_delay_us @ 0x9FCC size 84 ===== */
+__int64 __fastcall pmic_delay_us(int a1)
 {
   __int64 result; // x0
 
@@ -2961,8 +2961,8 @@ __int64 __fastcall sub_9FCC(int a1)
   return result;
 }
 
-/* ===== sub_A020 @ 0xA020 size 76 ===== */
-__int64 __fastcall sub_A020(int a1)
+/* ===== pmic_delay_us2 @ 0xA020 size 76 ===== */
+__int64 __fastcall pmic_delay_us2(int a1)
 {
   __int64 result; // x0
 
@@ -2975,8 +2975,8 @@ __int64 __fastcall sub_A020(int a1)
   return result;
 }
 
-/* ===== sub_A06C @ 0xA06C size 60 ===== */
-__int64 sub_A06C()
+/* ===== get_timer @ 0xA06C size 60 ===== */
+__int64 get_timer()
 {
   __int64 result; // x0
   unsigned int i; // w1
@@ -2987,8 +2987,8 @@ __int64 sub_A06C()
   return result;
 }
 
-/* ===== sub_A0A8 @ 0xA0A8 size 76 ===== */
-__int64 sub_A0A8()
+/* ===== emmc_phy_init @ 0xA0A8 size 76 ===== */
+__int64 emmc_phy_init()
 {
   __int64 result; // x0
 
@@ -2999,8 +2999,8 @@ __int64 sub_A0A8()
   return result;
 }
 
-/* ===== sub_A0F4 @ 0xA0F4 size 96 ===== */
-__int64 __fastcall sub_A0F4(__int64 result)
+/* ===== cache_clean_invalidate_lvl @ 0xA0F4 size 96 ===== */
+__int64 __fastcall cache_clean_invalidate_lvl(__int64 result)
 {
   unsigned __int64 StatusReg; // x6
   __int64 v2; // x3
@@ -3028,8 +3028,8 @@ __int64 __fastcall sub_A0F4(__int64 result)
   return result;
 }
 
-/* ===== sub_A154 @ 0xA154 size 92 ===== */
-void sub_A154()
+/* ===== cache_clean_all @ 0xA154 size 92 ===== */
+void cache_clean_all()
 {
   unsigned __int64 StatusReg; // x10
   __int64 v1; // x11
@@ -3043,7 +3043,7 @@ void sub_A154()
     for ( i = 0; i < v1; ++i )
     {
       if ( ((StatusReg >> (3 * (unsigned __int8)i)) & 7) >= 2 )
-        i = sub_A0F4(i);
+        i = cache_clean_invalidate_lvl(i);
     }
     _WriteStatusReg(CSSELR_EL1, 0);
     __dsb(0xFu);
@@ -3051,8 +3051,8 @@ void sub_A154()
   }
 }
 
-/* ===== sub_A1B0 @ 0xA1B0 size 52 ===== */
-unsigned __int64 __fastcall sub_A1B0(__int64 a1, unsigned __int64 a2)
+/* ===== dcache_clean_range @ 0xA1B0 size 52 ===== */
+unsigned __int64 __fastcall dcache_clean_range(__int64 a1, unsigned __int64 a2)
 {
   __int64 v2; // x2
   unsigned __int64 result; // x0
@@ -3069,15 +3069,15 @@ unsigned __int64 __fastcall sub_A1B0(__int64 a1, unsigned __int64 a2)
   return result;
 }
 
-/* ===== sub_A1E4 @ 0xA1E4 size 12 ===== */
-void sub_A1E4()
+/* ===== icache_invalidate_all @ 0xA1E4 size 12 ===== */
+void icache_invalidate_all()
 {
   __asm { IC              IALLUIS }
   __isb(0xFu);
 }
 
-/* ===== sub_A1F0 @ 0xA1F0 size 76 ===== */
-void sub_A1F0()
+/* ===== tlb_invalidate_all @ 0xA1F0 size 76 ===== */
+void tlb_invalidate_all()
 {
   unsigned __int64 StatusReg; // x9
 
@@ -3105,8 +3105,8 @@ LABEL_4:
   }
 }
 
-/* ===== sub_A23C @ 0xA23C size 244 ===== */
-__int64 __fastcall sub_A23C(__int64 a1, __int64 a2, unsigned int a3, unsigned int a4, __int64 a5)
+/* ===== emmc_read_sectors @ 0xA23C size 244 ===== */
+__int64 __fastcall emmc_read_sectors(__int64 a1, __int64 a2, unsigned int a3, unsigned int a4, __int64 a5)
 {
   unsigned __int64 v5; // x20
   unsigned __int64 v7; // x21
@@ -3120,7 +3120,7 @@ __int64 __fastcall sub_A23C(__int64 a1, __int64 a2, unsigned int a3, unsigned in
   v8 = a4 % v5;
   if ( a5 != 0 )
   {
-    v9 = sub_B50C();
+    v9 = emmc_check_ready();
     if ( v9 == 0
       && (v7 == 0
        || (*(__int64 (__fastcall **)(_QWORD, __int64, unsigned __int64, __int64))(a1 + 112))(
@@ -3137,7 +3137,7 @@ __int64 __fastcall sub_A23C(__int64 a1, __int64 a2, unsigned int a3, unsigned in
              1,
              v13) == 1 )
       {
-        sub_9924(a5 + v7 * *(_QWORD *)(a1 + 24), (__int64)v13, (unsigned int)v8);
+        memcpy_simple(a5 + v7 * *(_QWORD *)(a1 + 24), (__int64)v13, (unsigned int)v8);
         return v9;
       }
     }
@@ -3145,20 +3145,20 @@ __int64 __fastcall sub_A23C(__int64 a1, __int64 a2, unsigned int a3, unsigned in
   return (unsigned int)-1;
 }
 
-/* ===== sub_A330 @ 0xA330 size 112 ===== */
-__int64 __fastcall sub_A330(__int64 a1, unsigned int a2, __int64 a3)
+/* ===== emmc_load_image @ 0xA330 size 112 ===== */
+__int64 __fastcall emmc_load_image(__int64 a1, unsigned int a2, __int64 a3)
 {
   int v6; // w19
   __int64 v7; // x20
   __int64 result; // x0
 
   v6 = 5;
-  v7 = sub_B508();
+  v7 = get_emmc_ctrl();
   if ( v7 == 0 )
     return 0xFFFFFFFFLL;
   while ( 1 )
   {
-    result = sub_A23C(v7, a1, 0, a2, a3);
+    result = emmc_read_sectors(v7, a1, 0, a2, a3);
     if ( (_DWORD)result == 0 )
       break;
     if ( --v6 == 0 )
@@ -3167,8 +3167,8 @@ __int64 __fastcall sub_A330(__int64 a1, unsigned int a2, __int64 a3)
   return result;
 }
 
-/* ===== sub_A3A0 @ 0xA3A0 size 188 ===== */
-__int64 __fastcall sub_A3A0(__int64 a1, unsigned int a2, __int64 a3, __int64 a4)
+/* ===== emmc_load_uboot @ 0xA3A0 size 188 ===== */
+__int64 __fastcall emmc_load_uboot(__int64 a1, unsigned int a2, __int64 a3, __int64 a4)
 {
   int v8; // w20
   __int64 v9; // x19
@@ -3177,10 +3177,10 @@ __int64 __fastcall sub_A3A0(__int64 a1, unsigned int a2, __int64 a3, __int64 a4)
   int v12; // w21
 
   v8 = 5;
-  v9 = sub_B508();
+  v9 = get_emmc_ctrl();
   if ( v9 == 0 )
     return 0xFFFFFFFFLL;
-  while ( (unsigned int)sub_A23C(v9, a1, 0, 0x200u, a4) != 0 )
+  while ( (unsigned int)emmc_read_sectors(v9, a1, 0, 0x200u, a4) != 0 )
   {
     if ( --v8 == 0 )
       return 0xFFFFFFFFLL;
@@ -3192,7 +3192,7 @@ __int64 __fastcall sub_A3A0(__int64 a1, unsigned int a2, __int64 a3, __int64 a4)
     v12 = 5;
     while ( 1 )
     {
-      result = sub_A23C(v9, a1, 0x200uLL / *(_QWORD *)(v9 + 24), v11, a3);
+      result = emmc_read_sectors(v9, a1, 0x200uLL / *(_QWORD *)(v9 + 24), v11, a3);
       if ( (_DWORD)result == 0 )
         break;
       if ( --v12 == 0 )
@@ -3202,8 +3202,8 @@ __int64 __fastcall sub_A3A0(__int64 a1, unsigned int a2, __int64 a3, __int64 a4)
   return result;
 }
 
-/* ===== sub_A45C @ 0xA45C size 420 ===== */
-__int64 sub_A45C()
+/* ===== spl_load_and_jump @ 0xA45C size 420 ===== */
+__int64 spl_load_and_jump()
 {
   __int64 v0; // x0
   __int64 v1; // x0
@@ -3212,26 +3212,26 @@ __int64 sub_A45C()
   __int64 v4; // x0
   __int64 v5; // x0
 
-  v0 = sub_D1E0();
-  v1 = sub_B210(v0);
+  v0 = emmc_pinctrl_init();
+  v1 = emmc_controller_init(v0);
   if ( (_DWORD)v1 == 1 )
   {
-    sub_A330((__int64)"trustos", 0x400000u, 2483158528LL);
-    sub_A330((__int64)"sml", 0x10000u, 2483027456LL);
-    v1 = sub_A3A0((__int64)"uboot", 0x100000u, 2667577344LL, 2667576832LL);
+    emmc_load_image((__int64)"trustos", 0x400000u, 2483158528LL);
+    emmc_load_image((__int64)"sml", 0x10000u, 2483027456LL);
+    v1 = emmc_load_uboot((__int64)"uboot", 0x100000u, 2667577344LL, 2667576832LL);
   }
-  v2 = sub_B73C(v1);
-  v3 = sub_D1C8(v2);
+  v2 = sec_boot_check(v1);
+  v3 = secure_boot_init(v2);
   v4 = nullsub_2(v3);
-  v5 = sub_B4F8(v4);
-  sub_D3D4(v5);
-  sub_555C(260);
+  v5 = emmc_deinit(v4);
+  emmc_dma_init(v5);
+  smc_set_mode(260);
   MEMORY[0x94000000]();
-  return sub_A600();
+  return set_irq_mask();
 }
 
-/* ===== sub_A600 @ 0xA600 size 224 ===== */
-_DWORD *__fastcall sub_A600(_QWORD *a1, __int16 a2)
+/* ===== set_irq_mask @ 0xA600 size 224 ===== */
+_DWORD *__fastcall set_irq_mask(_QWORD *a1, __int16 a2)
 {
   _DWORD *result; // x0
   int v3; // [xsp+Ch] [xbp-4h]
@@ -3264,8 +3264,8 @@ _DWORD *__fastcall sub_A600(_QWORD *a1, __int16 a2)
   return result;
 }
 
-/* ===== sub_A6E0 @ 0xA6E0 size 364 ===== */
-__int64 __fastcall sub_A6E0(__int64 *a1, __int16 a2)
+/* ===== set_irq_status @ 0xA6E0 size 364 ===== */
+__int64 __fastcall set_irq_status(__int64 *a1, __int16 a2)
 {
   int v2; // w2
   __int64 result; // x0
@@ -3320,8 +3320,8 @@ __int64 __fastcall sub_A6E0(__int64 *a1, __int16 a2)
   return result;
 }
 
-/* ===== sub_A84C @ 0xA84C size 248 ===== */
-__int64 __fastcall sub_A84C(__int64 result, int a2)
+/* ===== emmc_irq_handler @ 0xA84C size 248 ===== */
+__int64 __fastcall emmc_irq_handler(__int64 result, int a2)
 {
   __int16 v2; // w19
   int v3; // w1
@@ -3370,7 +3370,7 @@ LABEL_10:
     v6 = *(_DWORD *)(MEMORY[0xF0C8] + 92LL);
     *(_DWORD *)(MEMORY[0xF0C8] + 88LL) = *(_DWORD *)(MEMORY[0xF0C8] + 88LL);
     *(_DWORD *)(v5 + 92) = v6;
-    result = sub_A6E0((__int64 *)0xF0C8, 64);
+    result = set_irq_status((__int64 *)0xF0C8, 64);
   }
   if ( (v2 & 0x200) != 0 )
   {
@@ -3381,8 +3381,8 @@ LABEL_10:
   return result;
 }
 
-/* ===== sub_A944 @ 0xA944 size 156 ===== */
-__int64 __fastcall sub_A944(_DWORD *a1, int a2)
+/* ===== emmc_set_clk_div @ 0xA944 size 156 ===== */
+__int64 __fastcall emmc_set_clk_div(_DWORD *a1, int a2)
 {
   unsigned int v2; // w4
   unsigned int v3; // w1
@@ -3414,8 +3414,8 @@ __int64 __fastcall sub_A944(_DWORD *a1, int a2)
   return v7;
 }
 
-/* ===== sub_A9E0 @ 0xA9E0 size 1356 ===== */
-__int64 __fastcall sub_A9E0(__int64 *a1, unsigned int a2, int a3, __int64 a4, _BYTE *a5)
+/* ===== emmc_send_cmd @ 0xA9E0 size 1356 ===== */
+__int64 __fastcall emmc_send_cmd(__int64 *a1, unsigned int a2, int a3, __int64 a4, _BYTE *a5)
 {
   __int64 v6; // x19
   __int64 v9; // x0
@@ -3458,7 +3458,7 @@ __int64 __fastcall sub_A9E0(__int64 *a1, unsigned int a2, int a3, __int64 a4, _B
 
   v6 = a2;
   *(_DWORD *)(*a1 + 44) |= 4u;
-  sub_A600(a1, 1023);
+  set_irq_mask(a1, 1023);
   v9 = *a1;
   v39 = *(_DWORD *)(*a1 + 52);
   *(_DWORD *)(v9 + 52) &= ~0x100000u;
@@ -3473,7 +3473,7 @@ __int64 __fastcall sub_A9E0(__int64 *a1, unsigned int a2, int a3, __int64 a4, _B
     v13 = v12;
   if ( a4 != 0 )
     v13 |= 0x40u;
-  sub_A6E0(a1, v13);
+  set_irq_status(a1, v13);
   *((_DWORD *)a1 + 9) = 0;
   *((_DWORD *)a1 + 8) = 0;
   v14 = *a1;
@@ -3578,7 +3578,7 @@ LABEL_28:
       v25 |= 0x100u;
     if ( (*(_DWORD *)(MEMORY[0xF0C8] + 48LL) & 0x10000) != 0 )
       v25 |= 0x200u;
-    sub_A600((_QWORD *)0xF0C8, v24);
+    set_irq_mask((_QWORD *)0xF0C8, v24);
     MEMORY[0xF0E0](v24, v25);
   }
   v26 = (_DWORD *)*a1;
@@ -3650,37 +3650,37 @@ LABEL_28:
   return result;
 }
 
-/* ===== sub_AF2C @ 0xAF2C size 112 ===== */
-__int64 __fastcall sub_AF2C(__int64 *a1)
+/* ===== emmc_wait_cmd_done @ 0xAF2C size 112 ===== */
+__int64 __fastcall emmc_wait_cmd_done(__int64 *a1)
 {
   int v2; // w19
   _BYTE v4[16]; // [xsp+30h] [xbp+30h] BYREF
 
-  v2 = sub_A06C();
-  while ( (unsigned int)sub_A9E0(a1, 8u, 0x10000, 0, v4) != 0 || (v4[2] & 1) == 0 )
+  v2 = get_timer();
+  while ( (unsigned int)emmc_send_cmd(a1, 8u, 0x10000, 0, v4) != 0 || (v4[2] & 1) == 0 )
   {
-    if ( (unsigned int)sub_A06C() - v2 > 0xBB8 )
+    if ( (unsigned int)get_timer() - v2 > 0xBB8 )
       return 0;
   }
   return 1;
 }
 
-/* ===== sub_AF9C @ 0xAF9C size 96 ===== */
-__int64 __fastcall sub_AF9C(__int64 *a1, unsigned __int8 a2, unsigned __int8 a3)
+/* ===== emmc_send_cmd_wait @ 0xAF9C size 96 ===== */
+__int64 __fastcall emmc_send_cmd_wait(__int64 *a1, unsigned __int8 a2, unsigned __int8 a3)
 {
   int v4; // w0
   unsigned int v5; // w1
   char v7; // [xsp+20h] [xbp+20h] BYREF
 
-  v4 = sub_A9E0(a1, 0xBu, (a3 << 8) | 0x3000001 | (a2 << 16), 0, &v7);
+  v4 = emmc_send_cmd(a1, 0xBu, (a3 << 8) | 0x3000001 | (a2 << 16), 0, &v7);
   v5 = 0;
   if ( v4 == 0 )
-    return (unsigned int)sub_AF2C(a1) != 0;
+    return (unsigned int)emmc_wait_cmd_done(a1) != 0;
   return v5;
 }
 
-/* ===== sub_AFFC @ 0xAFFC size 408 ===== */
-bool __fastcall sub_AFFC(int a1, int a2, int a3, __int64 a4)
+/* ===== emmc_transfer_blocks @ 0xAFFC size 408 ===== */
+bool __fastcall emmc_transfer_blocks(int a1, int a2, int a3, __int64 a4)
 {
   int v8; // w0
   BOOL v9; // w1
@@ -3697,7 +3697,7 @@ bool __fastcall sub_AFFC(int a1, int a2, int a3, __int64 a4)
 
   if ( *(_DWORD *)(MEMORY[0xF0C0] + 52LL) == a1 )
     goto LABEL_13;
-  v8 = sub_A9E0(MEMORY[0xF0C0], 8u, 0x10000, 0, v16);
+  v8 = emmc_send_cmd(MEMORY[0xF0C0], 8u, 0x10000, 0, v16);
   v9 = false;
   if ( v8 == 0 )
   {
@@ -3719,7 +3719,7 @@ bool __fastcall sub_AFFC(int a1, int a2, int a3, __int64 a4)
     {
       v12 = 8;
     }
-    if ( (unsigned int)sub_AF9C(MEMORY[0xF0C0], 0xB3u, v12) != 0 )
+    if ( (unsigned int)emmc_send_cmd_wait(MEMORY[0xF0C0], 0xB3u, v12) != 0 )
     {
       *(_DWORD *)(v10 + 52) = a1;
 LABEL_13:
@@ -3730,19 +3730,19 @@ LABEL_13:
         v19 = a3;
         v17 = a4;
         v18 = *(_DWORD *)(MEMORY[0xF0C0] + 48LL);
-        if ( (unsigned int)sub_AF2C(MEMORY[0xF0C0]) == 0 || (unsigned int)sub_A9E0((__int64 *)v14, 9u, 512, 0, v20) != 0 )
+        if ( (unsigned int)emmc_wait_cmd_done(MEMORY[0xF0C0]) == 0 || (unsigned int)emmc_send_cmd((__int64 *)v14, 9u, 512, 0, v20) != 0 )
           goto LABEL_18;
         *(_DWORD *)(v14 + 48) = 512;
-        if ( (unsigned int)sub_A9E0((__int64 *)v14, 0xAu, a2, (__int64)&v17, v20) != 0 )
+        if ( (unsigned int)emmc_send_cmd((__int64 *)v14, 0xAu, a2, (__int64)&v17, v20) != 0 )
           break;
-        v9 = sub_A9E0((__int64 *)v14, 7u, 0, 0, v20) == 0;
+        v9 = emmc_send_cmd((__int64 *)v14, 7u, 0, 0, v20) == 0;
         if ( v9 )
           return true;
 LABEL_20:
         if ( --v13 == 0 )
           return v9;
       }
-      sub_A9E0((__int64 *)v14, 7u, 0, 0, v20);
+      emmc_send_cmd((__int64 *)v14, 7u, 0, 0, v20);
 LABEL_18:
       v9 = false;
       goto LABEL_20;
@@ -3752,33 +3752,33 @@ LABEL_18:
   return v9;
 }
 
-/* ===== sub_B194 @ 0xB194 size 12 ===== */
-__int64 sub_B194()
+/* ===== get_emmc_base @ 0xB194 size 12 ===== */
+__int64 get_emmc_base()
 {
   return 61696;
 }
 
-/* ===== sub_B1A0 @ 0xB1A0 size 56 ===== */
-__int64 __fastcall sub_B1A0(unsigned int a1)
+/* ===== delay_ticks @ 0xB1A0 size 56 ===== */
+__int64 __fastcall delay_ticks(unsigned int a1)
 {
   int v2; // w0
   int v3; // w19
   __int64 result; // x0
 
-  v2 = sub_A06C();
+  v2 = get_timer();
   v3 = v2;
   while ( 1 )
   {
     result = (unsigned int)(v2 - v3);
     if ( (unsigned int)result >= a1 )
       break;
-    v2 = sub_A06C();
+    v2 = get_timer();
   }
   return result;
 }
 
-/* ===== sub_B1D8 @ 0xB1D8 size 56 ===== */
-__int64 __fastcall sub_B1D8(__int64 *a1, int a2)
+/* ===== emmc_clock_gate @ 0xB1D8 size 56 ===== */
+__int64 __fastcall emmc_clock_gate(__int64 *a1, int a2)
 {
   __int64 result; // x0
   bool v3; // zf
@@ -3794,13 +3794,13 @@ __int64 __fastcall sub_B1D8(__int64 *a1, int a2)
   else if ( (v4 & 4) != 0 )
   {
     *(_DWORD *)(result + 44) &= ~4u;
-    return sub_B1A0(1u);
+    return delay_ticks(1u);
   }
   return result;
 }
 
-/* ===== sub_B210 @ 0xB210 size 744 ===== */
-__int64 sub_B210()
+/* ===== emmc_controller_init @ 0xB210 size 744 ===== */
+__int64 emmc_controller_init()
 {
   __int64 v0; // x0
   __int64 v1; // x20
@@ -3814,22 +3814,22 @@ __int64 sub_B210()
 
   MEMORY[0xF0C8] = 543162368;
   MEMORY[0x20E00000] |= 0x800u;
-  sub_B1D8((__int64 *)0xF0C8, 0);
+  emmc_clock_gate((__int64 *)0xF0C8, 0);
   MEMORY[0x20E00004] |= 0x4000u;
-  sub_B1A0(1u);
+  delay_ticks(1u);
   MEMORY[0x20E00004] &= ~0x4000u;
   MEMORY[0xF0D0] = 1;
   MEMORY[0xF0D4] = 384000000;
   MEMORY[0xF0DC] = 0;
-  MEMORY[0xF0E0] = sub_A84C;
+  MEMORY[0xF0E0] = emmc_irq_handler;
   MEMORY[0xF0C0] = 0xF0C8u;
-  sub_B1D8((__int64 *)0xF0C8, 0);
+  emmc_clock_gate((__int64 *)0xF0C8, 0);
   v0 = MEMORY[0xF0C8];
   *(_DWORD *)(MEMORY[0xF0C8] + 44LL) |= 0x1000000u;
   while ( (*(_DWORD *)(v0 + 44) & 0x1000000) != 0 )
     ;
   MEMORY[0x21500090] = 3;
-  sub_A944((_DWORD *)0xF0C8, 400000);
+  emmc_set_clk_div((_DWORD *)0xF0C8, 400000);
   v1 = MEMORY[0xF0C8];
   *(_DWORD *)(MEMORY[0xF0C8] + 44LL) |= 1u;
   while ( (*(_DWORD *)(v1 + 44) & 2) == 0 )
@@ -3843,26 +3843,26 @@ __int64 sub_B210()
   *(_DWORD *)(v2 + 44) = 0;
   *(_DWORD *)(v3 + 60) |= 0x20000000u;
   *(_DWORD *)(v3 + 40) &= 0xFFFFFFE7;
-  if ( (unsigned int)sub_A9E0((__int64 *)v2, 0, 0, 0, v8) != 0 )
+  if ( (unsigned int)emmc_send_cmd((__int64 *)v2, 0, 0, 0, v8) != 0 )
     goto LABEL_6;
-  v5 = sub_A06C();
+  v5 = get_timer();
   while ( 1 )
   {
-    while ( (unsigned int)sub_A9E0((__int64 *)v2, 1u, 1090486272, 0, v8) != 0 )
+    while ( (unsigned int)emmc_send_cmd((__int64 *)v2, 1u, 1090486272, 0, v8) != 0 )
       ;
     if ( (v8[0] & 0x80000000) != 0 )
       break;
-    if ( (unsigned int)sub_A06C() - v5 > 0x2710 )
+    if ( (unsigned int)get_timer() - v5 > 0x2710 )
       goto LABEL_6;
   }
-  if ( (unsigned int)sub_A9E0((__int64 *)v2, 2u, 0, 0, v8) != 0
-    || (unsigned int)sub_A9E0((__int64 *)v2, 3u, 0x10000, 0, v8) != 0
-    || (unsigned int)sub_A9E0((__int64 *)v2, 5u, 0x10000, 0, v8) != 0
-    || (unsigned int)sub_AF9C((__int64 *)v2, 0xB9u, 1u) == 0
-    || (sub_B1D8((__int64 *)v2, 0),
-        sub_A944((_DWORD *)v2, 48000000),
+  if ( (unsigned int)emmc_send_cmd((__int64 *)v2, 2u, 0, 0, v8) != 0
+    || (unsigned int)emmc_send_cmd((__int64 *)v2, 3u, 0x10000, 0, v8) != 0
+    || (unsigned int)emmc_send_cmd((__int64 *)v2, 5u, 0x10000, 0, v8) != 0
+    || (unsigned int)emmc_send_cmd_wait((__int64 *)v2, 0xB9u, 1u) == 0
+    || (emmc_clock_gate((__int64 *)v2, 0),
+        emmc_set_clk_div((_DWORD *)v2, 48000000),
         *(_DWORD *)(*(_QWORD *)v2 + 44LL) |= 4u,
-        (unsigned int)sub_AF9C((__int64 *)v2, 0xB7u, 2u) == 0) )
+        (unsigned int)emmc_send_cmd_wait((__int64 *)v2, 0xB7u, 2u) == 0) )
   {
 LABEL_6:
     v4 = 0;
@@ -3871,7 +3871,7 @@ LABEL_6:
   {
     *(_DWORD *)(*(_QWORD *)v2 + 40LL) = *(_DWORD *)(*(_QWORD *)v2 + 40LL) & 0xFFFFFFDD | 0x20;
     *(_DWORD *)(v2 + 44) = 2;
-    v6 = sub_A9E0((__int64 *)v2, 9u, 512, 0, &v9);
+    v6 = emmc_send_cmd((__int64 *)v2, 9u, 512, 0, &v9);
     v4 = 0;
     if ( v6 == 0 )
     {
@@ -3882,35 +3882,35 @@ LABEL_6:
   MEMORY[0xF108] = 5;
   MEMORY[0xF118] = 512;
   MEMORY[0xF104] = 0;
-  MEMORY[0xF170] = sub_AFFC;
+  MEMORY[0xF170] = emmc_transfer_blocks;
   return v4;
 }
 
-/* ===== sub_B4F8 @ 0xB4F8 size 16 ===== */
-__int64 sub_B4F8()
+/* ===== emmc_deinit @ 0xB4F8 size 16 ===== */
+__int64 emmc_deinit()
 {
-  return sub_B1D8(MEMORY[0xF0C0], 0);
+  return emmc_clock_gate(MEMORY[0xF0C0], 0);
 }
 
-/* ===== sub_B508 @ 0xB508 size 4 ===== */
+/* ===== get_emmc_ctrl @ 0xB508 size 4 ===== */
 // attributes: thunk
-__int64 sub_B508(void)
+__int64 get_emmc_ctrl(void)
 {
-  return sub_B194();
+  return get_emmc_base();
 }
 
-/* ===== sub_B50C @ 0xB50C size 48 ===== */
-__int64 __fastcall sub_B50C(__int64 a1)
+/* ===== emmc_check_ready @ 0xB50C size 48 ===== */
+__int64 __fastcall emmc_check_ready(__int64 a1)
 {
   if ( *(_BYTE *)(a1 + 8) != 5 )
     return 0xFFFFFFFFLL;
-  if ( (unsigned int)sub_B600() != 0 )
+  if ( (unsigned int)emmc_find_partition() != 0 )
     return 0xFFFFFFFFLL;
   return 0;
 }
 
-/* ===== sub_B53C @ 0xB53C size 80 ===== */
-__int64 __fastcall sub_B53C(__int64 a1, __int64 a2, int a3, __int64 a4)
+/* ===== emmc_read_gpt_entry @ 0xB53C size 80 ===== */
+__int64 __fastcall emmc_read_gpt_entry(__int64 a1, __int64 a2, int a3, __int64 a4)
 {
   if ( a1 != 0
     && a2 != 0
@@ -3927,8 +3927,8 @@ __int64 __fastcall sub_B53C(__int64 a1, __int64 a2, int a3, __int64 a4)
   }
 }
 
-/* ===== sub_B58C @ 0xB58C size 116 ===== */
-bool __fastcall sub_B58C(__int64 a1, __int64 a2, _QWORD *a3)
+/* ===== emmc_read_gpt_header @ 0xB58C size 116 ===== */
+bool __fastcall emmc_read_gpt_header(__int64 a1, __int64 a2, _QWORD *a3)
 {
   return a1 != 0
       && a3 != nullptr
@@ -3941,8 +3941,8 @@ bool __fastcall sub_B58C(__int64 a1, __int64 a2, _QWORD *a3)
       && a3[3] == a2;
 }
 
-/* ===== sub_B600 @ 0xB600 size 312 ===== */
-__int64 __fastcall sub_B600(__int64 a1, __int64 a2, _QWORD *a3)
+/* ===== emmc_find_partition @ 0xB600 size 312 ===== */
+__int64 __fastcall emmc_find_partition(__int64 a1, __int64 a2, _QWORD *a3)
 {
   __int64 result; // x0
   int i; // w21
@@ -3955,11 +3955,11 @@ __int64 __fastcall sub_B600(__int64 a1, __int64 a2, _QWORD *a3)
   _BYTE v14[40]; // [xsp+58h] [xbp+58h] BYREF
 
   v13 = nullptr;
-  if ( a3 != nullptr && a2 != 0 && sub_B58C(a1, 1, v12) )
+  if ( a3 != nullptr && a2 != 0 && emmc_read_gpt_header(a1, 1, v12) )
   {
     for ( i = 0; i != 48; ++i )
     {
-      if ( sub_B53C(a1, (__int64)v12, i, (__int64)v12) == 0 )
+      if ( emmc_read_gpt_entry(a1, (__int64)v12, i, (__int64)v12) == 0 )
         break;
       for ( j = 0; *(_QWORD *)(a1 + 24) >> 7 > (unsigned __int64)j; ++j )
       {
@@ -3971,7 +3971,7 @@ __int64 __fastcall sub_B600(__int64 a1, __int64 a2, _QWORD *a3)
           ++v9;
         }
         while ( v9 != 36 );
-        result = sub_997C((__int64)v14, a2);
+        result = strcmp_simple((__int64)v14, a2);
         if ( (_DWORD)result == 0 )
         {
           v10 = v13[4];
@@ -3987,18 +3987,18 @@ __int64 __fastcall sub_B600(__int64 a1, __int64 a2, _QWORD *a3)
   return 0xFFFFFFFFLL;
 }
 
-/* ===== sub_B738 @ 0xB738 size 4 ===== */
+/* ===== verify_image @ 0xB738 size 4 ===== */
 // attributes: thunk
-__int64 sub_B738()
+__int64 verify_image()
 {
-  return sub_D15C();
+  return verify_image_hash();
 }
 
-/* ===== sub_B73C @ 0xB73C size 4 ===== */
+/* ===== sec_boot_check @ 0xB73C size 4 ===== */
 // attributes: thunk
-__int64 __fastcall sub_B73C(__int64 a1)
+__int64 __fastcall sec_boot_check(__int64 a1)
 {
-  return sub_CDDC(a1);
+  return sec_boot_verify(a1);
 }
 
 /* ===== nullsub_4 @ 0xB740 size 4 ===== */
@@ -4007,14 +4007,14 @@ void nullsub_4()
   ;
 }
 
-/* ===== sub_B744 @ 0xB744 size 20 ===== */
-__int64 __fastcall sub_B744(__int64 a1)
+/* ===== pmic_reg_read_wrap @ 0xB744 size 20 ===== */
+__int64 __fastcall pmic_reg_read_wrap(__int64 a1)
 {
-  return sub_BC08(0, 3, a1, 0);
+  return pmic_bulk_read(0, 3, a1, 0);
 }
 
-/* ===== sub_B758 @ 0xB758 size 500 ===== */
-__int64 __fastcall sub_B758(unsigned int a1, _DWORD *a2)
+/* ===== pmic_get_status @ 0xB758 size 500 ===== */
+__int64 __fastcall pmic_get_status(unsigned int a1, _DWORD *a2)
 {
   __int64 result; // x0
   int v5; // w1
@@ -4039,12 +4039,12 @@ __int64 __fastcall sub_B758(unsigned int a1, _DWORD *a2)
   {
     v15 = 0;
     v16 = 0;
-    sub_B744((__int64)&v15);
+    pmic_reg_read_wrap((__int64)&v15);
     if ( (HIDWORD(v15) | (unsigned int)v15 | (unsigned int)v16 | HIDWORD(v16)) == 0 )
       *a2 = 0;
     v15 = 0;
     v16 = 0;
-    sub_B744((__int64)&v15);
+    pmic_reg_read_wrap((__int64)&v15);
     LOBYTE(v5) = 1;
     for ( i = 0; i != 32; i += 4 )
     {
@@ -4055,7 +4055,7 @@ __int64 __fastcall sub_B758(unsigned int a1, _DWORD *a2)
       *a2 = 15;
     v15 = 0;
     v16 = 0;
-    sub_B744((__int64)&v15);
+    pmic_reg_read_wrap((__int64)&v15);
     LOBYTE(v8) = 1;
     for ( j = 0; j != 32; j += 4 )
     {
@@ -4067,7 +4067,7 @@ __int64 __fastcall sub_B758(unsigned int a1, _DWORD *a2)
       *a2 |= 0xF00u;
     v15 = 0;
     v16 = 0;
-    sub_B744((__int64)&v15);
+    pmic_reg_read_wrap((__int64)&v15);
     LOBYTE(v11) = 1;
     for ( k = 0; k != 32; k += 4 )
     {
@@ -4082,11 +4082,11 @@ __int64 __fastcall sub_B758(unsigned int a1, _DWORD *a2)
   if ( a1 - 36 <= 6 )
     return 0;
   v14 = *((unsigned int *)&qword_D590[2] + a1);
-  return sub_BC08(v14, (unsigned int)v14, a2, 1);
+  return pmic_bulk_read(v14, (unsigned int)v14, a2, 1);
 }
 
-/* ===== sub_B94C @ 0xB94C size 128 ===== */
-__int64 __fastcall sub_B94C(unsigned int a1, unsigned int a2)
+/* ===== pmic_set_status @ 0xB94C size 128 ===== */
+__int64 __fastcall pmic_set_status(unsigned int a1, unsigned int a2)
 {
   unsigned int v3; // w1
   bool v4; // cf
@@ -4108,17 +4108,17 @@ __int64 __fastcall sub_B94C(unsigned int a1, unsigned int a2)
       {
         v6 = *((unsigned int *)&qword_D590[2] + a1);
         if ( a1 == 24 || a1 == 33 )
-          return sub_BD28(v6, v7);
+          return pmic_single_write(v6, v7);
         else
-          return sub_BA0C(v6, (unsigned int)v6, &v7, 1);
+          return pmic_bulk_write(v6, (unsigned int)v6, &v7, 1);
       }
     }
   }
   return result;
 }
 
-/* ===== sub_B9CC @ 0xB9CC size 32 ===== */
-__int64 sub_B9CC()
+/* ===== pmic_lock @ 0xB9CC size 32 ===== */
+__int64 pmic_lock()
 {
   __int64 result; // x0
 
@@ -4127,8 +4127,8 @@ __int64 sub_B9CC()
   return result;
 }
 
-/* ===== sub_B9EC @ 0xB9EC size 32 ===== */
-__int64 sub_B9EC()
+/* ===== pmic_unlock @ 0xB9EC size 32 ===== */
+__int64 pmic_unlock()
 {
   __int64 result; // x0
 
@@ -4137,8 +4137,8 @@ __int64 sub_B9EC()
   return result;
 }
 
-/* ===== sub_BA0C @ 0xBA0C size 508 ===== */
-__int64 __fastcall sub_BA0C(unsigned int a1, unsigned int a2, __int64 a3, int a4)
+/* ===== pmic_bulk_write @ 0xBA0C size 508 ===== */
+__int64 __fastcall pmic_bulk_write(unsigned int a1, unsigned int a2, __int64 a3, int a4)
 {
   unsigned int v5; // w0
   unsigned int i; // w3
@@ -4146,15 +4146,15 @@ __int64 __fastcall sub_BA0C(unsigned int a1, unsigned int a2, __int64 a3, int a4
   unsigned int v8; // w0
   unsigned int v9; // w19
 
-  sub_B9CC();
+  pmic_lock();
   MEMORY[0x4024004C] = 34832;
   MEMORY[0x40240048] = 0xFFFF;
   MEMORY[0x40240040] |= 0x10u;
   MEMORY[0x40240054] |= 4u;
   MEMORY[0x40240054] &= ~2u;
-  sub_A020(1);
+  pmic_delay_us2(1);
   MEMORY[0x40240054] |= 1u;
-  sub_A020(1);
+  pmic_delay_us2(1);
   MEMORY[0x40240040] |= 2u;
   if ( a4 != 0 )
     v5 = MEMORY[0x40240040] | 4;
@@ -4172,18 +4172,18 @@ __int64 __fastcall sub_BA0C(unsigned int a1, unsigned int a2, __int64 a3, int a4
   else
     v9 = 0;
   MEMORY[0x40240054] &= ~1u;
-  sub_A020(1);
+  pmic_delay_us2(1);
   MEMORY[0x40240054] |= 2u;
-  sub_A020(1);
+  pmic_delay_us2(1);
   MEMORY[0x40240054] &= ~4u;
   MEMORY[0x40240040] &= ~0x10u;
   MEMORY[0x4024004C] = 0;
-  sub_B9EC();
+  pmic_unlock();
   return v9;
 }
 
-/* ===== sub_BC08 @ 0xBC08 size 288 ===== */
-bool __fastcall sub_BC08(unsigned int a1, unsigned int a2, __int64 a3, int a4)
+/* ===== pmic_bulk_read @ 0xBC08 size 288 ===== */
+bool __fastcall pmic_bulk_read(unsigned int a1, unsigned int a2, __int64 a3, int a4)
 {
   unsigned int v4; // w3
   unsigned int i; // w4
@@ -4191,7 +4191,7 @@ bool __fastcall sub_BC08(unsigned int a1, unsigned int a2, __int64 a3, int a4)
   unsigned int v7; // w3
   int v8; // w19
 
-  sub_B9CC();
+  pmic_lock();
   MEMORY[0x4024004C] = 34832;
   MEMORY[0x40240048] = 0xFFFF;
   MEMORY[0x40240040] |= 1u;
@@ -4211,23 +4211,23 @@ bool __fastcall sub_BC08(unsigned int a1, unsigned int a2, __int64 a3, int a4)
   v8 = MEMORY[0x40240044];
   MEMORY[0x40240040] &= ~1u;
   MEMORY[0x4024004C] = 0;
-  sub_B9EC();
+  pmic_unlock();
   return v8 != 0;
 }
 
-/* ===== sub_BD28 @ 0xBD28 size 392 ===== */
-__int64 __fastcall sub_BD28(int a1, int a2)
+/* ===== pmic_single_write @ 0xBD28 size 392 ===== */
+__int64 __fastcall pmic_single_write(int a1, int a2)
 {
   unsigned int v3; // w19
 
-  sub_B9CC();
+  pmic_lock();
   MEMORY[0x4024004C] = 34832;
   MEMORY[0x40240048] = 0xFFFF;
   MEMORY[0x40240054] |= 4u;
   MEMORY[0x40240054] &= ~2u;
-  sub_A020(1);
+  pmic_delay_us2(1);
   MEMORY[0x40240054] |= 1u;
-  sub_A020(1);
+  pmic_delay_us2(1);
   MEMORY[0x40240040] &= ~2u;
   MEMORY[0x40240040] |= 4u;
   *(_DWORD *)(unsigned int)(4 * a1 + 1076105216) = a2;
@@ -4236,17 +4236,17 @@ __int64 __fastcall sub_BD28(int a1, int a2)
   else
     v3 = 0;
   MEMORY[0x40240054] &= ~1u;
-  sub_A020(1);
+  pmic_delay_us2(1);
   MEMORY[0x40240054] |= 2u;
-  sub_A020(1);
+  pmic_delay_us2(1);
   MEMORY[0x40240054] &= ~4u;
   MEMORY[0x4024004C] = 0;
-  sub_B9EC();
+  pmic_unlock();
   return v3;
 }
 
-/* ===== sub_BEB0 @ 0xBEB0 size 172 ===== */
-__int64 __fastcall sub_BEB0(__int64 a1, signed int a2, _BYTE *a3, int a4, int a5)
+/* ===== asn1_unwrap_pkcs1 @ 0xBEB0 size 172 ===== */
+__int64 __fastcall asn1_unwrap_pkcs1(__int64 a1, signed int a2, _BYTE *a3, int a4, int a5)
 {
   unsigned int v6; // w5
   unsigned __int8 *v7; // x1
@@ -4284,7 +4284,7 @@ LABEL_10:
         v11 = v8 - (i + 1);
         if ( (int)v11 <= a2 )
         {
-          sub_C184(a1, v7, v11);
+          memcpy_impl2(a1, v7, v11);
           return v11;
         }
       }
@@ -4293,19 +4293,19 @@ LABEL_10:
   return v6;
 }
 
-/* ===== sub_BF5C @ 0xBF5C size 80 ===== */
-__int64 __fastcall sub_BF5C(unsigned int a1, int a2)
+/* ===== pmic_check_mask @ 0xBF5C size 80 ===== */
+__int64 __fastcall pmic_check_mask(unsigned int a1, int a2)
 {
   __int64 result; // x0
   int v5; // [xsp+2Ch] [xbp+2Ch] BYREF
 
-  result = sub_B758(a1, &v5);
+  result = pmic_get_status(a1, &v5);
   if ( (_DWORD)result == 0 )
   {
     result = 0;
     if ( (a2 & ~v5) != 0 )
     {
-      if ( (unsigned int)sub_B94C(a1, a2 & (unsigned int)~v5) != 0 )
+      if ( (unsigned int)pmic_set_status(a1, a2 & (unsigned int)~v5) != 0 )
         return 4294901762LL;
       else
         return 0;
@@ -4314,8 +4314,8 @@ __int64 __fastcall sub_BF5C(unsigned int a1, int a2)
   return result;
 }
 
-/* ===== sub_BFAC @ 0xBFAC size 124 ===== */
-__int64 __fastcall sub_BFAC(unsigned int a1, int a2)
+/* ===== pmic_update_mask @ 0xBFAC size 124 ===== */
+__int64 __fastcall pmic_update_mask(unsigned int a1, int a2)
 {
   unsigned int v4; // w1
   int v5; // w0
@@ -4324,13 +4324,13 @@ __int64 __fastcall sub_BFAC(unsigned int a1, int a2)
 
   v7 = 0;
   v8 = 0;
-  if ( (unsigned int)sub_B758(a1, &v8) != 0 )
+  if ( (unsigned int)pmic_get_status(a1, &v8) != 0 )
     return (unsigned int)-65533;
-  v5 = sub_BF5C(a1, a2);
+  v5 = pmic_check_mask(a1, a2);
   v4 = -65534;
   if ( v5 != 0 )
     return v4;
-  if ( (unsigned int)sub_B758(a1, &v7) != 0 )
+  if ( (unsigned int)pmic_get_status(a1, &v7) != 0 )
   {
     return (unsigned int)-65533;
   }
@@ -4344,8 +4344,8 @@ __int64 __fastcall sub_BFAC(unsigned int a1, int a2)
   }
 }
 
-/* ===== sub_C028 @ 0xC028 size 160 ===== */
-__int64 __fastcall sub_C028(int a1, _DWORD *a2)
+/* ===== pmic_get_faults @ 0xC028 size 160 ===== */
+__int64 __fastcall pmic_get_faults(int a1, _DWORD *a2)
 {
   __int64 result; // x0
   unsigned int v5; // w19
@@ -4365,7 +4365,7 @@ __int64 __fastcall sub_C028(int a1, _DWORD *a2)
         v6 = 0;
         while ( 1 )
         {
-          result = sub_B758(v5, &v9);
+          result = pmic_get_status(v5, &v9);
           if ( (_DWORD)result != 0 )
             break;
           v7 = v9;
@@ -4391,14 +4391,14 @@ __int64 __fastcall sub_C028(int a1, _DWORD *a2)
     }
     else
     {
-      return sub_B758(0x18u, a2);
+      return pmic_get_status(0x18u, a2);
     }
   }
   return result;
 }
 
-/* ===== sub_C0C8 @ 0xC0C8 size 156 ===== */
-__int64 __fastcall sub_C0C8(int a1, unsigned int a2)
+/* ===== pmic_clear_faults @ 0xC0C8 size 156 ===== */
+__int64 __fastcall pmic_clear_faults(int a1, unsigned int a2)
 {
   __int64 result; // x0
   unsigned int v4; // w19
@@ -4417,7 +4417,7 @@ __int64 __fastcall sub_C0C8(int a1, unsigned int a2)
         {
           v6 = v4 > 0x20 ? 32 : v4;
           v4 -= v6;
-          result = sub_BFAC(i, 0xFFFFFFFFuLL >> (32 - (unsigned __int8)v6));
+          result = pmic_update_mask(i, 0xFFFFFFFFuLL >> (32 - (unsigned __int8)v6));
           if ( (_DWORD)result != 0 || i == 42 )
             break;
           if ( v4 == 0 )
@@ -4427,14 +4427,14 @@ __int64 __fastcall sub_C0C8(int a1, unsigned int a2)
     }
     else
     {
-      return sub_BFAC(0x18u, a2);
+      return pmic_update_mask(0x18u, a2);
     }
   }
   return result;
 }
 
-/* ===== sub_C164 @ 0xC164 size 32 ===== */
-__int64 __fastcall sub_C164(__int64 result, char a2, int a3)
+/* ===== memset_simple @ 0xC164 size 32 ===== */
+__int64 __fastcall memset_simple(__int64 result, char a2, int a3)
 {
   __int64 i; // x3
 
@@ -4443,8 +4443,8 @@ __int64 __fastcall sub_C164(__int64 result, char a2, int a3)
   return result;
 }
 
-/* ===== sub_C184 @ 0xC184 size 36 ===== */
-__int64 __fastcall sub_C184(__int64 result, __int64 a2, int a3)
+/* ===== memcpy_impl2 @ 0xC184 size 36 ===== */
+__int64 __fastcall memcpy_impl2(__int64 result, __int64 a2, int a3)
 {
   __int64 i; // x3
 
@@ -4453,8 +4453,8 @@ __int64 __fastcall sub_C184(__int64 result, __int64 a2, int a3)
   return result;
 }
 
-/* ===== sub_C1A8 @ 0xC1A8 size 52 ===== */
-__int64 __fastcall sub_C1A8(__int64 a1, __int64 a2, int a3)
+/* ===== memcmp_simple @ 0xC1A8 size 52 ===== */
+__int64 __fastcall memcmp_simple(__int64 a1, __int64 a2, int a3)
 {
   __int64 v4; // x3
   int v5; // w0
@@ -4473,8 +4473,8 @@ __int64 __fastcall sub_C1A8(__int64 a1, __int64 a2, int a3)
   return 0;
 }
 
-/* ===== sub_C1DC @ 0xC1DC size 44 ===== */
-_BYTE *__fastcall sub_C1DC(_BYTE *result)
+/* ===== init_hash_header @ 0xC1DC size 44 ===== */
+_BYTE *__fastcall init_hash_header(_BYTE *result)
 {
   result[3] = 119;
   result[2] = 48;
@@ -4483,8 +4483,8 @@ _BYTE *__fastcall sub_C1DC(_BYTE *result)
   return result;
 }
 
-/* ===== sub_C208 @ 0xC208 size 64 ===== */
-__int64 __fastcall sub_C208(unsigned __int16 a1, int a2, __int64 a3)
+/* ===== sha_dma_write @ 0xC208 size 64 ===== */
+__int64 __fastcall sha_dma_write(unsigned __int16 a1, int a2, __int64 a3)
 {
   __int64 v3; // x3
   __int64 result; // x0
@@ -4500,8 +4500,8 @@ __int64 __fastcall sub_C208(unsigned __int16 a1, int a2, __int64 a3)
   return result;
 }
 
-/* ===== sub_C248 @ 0xC248 size 76 ===== */
-__int64 __fastcall sub_C248(_DWORD *a1)
+/* ===== sha_start @ 0xC248 size 76 ===== */
+__int64 __fastcall sha_start(_DWORD *a1)
 {
   __int64 v1; // x2
   __int64 result; // x0
@@ -4516,8 +4516,8 @@ __int64 __fastcall sub_C248(_DWORD *a1)
   return result;
 }
 
-/* ===== sub_C294 @ 0xC294 size 64 ===== */
-__int64 __fastcall sub_C294(unsigned __int16 a1, int a2, __int64 a3)
+/* ===== sha_dma_write2 @ 0xC294 size 64 ===== */
+__int64 __fastcall sha_dma_write2(unsigned __int16 a1, int a2, __int64 a3)
 {
   __int64 v3; // x3
   __int64 result; // x0
@@ -4533,8 +4533,8 @@ __int64 __fastcall sub_C294(unsigned __int16 a1, int a2, __int64 a3)
   return result;
 }
 
-/* ===== sub_C2D4 @ 0xC2D4 size 44 ===== */
-__int64 __fastcall sub_C2D4(_DWORD *a1, int a2)
+/* ===== sha_finish @ 0xC2D4 size 44 ===== */
+__int64 __fastcall sha_finish(_DWORD *a1, int a2)
 {
   __int64 v2; // x3
   __int64 result; // x0
@@ -4547,8 +4547,8 @@ __int64 __fastcall sub_C2D4(_DWORD *a1, int a2)
   return result;
 }
 
-/* ===== sub_C300 @ 0xC300 size 244 ===== */
-__int64 __fastcall sub_C300(int *a1)
+/* ===== sha_compute_short @ 0xC300 size 244 ===== */
+__int64 __fastcall sha_compute_short(int *a1)
 {
   __int64 v2; // x0
   __int64 v3; // x0
@@ -4566,7 +4566,7 @@ __int64 __fastcall sub_C300(int *a1)
   int v16; // [xsp+48h] [xbp+48h]
   char v17; // [xsp+4Ch] [xbp+4Ch]
 
-  sub_C164((__int64)&v8, 0, 16);
+  memset_simple((__int64)&v8, 0, 16);
   v2 = *((_QWORD *)a1 + 21);
   v10 = v2;
   HIBYTE(v8) = HIBYTE(v8) & 0xF0 | BYTE4(v2) & 0xF;
@@ -4575,10 +4575,10 @@ __int64 __fastcall sub_C300(int *a1)
   v11 = v3;
   HIBYTE(v9) = HIBYTE(v9) & 0xF0 | BYTE4(v3) & 0xF;
   v9 = v9 & 0xFF000000 | a1[48] & 0xFFFFFF;
-  sub_C208(0x48u, 4, (__int64)&v8);
-  sub_C164((__int64)&v12, 0, 24);
+  sha_dma_write(0x48u, 4, (__int64)&v8);
+  memset_simple((__int64)&v12, 0, 24);
   v12 = *a1;
-  sub_C1DC(v14);
+  init_hash_header(v14);
   v17 = 0;
   v4 = a1[2];
   v15 = 0;
@@ -4587,11 +4587,11 @@ __int64 __fastcall sub_C300(int *a1)
   v14[0] = v5 | 6;
   v16 = 0;
   v13 = v13 & 0xFE0F | (16 * (v6 & 0x1F)) | 1;
-  return sub_C248(&v12);
+  return sha_start(&v12);
 }
 
-/* ===== sub_C3F4 @ 0xC3F4 size 768 ===== */
-__int64 __fastcall sub_C3F4(int *a1)
+/* ===== sha_compute_full @ 0xC3F4 size 768 ===== */
+__int64 __fastcall sha_compute_full(int *a1)
 {
   __int64 v2; // x2
   unsigned int v3; // w1
@@ -4645,7 +4645,7 @@ __int64 __fastcall sub_C3F4(int *a1)
     v7 = i + 2;
     v42[v5] = v6 | (*(unsigned __int8 *)(v2 + v7) << 8);
   }
-  sub_C208(0x80u, v3 >> 2, (__int64)v42);
+  sha_dma_write(0x80u, v3 >> 2, (__int64)v42);
   v8 = *((_QWORD *)a1 + 5);
   if ( v8 != 0 )
   {
@@ -4661,12 +4661,12 @@ __int64 __fastcall sub_C3F4(int *a1)
         v13 = j + 2;
         v42[v11] = v12 | (*(unsigned __int8 *)(v8 + v13) << 8);
       }
-      sub_C208(0xA0u, v9 >> 2, (__int64)v42);
+      sha_dma_write(0xA0u, v9 >> 2, (__int64)v42);
     }
   }
   if ( a1[1] == 0 )
   {
-    sub_C164((__int64)v29, 0, 16);
+    memset_simple((__int64)v29, 0, 16);
     v14 = *a1 - 1;
     if ( v14 <= 4 && ((1LL << v14) & 0x17) != 0 )
     {
@@ -4690,9 +4690,9 @@ __int64 __fastcall sub_C3F4(int *a1)
              | *(unsigned __int8 *)(v15 + 15)
              | (*(unsigned __int8 *)(v15 + 14) << 8);
     }
-    sub_C208(0x70u, 4, (__int64)v29);
+    sha_dma_write(0x70u, 4, (__int64)v29);
   }
-  sub_C164((__int64)&v30, 0, 16);
+  memset_simple((__int64)&v30, 0, 16);
   v21 = *((_QWORD *)a1 + 21);
   v32 = v21;
   HIBYTE(v30) = HIBYTE(v30) & 0xF0 | BYTE4(v21) & 0xF;
@@ -4701,10 +4701,10 @@ __int64 __fastcall sub_C3F4(int *a1)
   v33 = v22;
   HIBYTE(v31) = HIBYTE(v31) & 0xF0 | BYTE4(v22) & 0xF;
   v31 = v31 & 0xFF000000 | a1[48] & 0xFFFFFF;
-  sub_C208(0x48u, 4, (__int64)&v30);
-  sub_C164((__int64)&v34, 0, 24);
+  sha_dma_write(0x48u, 4, (__int64)&v30);
+  memset_simple((__int64)&v34, 0, 24);
   v34 = *a1;
-  sub_C1DC(&v37);
+  init_hash_header(&v37);
   v23 = a1[2];
   v38 &= ~1u;
   v24 = a1[8];
@@ -4729,17 +4729,17 @@ __int64 __fastcall sub_C3F4(int *a1)
   v39 = 0;
   v40 = 0;
   v35 = v35 & 0xEF | (16 * (v27 & 1)) | 1;
-  return sub_C248(&v34);
+  return sha_start(&v34);
 }
 
-/* ===== sub_C6F4 @ 0xC6F4 size 16 ===== */
-__int64 sub_C6F4()
+/* ===== sha_get_result @ 0xC6F4 size 16 ===== */
+__int64 sha_get_result()
 {
   return *(unsigned int *)(MEMORY[0xF198] + 1300LL);
 }
 
-/* ===== sub_C704 @ 0xC704 size 32 ===== */
-__int64 sub_C704()
+/* ===== sha_wait_done @ 0xC704 size 32 ===== */
+__int64 sha_wait_done()
 {
   while ( (*(_DWORD *)(MEMORY[0xF198] + 32LL) & 1) == 0 )
     ;
@@ -4747,8 +4747,8 @@ __int64 sub_C704()
   return 0;
 }
 
-/* ===== sub_C724 @ 0xC724 size 32 ===== */
-__int64 sub_C724()
+/* ===== sha_wait_done2 @ 0xC724 size 32 ===== */
+__int64 sha_wait_done2()
 {
   while ( (*(_DWORD *)(MEMORY[0xF198] + 32LL) & 0x2000) == 0 )
     ;
@@ -4756,8 +4756,8 @@ __int64 sub_C724()
   return 0;
 }
 
-/* ===== sub_C744 @ 0xC744 size 476 ===== */
-__int64 __fastcall sub_C744(__int64 a1)
+/* ===== sha_compute_soc @ 0xC744 size 476 ===== */
+__int64 __fastcall sha_compute_soc(__int64 a1)
 {
   int *v2; // x21
   int v3; // t1
@@ -4772,11 +4772,11 @@ __int64 __fastcall sub_C744(__int64 a1)
 
   v2 = (int *)a1;
   v5 = *(_DWORD *)(a1 + 32);
-  sub_C294(0xD0u, 1, (__int64)&v5);
-  sub_C164((__int64)v6, 0, 20);
+  sha_dma_write2(0xD0u, 1, (__int64)&v5);
+  memset_simple((__int64)v6, 0, 20);
   v7 = (*(_QWORD *)(a1 + 184) >> 17) & 0x7FFFF;
-  sub_C294(0x60Cu, 1, (__int64)&v7);
-  sub_C164((__int64)&v9, 0, 24);
+  sha_dma_write2(0x60Cu, 1, (__int64)&v7);
+  memset_simple((__int64)&v9, 0, 24);
   v3 = *v2;
   v2 += 9;
   v9 = v3;
@@ -4784,28 +4784,28 @@ __int64 __fastcall sub_C744(__int64 a1)
   v10 |= 3u;
   v12 = (16 * (BYTE4(v2) & 0xF)) | 3;
   v8 = (*(_QWORD *)(a1 + 16) >> 17) & 0x7FFFF;
-  sub_C294(0x610u, 1, (__int64)&v8);
-  *(_DWORD *)(a1 + 36) = sub_CD50(0, 0, 1, *(_QWORD *)(a1 + 16) & 0x1FFFFLL);
-  *(_DWORD *)(a1 + 40) = sub_CD48();
-  sub_C2D4(&v9, (int)v2);
-  sub_C724();
+  sha_dma_write2(0x610u, 1, (__int64)&v8);
+  *(_DWORD *)(a1 + 36) = sha_desc_low(0, 0, 1, *(_QWORD *)(a1 + 16) & 0x1FFFFLL);
+  *(_DWORD *)(a1 + 40) = sha_invalid();
+  sha_finish(&v9, (int)v2);
+  sha_wait_done2();
   v8 = (*(_QWORD *)(a1 + 24) >> 17) & 0x7FFFF;
-  sub_C294(0x610u, 1, (__int64)&v8);
-  *(_DWORD *)(a1 + 36) = sub_CD50(0, 2, 1, *(_QWORD *)(a1 + 24) & 0x1FFFFLL);
-  *(_DWORD *)(a1 + 40) = sub_CD48();
-  sub_C2D4(&v9, (int)v2);
-  sub_C724();
+  sha_dma_write2(0x610u, 1, (__int64)&v8);
+  *(_DWORD *)(a1 + 36) = sha_desc_low(0, 2, 1, *(_QWORD *)(a1 + 24) & 0x1FFFFLL);
+  *(_DWORD *)(a1 + 40) = sha_invalid();
+  sha_finish(&v9, (int)v2);
+  sha_wait_done2();
   v8 = (*(_QWORD *)(a1 + 168) >> 17) & 0x7FFFF;
-  sub_C294(0x610u, 1, (__int64)&v8);
-  *(_DWORD *)(a1 + 36) = sub_CD50(0, 1, 1, *(_QWORD *)(a1 + 168) & 0x1FFFFLL);
-  *(_DWORD *)(a1 + 40) = sub_CDA0(0, 3, 1, 2);
-  *(_DWORD *)(a1 + 44) = sub_CD78(0, 3, 1, *(_QWORD *)(a1 + 184) & 0x1FFFFLL);
-  *(_DWORD *)(a1 + 48) = sub_CD48();
-  return sub_C2D4(&v9, (int)v2);
+  sha_dma_write2(0x610u, 1, (__int64)&v8);
+  *(_DWORD *)(a1 + 36) = sha_desc_low(0, 1, 1, *(_QWORD *)(a1 + 168) & 0x1FFFFLL);
+  *(_DWORD *)(a1 + 40) = sha_desc_link(0, 3, 1, 2);
+  *(_DWORD *)(a1 + 44) = sha_desc_high(0, 3, 1, *(_QWORD *)(a1 + 184) & 0x1FFFFLL);
+  *(_DWORD *)(a1 + 48) = sha_invalid();
+  return sha_finish(&v9, (int)v2);
 }
 
-/* ===== sub_C920 @ 0xC920 size 52 ===== */
-int *__fastcall sub_C920(int *a1)
+/* ===== sha_dispatch @ 0xC920 size 52 ===== */
+int *__fastcall sha_dispatch(int *a1)
 {
   unsigned int v1; // w1
 
@@ -4813,19 +4813,19 @@ int *__fastcall sub_C920(int *a1)
   switch ( v1 )
   {
     case 0x2000000u:
-      return (int *)sub_C300(a1);
+      return (int *)sha_compute_short(a1);
     case 0x5010000u:
-      return (int *)sub_C744((__int64)a1);
+      return (int *)sha_compute_soc((__int64)a1);
     case 0u:
-      return (int *)sub_C3F4(a1);
+      return (int *)sha_compute_full(a1);
     default:
       break;
   }
   return a1;
 }
 
-/* ===== sub_C954 @ 0xC954 size 24 ===== */
-__int64 sub_C954()
+/* ===== sha_reset @ 0xC954 size 24 ===== */
+__int64 sha_reset()
 {
   __int64 result; // x0
 
@@ -4834,8 +4834,8 @@ __int64 sub_C954()
   return result;
 }
 
-/* ===== sub_C96C @ 0xC96C size 44 ===== */
-__int64 sub_C96C()
+/* ===== sha_reset2 @ 0xC96C size 44 ===== */
+__int64 sha_reset2()
 {
   __int64 v0; // x0
   __int64 result; // x0
@@ -4848,23 +4848,23 @@ __int64 sub_C96C()
   return result;
 }
 
-/* ===== sub_C998 @ 0xC998 size 100 ===== */
-__int64 sub_C998()
+/* ===== sha_init @ 0xC998 size 100 ===== */
+__int64 sha_init()
 {
   __int64 result; // x0
 
   if ( (MEMORY[0x21500058] & 3) != 3 )
     MEMORY[0x21500058] |= 3u;
   *(_DWORD *)(MEMORY[0xF190] + 16440LL) = 1;
-  sub_C96C();
-  sub_C6F4();
+  sha_reset2();
+  sha_get_result();
   result = MEMORY[0xF198];
   *(_DWORD *)(MEMORY[0xF198] + 36LL) = 32657;
   return result;
 }
 
-/* ===== sub_C9FC @ 0xC9FC size 28 ===== */
-unsigned __int64 sub_C9FC()
+/* ===== sha_base_init @ 0xC9FC size 28 ===== */
+unsigned __int64 sha_base_init()
 {
   MEMORY[0xF190] = 551550976;
   MEMORY[0xF198] = 568328192;
@@ -4877,8 +4877,8 @@ void nullsub_3()
   ;
 }
 
-/* ===== sub_CA1C @ 0xCA1C size 512 ===== */
-__int64 __fastcall sub_CA1C(
+/* ===== crypto_hash @ 0xCA1C size 512 ===== */
+__int64 __fastcall crypto_hash(
         int a1,
         __int64 a2,
         int a3,
@@ -4935,10 +4935,10 @@ LABEL_13:
       result = 4294901760LL;
       if ( MEMORY[0xF1A0] == 1 )
         return result;
-      sub_C9FC();
-      sub_C998();
+      sha_base_init();
+      sha_init();
       MEMORY[0xF1A0] = 1;
-      sub_C164((__int64)v26, 0, 200);
+      memset_simple((__int64)v26, 0, 200);
       v26[0] = a1;
       v22 = a1 & 0xFFFF0000;
       v26[1] = 0;
@@ -4972,18 +4972,18 @@ LABEL_20:
           v37 = a3;
         }
       }
-      sub_C920(v26);
+      sha_dispatch(v26);
       if ( v22 == 83951616 )
-        v23 = sub_C724();
+        v23 = sha_wait_done2();
       else
-        v23 = sub_C704();
+        v23 = sha_wait_done();
       v24 = 0;
       if ( v23 != 0 )
         v24 = -65536;
       if ( a5 != nullptr )
         *a5 = v37;
       MEMORY[0xF1A0] = 0;
-      sub_C954();
+      sha_reset();
       nullsub_3();
       return v24;
     }
@@ -4991,8 +4991,8 @@ LABEL_20:
   return 4294901767LL;
 }
 
-/* ===== sub_CC74 @ 0xCC74 size 212 ===== */
-__int64 __fastcall sub_CC74(__int64 a1, __int64 a2, int a3, __int64 a4, __int64 a5)
+/* ===== crypto_hash_simple @ 0xCC74 size 212 ===== */
+__int64 __fastcall crypto_hash_simple(__int64 a1, __int64 a2, int a3, __int64 a4, __int64 a5)
 {
   signed int v5; // w20
   _BYTE v9[16]; // [xsp+20h] [xbp+0h] BYREF
@@ -5004,32 +5004,32 @@ __int64 __fastcall sub_CC74(__int64 a1, __int64 a2, int a3, __int64 a4, __int64 
   v5 = a3 >> 3;
   v10 = a2;
   v11 = a4;
-  sub_C164((__int64)v12, 0, 256);
-  sub_C184((__int64)&v13, a1, 4);
-  sub_CA1C(83951618, v11, 256, (__int64)v9, nullptr, v10, 256, (__int64)v12, 256, 0, 0);
-  return sub_BEB0(a5, v5, &v9[1], v5 - 1, v5);
+  memset_simple((__int64)v12, 0, 256);
+  memcpy_impl2((__int64)&v13, a1, 4);
+  crypto_hash(83951618, v11, 256, (__int64)v9, nullptr, v10, 256, (__int64)v12, 256, 0, 0);
+  return asn1_unwrap_pkcs1(a5, v5, &v9[1], v5 - 1, v5);
 }
 
-/* ===== sub_CD48 @ 0xCD48 size 8 ===== */
-__int64 sub_CD48()
+/* ===== sha_invalid @ 0xCD48 size 8 ===== */
+__int64 sha_invalid()
 {
   return 0xFFFFFFFFLL;
 }
 
-/* ===== sub_CD50 @ 0xCD50 size 40 ===== */
-__int64 __fastcall sub_CD50(char a1, char a2, char a3, int a4)
+/* ===== sha_desc_low @ 0xCD50 size 40 ===== */
+__int64 __fastcall sha_desc_low(char a1, char a2, char a3, int a4)
 {
   return a4 & 0x1FFFF | 0xB0000000 | ((a2 & 0x1F) << 18) | ((a1 & 0xF) << 23) | ((a3 & 1) << 17);
 }
 
-/* ===== sub_CD78 @ 0xCD78 size 40 ===== */
-__int64 __fastcall sub_CD78(char a1, char a2, char a3, int a4)
+/* ===== sha_desc_high @ 0xCD78 size 40 ===== */
+__int64 __fastcall sha_desc_high(char a1, char a2, char a3, int a4)
 {
   return a4 & 0x1FFFF | 0xB8000000 | ((a2 & 0x1F) << 18) | ((a1 & 0xF) << 23) | ((a3 & 1) << 17);
 }
 
-/* ===== sub_CDA0 @ 0xCDA0 size 40 ===== */
-__int64 __fastcall sub_CDA0(char a1, char a2, char a3, char a4)
+/* ===== sha_desc_link @ 0xCDA0 size 40 ===== */
+__int64 __fastcall sha_desc_link(char a1, char a2, char a3, char a4)
 {
   return ((a4 & 0x1F) << 6)
        | 0x58000000
@@ -5038,17 +5038,17 @@ __int64 __fastcall sub_CDA0(char a1, char a2, char a3, char a4)
        | ((unsigned __int8)(a1 & 0xF) << 23);
 }
 
-/* ===== sub_CDC8 @ 0xCDC8 size 20 ===== */
-__int64 __fastcall sub_CDC8(__int64 result, int a2, __int64 a3)
+/* ===== sha_hash_32bytes @ 0xCDC8 size 20 ===== */
+__int64 __fastcall sha_hash_32bytes(__int64 result, int a2, __int64 a3)
 {
   if ( result != 0 && a3 != 0 )
-    return sub_CA1C(33554436, result, a2, a3, nullptr, 0, 0, 0, 0, 0, 0);
+    return crypto_hash(33554436, result, a2, a3, nullptr, 0, 0, 0, 0, 0, 0);
   return result;
 }
 
-/* ===== sub_CDDC @ 0xCDDC size 124 ===== */
+/* ===== sec_boot_verify @ 0xCDDC size 124 ===== */
 // write access to const memory has been detected, the output may be wrong!
-void sub_CDDC()
+void sec_boot_verify()
 {
   int v0; // w2
   int *v1; // x0
@@ -5066,24 +5066,24 @@ void sub_CDDC()
       ++v0;
     }
     if ( MEMORY[0xF1E0] > 0x1234u )
-      sub_C0C8(0, MEMORY[0xF1E0]);
+      pmic_clear_faults(0, MEMORY[0xF1E0]);
     MEMORY[0xF210] = 0;
     dword_E33C = 0;
   }
 }
 
-/* ===== sub_CE58 @ 0xCE58 size 216 ===== */
-__int64 __fastcall sub_CE58(int a1, unsigned int a2)
+/* ===== sec_boot_record @ 0xCE58 size 216 ===== */
+__int64 __fastcall sec_boot_record(int a1, unsigned int a2)
 {
   int v4; // w0
 
   if ( a1 != 1 )
   {
     if ( a1 == 0 )
-      sub_C028(1, &dword_E338);
+      pmic_get_faults(1, &dword_E338);
     return 0;
   }
-  sub_C028(0, &dword_E33C);
+  pmic_get_faults(0, &dword_E33C);
   if ( a2 < 0x1234 )
     return 0;
   v4 = MEMORY[0xF210];
@@ -5092,8 +5092,8 @@ __int64 __fastcall sub_CE58(int a1, unsigned int a2)
   return 1;
 }
 
-/* ===== sub_CF30 @ 0xCF30 size 316 ===== */
-__int64 __fastcall sub_CF30(__int64 a1, __int64 a2, int *a3)
+/* ===== verify_image_signature @ 0xCF30 size 316 ===== */
+__int64 __fastcall verify_image_signature(__int64 a1, __int64 a2, int *a3)
 {
   unsigned int v4; // w21
   __int64 v8; // x0
@@ -5105,98 +5105,98 @@ __int64 __fastcall sub_CF30(__int64 a1, __int64 a2, int *a3)
   _BYTE v14[256]; // [xsp+60h] [xbp+60h] BYREF
 
   v4 = *(unsigned __int8 *)a3;
-  sub_C164((__int64)v14, 0, 256);
+  memset_simple((__int64)v14, 0, 256);
   if ( v4 > 1 )
     return 0;
   v8 = (__int64)(a3 + 1);
   if ( v4 != 1 )
   {
-    sub_CDC8(v8, 264, (__int64)v13);
-    v11 = sub_C1A8(a2, (__int64)(a3 + 67), 32);
-    if ( v11 == 0 && (unsigned int)sub_C1A8(a1, (__int64)v13, 32) == 0 )
+    sha_hash_32bytes(v8, 264, (__int64)v13);
+    v11 = memcmp_simple(a2, (__int64)(a3 + 67), 32);
+    if ( v11 == 0 && (unsigned int)memcmp_simple(a1, (__int64)v13, 32) == 0 )
     {
-      v12 = sub_CC74((__int64)(a3 + 2), (__int64)(a3 + 3), a3[1], (__int64)(a3 + 77), (__int64)v14);
-      if ( (unsigned int)sub_C1A8((__int64)(a3 + 67), (__int64)v14, v12) == 0 )
+      v12 = crypto_hash_simple((__int64)(a3 + 2), (__int64)(a3 + 3), a3[1], (__int64)(a3 + 77), (__int64)v14);
+      if ( (unsigned int)memcmp_simple((__int64)(a3 + 67), (__int64)v14, v12) == 0 )
       {
         v9 = a3[75];
         v10 = a3[76];
-        return sub_CE58(v9, v10);
+        return sec_boot_record(v9, v10);
       }
     }
     return 0;
   }
-  sub_CDC8(v8, 264, (__int64)v13);
-  if ( (unsigned int)sub_C1A8(a2, (__int64)(a3 + 67), 32) != 0 )
+  sha_hash_32bytes(v8, 264, (__int64)v13);
+  if ( (unsigned int)memcmp_simple(a2, (__int64)(a3 + 67), 32) != 0 )
     return 0;
-  if ( (unsigned int)sub_C1A8(a1, (__int64)v13, 32) != 0 )
+  if ( (unsigned int)memcmp_simple(a1, (__int64)v13, 32) != 0 )
     return 0;
-  sub_CC74((__int64)(a3 + 2), (__int64)(a3 + 3), a3[1], (__int64)(a3 + 85), (__int64)v14);
-  if ( (unsigned int)sub_C1A8((__int64)(a3 + 67), (__int64)v14, 72) != 0 )
+  crypto_hash_simple((__int64)(a3 + 2), (__int64)(a3 + 3), a3[1], (__int64)(a3 + 85), (__int64)v14);
+  if ( (unsigned int)memcmp_simple((__int64)(a3 + 67), (__int64)v14, 72) != 0 )
     return 0;
   v9 = a3[83];
   v10 = a3[84];
-  return sub_CE58(v9, v10);
+  return sec_boot_record(v9, v10);
 }
 
-/* ===== sub_D06C @ 0xD06C size 16 ===== */
-__int64 __fastcall sub_D06C(__int64 a1)
+/* ===== boot_header_get @ 0xD06C size 16 ===== */
+__int64 __fastcall boot_header_get(__int64 a1)
 {
   return a1 + *(unsigned int *)(a1 + 48) + 512LL;
 }
 
-/* ===== sub_D07C @ 0xD07C size 40 ===== */
-__int64 __fastcall sub_D07C(__int64 a1)
+/* ===== boot_header_get_cert @ 0xD07C size 40 ===== */
+__int64 __fastcall boot_header_get_cert(__int64 a1)
 {
-  return a1 + *(_QWORD *)(sub_D06C(a1) + 24);
+  return a1 + *(_QWORD *)(boot_header_get(a1) + 24);
 }
 
-/* ===== sub_D0A4 @ 0xD0A4 size 40 ===== */
-__int64 __fastcall sub_D0A4(__int64 a1)
+/* ===== boot_header_get_sig @ 0xD0A4 size 40 ===== */
+__int64 __fastcall boot_header_get_sig(__int64 a1)
 {
-  return a1 + *(_QWORD *)(sub_D06C(a1) + 40);
+  return a1 + *(_QWORD *)(boot_header_get(a1) + 40);
 }
 
-/* ===== sub_D0CC @ 0xD0CC size 100 ===== */
-__int64 __fastcall sub_D0CC(__int64 a1, __int64 a2)
+/* ===== verify_cert_and_sig @ 0xD0CC size 100 ===== */
+__int64 __fastcall verify_cert_and_sig(__int64 a1, __int64 a2)
 {
   __int64 v4; // x22
   __int64 v5; // x0
   int *v6; // x0
   _BYTE v8[32]; // [xsp+30h] [xbp+30h] BYREF
 
-  v4 = sub_D06C(a2);
-  v5 = sub_D07C(a2);
-  sub_CDC8(v5, *(_DWORD *)(v4 + 16), (__int64)v8);
-  v6 = (int *)sub_D0A4(a2);
-  return sub_CF30(a1, (__int64)v8, v6);
+  v4 = boot_header_get(a2);
+  v5 = boot_header_get_cert(a2);
+  sha_hash_32bytes(v5, *(_DWORD *)(v4 + 16), (__int64)v8);
+  v6 = (int *)boot_header_get_sig(a2);
+  return verify_image_signature(a1, (__int64)v8, v6);
 }
 
-/* ===== sub_D130 @ 0xD130 size 44 ===== */
-__int64 __fastcall sub_D130(__int64 a1, __int64 a2)
+/* ===== get_image_hash @ 0xD130 size 44 ===== */
+__int64 __fastcall get_image_hash(__int64 a1, __int64 a2)
 {
   __int64 v3; // x0
 
-  v3 = sub_D0A4(a1);
-  return sub_C184(a2, v3 + 300, 32);
+  v3 = boot_header_get_sig(a1);
+  return memcpy_impl2(a2, v3 + 300, 32);
 }
 
-/* ===== sub_D15C @ 0xD15C size 108 ===== */
-bool __fastcall sub_D15C(__int64 a1, __int64 a2)
+/* ===== verify_image_hash @ 0xD15C size 108 ===== */
+bool __fastcall verify_image_hash(__int64 a1, __int64 a2)
 {
   _BYTE v5[16]; // [xsp+30h] [xbp+30h] BYREF
   _BYTE v6[32]; // [xsp+40h] [xbp+40h] BYREF
 
-  sub_C164((__int64)v6, 0, 32);
-  sub_D130(a1, (__int64)v6);
-  sub_C164((__int64)v5, 0, 16);
-  return (unsigned int)sub_D0CC((__int64)v6, a2) == 0;
+  memset_simple((__int64)v6, 0, 32);
+  get_image_hash(a1, (__int64)v6);
+  memset_simple((__int64)v5, 0, 16);
+  return (unsigned int)verify_cert_and_sig((__int64)v6, a2) == 0;
 }
 
-/* ===== sub_D1C8 @ 0xD1C8 size 20 ===== */
-__int64 sub_D1C8()
+/* ===== secure_boot_init @ 0xD1C8 size 20 ===== */
+__int64 secure_boot_init()
 {
-  sub_C9FC();
-  return sub_C954();
+  sha_base_init();
+  return sha_reset();
 }
 
 /* ===== nullsub_2 @ 0xD1DC size 4 ===== */
@@ -5205,8 +5205,8 @@ void nullsub_2()
   ;
 }
 
-/* ===== sub_D1E0 @ 0xD1E0 size 500 ===== */
-__int64 sub_D1E0()
+/* ===== emmc_pinctrl_init @ 0xD1E0 size 500 ===== */
+__int64 emmc_pinctrl_init()
 {
   unsigned int v0; // w2
   _DWORD *v1; // x0
@@ -5245,8 +5245,8 @@ __int64 sub_D1E0()
   return 838946936;
 }
 
-/* ===== sub_D3D4 @ 0xD3D4 size 424 ===== */
-__int64 sub_D3D4()
+/* ===== emmc_dma_init @ 0xD3D4 size 424 ===== */
+__int64 emmc_dma_init()
 {
   unsigned int v0; // w3
   _DWORD *v1; // x0
